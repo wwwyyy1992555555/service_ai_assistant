@@ -1,0 +1,31 @@
+# =====================================
+# AI 智库企业咨询平台 - 主配置文件
+# =====================================
+
+spring:
+  application:
+    name: ai-think-tank
+  profiles:
+    active: dev
+
+# 通用配置
+app:
+  # 系统名称
+  name: AI 智库企业咨询平台
+  version: 1.0.0
+  
+  # 多租户配置
+  tenant:
+    enabled: true
+    # 默认租户 ID（演示用）
+    default-id: 1
+    
+  # JWT Token 配置
+  jwt:
+    secret: your-secret-key-here-ai-think-tank-2024
+    expire-time: 86400000  # 24 小时
+    
+  # 文件存储路径
+  upload:
+    path: /data/uploads/ai-think-tank
+    domain: http://localhost:8080

@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智库企业咨询平台 - 管理后台</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f7fa;
+        }
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 侧边栏样式 */
+        .sidebar {
+            width: 240px;
+            background: linear-gradient(180deg, #1890ff 0%, #096dd9 100%);
+            color: white;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            overflow-y: auto;
+        }
+
+        .logo {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logo h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .menu-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+        }
+
+        .menu-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .menu-item.active {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .menu-icon {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+
+        /* 主内容区样式 */
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+        }
+
+        .header {
+            background: white;
+            padding: 0 24px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 4px rgba(0,21,41,0.08);
+        }
+
+        .content {
+            padding: 24px;
+        }
+
+        /* 数据看板卡片 */
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12);
+        }
+
+        .stat-title {
+            color: rgba(0,0,0,0.45);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            color: #000000;
+            font-size: 30px;
+            font-weight: 600;
+        }
+
+        .stat-footer {
+            margin-top: 16px;
+            color: rgba(0,0,0,0.45);
+            font-size: 12px;
+        }
+
+        /* 表格容器 */
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12);
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .table-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #000000;
+        }
+
+        /* 按钮样式 */
+        .action-btn {
+            margin-right: 8px;
+        }
+
+        /* 对话记录标签 */
+        .status-tag {
+            margin-right: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="app-container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="logo">
+                <h1>🤖 AI 智库管理平台</h1>
+            </div>
+            <div class="menu-item active" @click="currentMenu = 'dashboard'">
+                <span class="menu-icon">📊</span>
+                <span>数据看板</span>
+            </div>
+            <div class="menu-item" @click="currentMenu = 'knowledge'">
+                <span class="menu-icon">📚</span>
+                <span>知识库管理</span>
+            </div>
+            <div class="menu-item" @click="currentMenu = 'records'">
+                <span class="menu-icon">💬</span>
+                <span>对话记录</span>
+            </div>
+            <div class="menu-item" @click="currentMenu = 'settings'">
+                <span class="menu-icon">⚙️</span>
+                <span>系统设置</span>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <!-- 顶部导航 -->
+            <div class="header">
+                <div>
+                    <el-breadcrumb separator="/">
+                        <el-breadcrumb-item>首页</el-breadcrumb-item>
+                        <el-breadcrumb-item>{{ getMenuName() }}</el-breadcrumb-item>
+                    </el-breadcrumb>
+                </div>
+                <div>
+                    <el-dropdown>
+                        <span class="el-dropdown-link" style="cursor: pointer;">
+                            管理员 <el-icon class="el-icon--right"><arrow-down /></el-icon>
+                        </span>
+                        <template #dropdown>
+                            <el-dropdown-menu>
+                                <el-dropdown-item>个人设置</el-dropdown-item>
+                                <el-dropdown-item divided>退出登录</el-dropdown-item>
+                            </el-dropdown-menu>
+                        </template>
+                    </el-dropdown>
+                </div>
+            </div>
+
+            <!-- 内容区域 -->
+            <div class="content">
+                <!-- 数据看板 -->
+                <div v-if="currentMenu === 'dashboard'">
+                    <div class="dashboard-cards">
+                        <div class="stat-card">
+                            <div class="stat-title">今日咨询量</div>
+                            <div class="stat-value">{{ stats.todayConsultations }}</div>
+                            <div class="stat-footer">较昨日 +{{ stats.consultationGrowth }}%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">问题解决率</div>
+                            <div class="stat-value">{{ stats.solveRate }}%</div>
+                            <div class="stat-footer">较上周 +{{ stats.solveRateGrowth }}%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">平均满意度</div>
+                            <div class="stat-value">{{ stats.avgSatisfaction }}</div>
+                            <div class="stat-footer">五星好评制</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">知识库条目</div>
+                            <div class="stat-value">{{ stats.knowledgeCount }}</div>
+                            <div class="stat-footer">共{{ stats.knowledgeCategories }}个分类</div>
+                        </div>
+                    </div>
+
+                    <!-- 热门问题 TOP10 -->
+                    <div class="table-container">
+                        <div class="table-header">
+                            <div class="table-title">🔥 热门问题 TOP10</div>
+                        </div>
+                        <el-table :data="hotQuestions" stripe style="width: 100%">
+                            <el-table-column type="index" label="排名" width="80" />
+                            <el-table-column prop="question" label="问题" />
+                            <el-table-column prop="viewCount" label="浏览次数" width="120" />
+                            <el-table-column prop="categoryName" label="分类" width="150" />
+                        </el-table>
+                    </div>
+                </div>
+
+                <!-- 知识库管理 -->
+                <div v-if="currentMenu === 'knowledge'">
+                    <div class="table-container">
+                        <div class="table-header">
+                            <div class="table-title">📚 知识库列表</div>
+                            <el-button type="primary" @click="showAddKnowledgeDialog">
+                                <el-icon><plus /></el-icon> 新增知识
+                            </el-button>
+                        </div>
+                        <el-table :data="knowledgeList" stripe style="width: 100%">
+                            <el-table-column prop="id" label="ID" width="80" />
+                            <el-table-column prop="title" label="标题" />
+                            <el-table-column prop="question" label="常见问题" />
+                            <el-table-column prop="keywords" label="关键词" />
+                            <el-table-column prop="publishStatus" label="状态" width="100">
+                                <template #default="scope">
+                                    <el-tag :type="scope.row.publishStatus === 1 ? 'success' : 'info'">
+                                        {{ scope.row.publishStatus === 1 ? '已发布' : '草稿' }}
+                                    </el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="viewCount" label="浏览数" width="100" />
+                            <el-table-column label="操作" width="200" fixed="right">
+                                <template #default="scope">
+                                    <el-button size="small" type="primary" @click="editKnowledge(scope.row)">编辑</el-button>
+                                    <el-button size="small" type="danger" @click="deleteKnowledge(scope.row.id)">删除</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <div style="margin-top: 16px; text-align: right;">
+                            <el-pagination
+                                v-model:current-page="knowledgePage.current"
+                                v-model:page-size="knowledgePage.size"
+                                :total="knowledgePage.total"
+                                @size-change="handleSizeChange"
+                                @current-change="handleCurrentChange"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 对话记录 -->
+                <div v-if="currentMenu === 'records'">
+                    <div class="table-container">
+                        <div class="table-header">
+                            <div class="table-title">💬 对话记录</div>
+                            <el-input
+                                v-model="searchQuestion"
+                                placeholder="搜索问题内容"
+                                style="width: 300px;"
+                                clearable
+                                @clear="loadRecords"
+                            >
+                                <template #append>
+                                    <el-button @click="loadRecords">
+                                        <el-icon><search /></el-icon>
+                                    </el-button>
+                                </template>
+                            </el-input>
+                        </div>
+                        <el-table :data="recordsList" stripe style="width: 100%">
+                            <el-table-column prop="id" label="ID" width="80" />
+                            <el-table-column prop="userName" label="用户" width="120" />
+                            <el-table-column prop="question" label="问题" min-width="200" />
+                            <el-table-column prop="answer" label="回答" min-width="300" show-overflow-tooltip />
+                            <el-table-column prop="isSolved" label="解决状态" width="100">
+                                <template #default="scope">
+                                    <el-tag :type="scope.row.isSolved === 1 ? 'success' : 'warning'" size="small">
+                                        {{ scope.row.isSolved === 1 ? '已解决' : '未解决' }}
+                                    </el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="satisfaction" label="满意度" width="100">
+                                <template #default="scope">
+                                    <div v-if="scope.row.satisfaction">
+                                        <el-rate v-model="scope.row.satisfaction" disabled />
+                                    </div>
+                                    <span v-else>-</span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="createdTime" label="时间" width="180" />
+                        </el-table>
+                    </div>
+                </div>
+
+                <!-- 系统设置 -->
+                <div v-if="currentMenu === 'settings'">
+                    <div class="table-container">
+                        <div class="table-title" style="margin-bottom: 24px;">⚙️ 系统设置</div>
+                        <el-form :model="settings" label-width="120px">
+                            <el-form-item label="企业名称">
+                                <el-input v-model="settings.companyName" placeholder="请输入企业名称" />
+                            </el-form-item>
+                            <el-form-item label="欢迎语">
+                                <el-input v-model="settings.welcomeMessage" type="textarea" :rows="3" placeholder="请输入欢迎语" />
+                            </el-form-item>
+                            <el-form-item label="主题颜色">
+                                <el-color-picker v-model="settings.themeColor" />
+                            </el-form-item>
+                            <el-form-item label="客服邮箱">
+                                <el-input v-model="settings.email" placeholder="请输入客服邮箱" />
+                            </el-form-item>
+                            <el-form-item label="客服电话">
+                                <el-input v-model="settings.phone" placeholder="请输入客服电话" />
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="saveSettings">保存设置</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 新增/编辑知识对话框 -->
+        <el-dialog
+            v-model="knowledgeDialogVisible"
+            :title="editingKnowledge.id ? '编辑知识' : '新增知识'"
+            width="800px"
+        >
+            <el-form :model="editingKnowledge" label-width="100px">
+                <el-form-item label="标题" required>
+                    <el-input v-model="editingKnowledge.title" placeholder="请输入标题" />
+                </el-form-item>
+                <el-form-item label="常见问题" required>
+                    <el-input v-model="editingKnowledge.question" placeholder="用户可能问的问题" />
+                </el-form-item>
+                <el-form-item label="关键词">
+                    <el-input v-model="editingKnowledge.keywords" placeholder="多个关键词用逗号分隔" />
+                </el-form-item>
+                <el-form-item label="答案" required>
+                    <el-input v-model="editingKnowledge.answer" type="textarea" :rows="6" placeholder="请输入标准答案" />
+                </el-form-item>
+                <el-form-item label="状态">
+                    <el-radio-group v-model="editingKnowledge.publishStatus">
+                        <el-radio :label="0">草稿</el-radio>
+                        <el-radio :label="1">已发布</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="knowledgeDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="saveKnowledge">确定</el-button>
+            </template>
+        </el-dialog>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/@element-plus/icons-vue"></script>
+
+    <script>
+        const { createApp, ref, reactive, onMounted } = Vue;
+
+        const app = createApp({
+            setup() {
+                const currentMenu = ref('dashboard');
+                const searchQuestion = ref('');
+                const knowledgeDialogVisible = ref(false);
+                const editingKnowledge = ref({});
+
+                // 统计数据
+                const stats = ref({
+                    todayConsultations: 156,
+                    consultationGrowth: 12.5,
+                    solveRate: 89.2,
+                    solveRateGrowth: 5.3,
+                    avgSatisfaction: 4.6,
+                    knowledgeCount: 328,
+                    knowledgeCategories: 12
+                });
+
+                // 热门问题
+                const hotQuestions = ref([
+                    { id: 1, question: '居住证怎么办理？', viewCount: 1256, categoryName: '户籍办理' },
+                    { id: 2, question: '社保卡补办流程', viewCount: 1089, categoryName: '社保医保' },
+                    { id: 3, question: '公积金提取条件', viewCount: 967, categoryName: '公积金' },
+                    { id: 4, question: '营业执照怎么办？', viewCount: 856, categoryName: '工商登记' },
+                    { id: 5, question: '新生儿医保办理', viewCount: 745, categoryName: '社保医保' },
+                ]);
+
+                // 知识列表
+                const knowledgeList = ref([]);
+                const knowledgePage = reactive({
+                    current: 1,
+                    size: 10,
+                    total: 0
+                });
+
+                // 对话记录
+                const recordsList = ref([]);
+
+                // 系统设置
+                const settings = reactive({
+                    companyName: 'XX 市政务服务中心',
+                    welcomeMessage: '您好，XX 市政务服务中心很高兴为您服务！',
+                    themeColor: '#1890ff',
+                    email: 'service@gov.cn',
+                    phone: '12345'
+                });
+
+                const getMenuName = () => {
+                    const names = {
+                        'dashboard': '数据看板',
+                        'knowledge': '知识库管理',
+                        'records': '对话记录',
+                        'settings': '系统设置'
+                    };
+                    return names[currentMenu.value];
+                };
+
+                const loadKnowledgeList = async () => {
+                    // TODO: 调用 API 加载数据
+                    knowledgeList.value = [
+                        { id: 1, title: '居住证办理流程', question: '居住证怎么办理？', keywords: '居住证，办理，流程', publishStatus: 1, viewCount: 1256 },
+                        { id: 2, title: '社保卡补办指南', question: '社保卡丢了怎么补办？', keywords: '社保卡，补办，丢失', publishStatus: 1, viewCount: 1089 },
+                    ];
+                };
+
+                const loadRecords = async () => {
+                    // TODO: 调用 API 加载数据
+                    recordsList.value = [
+                        { id: 1, userName: '张先生', question: '居住证怎么办理？', answer: '办理居住证需要携带本人身份证...', isSolved: 1, satisfaction: 5, createdTime: '2024-01-15 10:30:00' },
+                        { id: 2, userName: '李女士', question: '社保卡补办流程', answer: '社保卡丢失后请先拨打 12333 挂失...', isSolved: 1, satisfaction: 4, createdTime: '2024-01-15 09:20:00' },
+                    ];
+                };
+
+                const showAddKnowledgeDialog = () => {
+                    editingKnowledge.value = { publishStatus: 1 };
+                    knowledgeDialogVisible.value = true;
+                };
+
+                const editKnowledge = (row) => {
+                    editingKnowledge.value = { ...row };
+                    knowledgeDialogVisible.value = true;
+                };
+
+                const deleteKnowledge = async (id) => {
+                    await ElementPlus.ElMessageBox.confirm('确定要删除这条知识吗？', '提示', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning',
+                    });
+                    // TODO: 调用 API 删除
+                    ElementPlus.ElMessage.success('删除成功');
+                    loadKnowledgeList();
+                };
+
+                const saveKnowledge = () => {
+                    // TODO: 调用 API 保存
+                    ElementPlus.ElMessage.success('保存成功');
+                    knowledgeDialogVisible.value = false;
+                    loadKnowledgeList();
+                };
+
+                const saveSettings = () => {
+                    // TODO: 调用 API 保存设置
+                    ElementPlus.ElMessage.success('设置已保存');
+                };
+
+                const handleSizeChange = () => {
+                    loadKnowledgeList();
+                };
+
+                const handleCurrentChange = () => {
+                    loadKnowledgeList();
+                };
+
+                onMounted(() => {
+                    loadKnowledgeList();
+                    loadRecords();
+                });
+
+                return {
+                    currentMenu,
+                    searchQuestion,
+                    knowledgeDialogVisible,
+                    editingKnowledge,
+                    stats,
+                    hotQuestions,
+                    knowledgeList,
+                    knowledgePage,
+                    recordsList,
+                    settings,
+                    getMenuName,
+                    showAddKnowledgeDialog,
+                    editKnowledge,
+                    deleteKnowledge,
+                    saveKnowledge,
+                    saveSettings,
+                    handleSizeChange,
+                    handleCurrentChange,
+                    loadRecords
+                };
+            }
+        });
+
+        // 注册所有 Element Plus 图标
+        for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+            app.component(key, component);
+        }
+
+        app.use(ElementPlus);
+        app.mount('#app');
+    </script>
+</body>
+</html>

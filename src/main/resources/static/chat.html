@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 智能助手</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', Arial, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+        }
+
+        /* 头部 */
+        .chat-header {
+            background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+            color: white;
+            padding: 16px 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .chat-header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .chat-header p {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        /* 聊天内容区 */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.ai {
+            justify-content: flex-start;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .ai .avatar {
+            background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+            margin-right: 12px;
+        }
+
+        .user .avatar {
+            background: #87d068;
+            margin-left: 12px;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .ai .message-content {
+            background: white;
+            border: 1px solid #e8e8e8;
+        }
+
+        .user .message-content {
+            background: #1890ff;
+            color: white;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #999;
+            margin-top: 6px;
+            text-align: right;
+        }
+
+        /* 欢迎语和快捷问题 */
+        .welcome-section {
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        .welcome-text {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .quick-questions {
+            display: grid;
+            gap: 12px;
+        }
+
+        .quick-question-btn {
+            background: white;
+            border: 1px solid #1890ff;
+            color: #1890ff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+        }
+
+        .quick-question-btn:hover {
+            background: #1890ff;
+            color: white;
+        }
+
+        /* 输入区域 */
+        .chat-input-area {
+            background: white;
+            border-top: 1px solid #e8e8e8;
+            padding: 12px 16px;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            border: 1px solid #d9d9d9;
+            border-radius: 20px;
+            padding: 10px 16px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input:focus {
+            border-color: #1890ff;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 推荐问题 */
+        .suggested-questions {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .suggested-question-tag {
+            background: white;
+            border: 1px solid #d9d9d9;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .suggested-question-tag:hover {
+            border-color: #1890ff;
+            color: #1890ff;
+        }
+
+        /* 加载动画 */
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #999;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="chat-container">
+        <!-- 头部 -->
+        <div class="chat-header">
+            <h1>{{ config.companyName }}</h1>
+            <p>{{ config.serviceTime }}</p>
+        </div>
+
+        <!-- 聊天内容区 -->
+        <div class="chat-messages" ref="messagesContainer">
+            <!-- 欢迎语 -->
+            <div v-if="messages.length === 0" class="welcome-section">
+                <div class="welcome-text">{{ config.welcomeMessage }}</div>
+                <div class="quick-questions">
+                    <button 
+                        v-for="(question, index) in quickQuestions" 
+                        :key="index"
+                        class="quick-question-btn"
+                        @click="sendQuickQuestion(question)"
+                    >
+                        💬 {{ question }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- 消息列表 -->
+            <div v-for="(message, index) in messages" :key="index" class="message" :class="message.type">
+                <div class="avatar">{{ message.type === 'ai' ? '🤖' : '👤' }}</div>
+                <div>
+                    <div class="message-content">{{ message.content }}</div>
+                    <div class="message-time">{{ message.time }}</div>
+                    
+                    <!-- 推荐问题 -->
+                    <div v-if="message.type === 'ai' && message.suggestedQuestions && message.suggestedQuestions.length > 0" 
+                         class="suggested-questions">
+                        <div 
+                            v-for="(q, i) in message.suggestedQuestions" 
+                            :key="i"
+                            class="suggested-question-tag"
+                            @click="sendQuickQuestion(q)"
+                        >
+                            {{ q }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI 输入中 -->
+            <div v-if="isLoading" class="message ai">
+                <div class="avatar">🤖</div>
+                <div class="message-content">
+                    <div class="typing-indicator">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 输入区域 -->
+        <div class="chat-input-area">
+            <div class="input-wrapper">
+                <input 
+                    v-model="inputMessage"
+                    type="text" 
+                    class="chat-input"
+                    placeholder="请输入您的问题..."
+                    @keypress.enter="sendMessage"
+                >
+                <button class="send-btn" @click="sendMessage" :disabled="!inputMessage.trim()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <script>
+        const { createApp, ref, reactive, nextTick, onMounted } = Vue;
+
+        const API_BASE_URL = 'http://localhost:8080/api';
+
+        const app = createApp({
+            setup() {
+                const messages = ref([]);
+                const inputMessage = ref('');
+                const isLoading = ref(false);
+                const sessionId = ref(generateSessionId());
+                const messagesContainer = ref(null);
+
+                const config = reactive({
+                    companyName: 'XX 市政务服务中心',
+                    serviceTime: '工作时间：周一至周日 9:00-17:00',
+                    welcomeMessage: '您好！我是 AI 智能助手，请问有什么可以帮您？'
+                });
+
+                const quickQuestions = ref([
+                    '居住证怎么办理？',
+                    '社保卡丢了怎么补办？',
+                    '公积金提取条件是什么？',
+                    '新生儿医保如何办理？'
+                ]);
+
+                function generateSessionId() {
+                    return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                }
+
+                function getCurrentTime() {
+                    const now = new Date();
+                    return now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                }
+
+                function scrollToBottom() {
+                    nextTick(() => {
+                        if (messagesContainer.value) {
+                            messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+                        }
+                    });
+                }
+
+                async function sendMessageToAI(question) {
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/consult/ask`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                sessionId: sessionId.value,
+                                question: question,
+                                tenantId: 1,
+                                deviceType: 'web'
+                            })
+                        });
+
+                        const result = await response.json();
+                        
+                        if (result.code === 200) {
+                            return {
+                                answer: result.data.answer,
+                                suggestedQuestions: result.data.suggestedQuestions || []
+                            };
+                        } else {
+                            throw new Error(result.message || '请求失败');
+                        }
+                    } catch (error) {
+                        console.error('发送消息失败:', error);
+                        return {
+                            answer: '抱歉，网络开小差了，请稍后再试。',
+                            suggestedQuestions: []
+                        };
+                    }
+                }
+
+                async function sendMessage() {
+                    const question = inputMessage.value.trim();
+                    if (!question) return;
+
+                    // 添加用户消息
+                    messages.value.push({
+                        type: 'user',
+                        content: question,
+                        time: getCurrentTime()
+                    });
+
+                    inputMessage.value = '';
+                    isLoading.value = true;
+                    scrollToBottom();
+
+                    // 调用 AI 接口
+                    const aiResponse = await sendMessageToAI(question);
+
+                    isLoading.value = false;
+
+                    // 添加 AI 回复
+                    messages.value.push({
+                        type: 'ai',
+                        content: aiResponse.answer,
+                        time: getCurrentTime(),
+                        suggestedQuestions: aiResponse.suggestedQuestions
+                    });
+
+                    scrollToBottom();
+                }
+
+                function sendQuickQuestion(question) {
+                    inputMessage.value = question;
+                    sendMessage();
+                }
+
+                onMounted(() => {
+                    // 加载配置
+                    loadConfig();
+                });
+
+                async function loadConfig() {
+                    // TODO: 从后端加载租户配置
+                    // 这里先使用默认配置
+                }
+
+                return {
+                    messages,
+                    inputMessage,
+                    isLoading,
+                    config,
+                    quickQuestions,
+                    messagesContainer,
+                    sendMessage,
+                    sendQuickQuestion
+                };
+            }
+        });
+
+        app.mount('#app');
+    </script>
+</body>
+</html>
