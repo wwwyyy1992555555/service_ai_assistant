@@ -56,7 +56,7 @@
                 <div>
                     <el-dropdown @command="handleCommand">
                         <span class="el-dropdown-link" style="cursor: pointer;">
-                            管理员 <el-icon class="el-icon--right"><arrow-down /></el-icon>
+                            {{ userDisplayName }} <el-icon class="el-icon--right"><arrow-down /></el-icon>
                         </span>
                         <template #dropdown>
                             <el-dropdown-menu>
@@ -561,10 +561,10 @@
     <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.min.js"></script>
     
     <!-- 引入工具函数和业务模块 -->
-    <script src="js/utils.js"></script>
-    <script src="js/dashboard.js"></script>
-    <script src="js/knowledge.js"></script>
-    <script src="js/records.js"></script>
-    <script src="js/admin.js"></script>
+    <script src="js/utils.js?v=20260325"></script>
+    <script src="js/dashboard.js?v=20260325"></script>
+    <script src="js/knowledge.js?v=20260325"></script>
+    <script src="js/records.js?v=20260325"></script>
+    <script src="js/admin.js?v=20260325"></script>
 </body>
 </html>

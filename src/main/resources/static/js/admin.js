@@ -17,6 +17,20 @@ const { createApp, ref, reactive, onMounted, computed } = Vue;
 
 const app = createApp({
     setup() {
+        // 从 localStorage 获取用户信息
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        
+        console.log('🔍【调试】当前用户对象:', currentUser);
+        console.log('🔍【调试】currentUser.realName:', currentUser.realName);
+        console.log('🔍【调试】currentUser.username:', currentUser.username);
+        
+        // 计算用户显示名称（优先显示 username）
+        const userDisplayName = computed(() => {
+            const name = currentUser.username || currentUser.realName || '用户';
+            console.log('🔍【调试】计算得到的用户名:', name);
+            return name;
+        });
+        
         // 状态定义
         const currentMenu = ref('dashboard');
         const searchKeyword = ref('');
@@ -575,6 +589,7 @@ const app = createApp({
             categoryMap,
             totalPages,
             jumpPage,
+            userDisplayName,
             getMenuName,
             showAddKnowledgeDialog,
             editKnowledge,
@@ -634,3 +649,5 @@ app.use(ElementPlus, {
 
 // 挂载应用并显示页面
 app.mount('#app');
+
+console.log('✅ admin.js 已加载 - 20260325_1530');

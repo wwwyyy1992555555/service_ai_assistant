@@ -7,6 +7,11 @@
     <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
     <link rel="stylesheet" href="css/login.css">
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
         [v-cloak] {
             display: none;
         }
@@ -21,6 +26,57 @@
         .login-tips span {
             margin-right: 15px;
         }
+        /* 完全自定义表单样式 */
+        .login-form {
+            width: 360px;
+            margin: 0 auto;
+        }
+        .form-item {
+            width: 360px;
+            margin-bottom: 24px;
+            position: relative;
+        }
+        /* 强制输入框固定宽度 */
+        .form-item .el-input {
+            width: 360px !important;
+        }
+        .form-item .el-input__wrapper {
+            width: 360px !important;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 0 0 1px #dcdfe6 inset;
+            transition: box-shadow 0.2s;
+        }
+        .form-item .el-input__wrapper:hover {
+            box-shadow: 0 0 0 1px #c0c4cc inset;
+        }
+        .form-item .el-input__wrapper.is-focus {
+            box-shadow: 0 0 0 1px #409eff inset;
+        }
+        .form-item .el-input__inner {
+            width: 100%;
+        }
+        /* 错误状态 */
+        .form-item.input-error .el-input__wrapper {
+            box-shadow: 0 0 0 1px #f56c6c inset;
+        }
+        /* 错误信息 */
+        .error-text {
+            color: #f56c6c;
+            font-size: 12px;
+            margin-top: 4px;
+            position: absolute;
+            top: 100%;
+            left: 0;
+        }
+        /* 登录按钮 */
+        .login-button {
+            width: 360px;
+            height: 44px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
@@ -33,18 +89,20 @@
                     <p>欢迎登录</p>
                 </div>
 
-                <el-form :model="loginForm" :rules="rules" ref="loginFormRef" class="login-form">
-                    <el-form-item prop="username">
+                <div class="login-form">
+                    <div class="form-item">
                         <el-input
                             v-model="loginForm.username"
                             placeholder="请输入用户名"
                             prefix-icon="User"
                             size="large"
                             clearable
+                            :class="{ 'input-error': errors.username }"
                         ></el-input>
-                    </el-form-item>
+                        <div class="error-text" v-if="errors.username">{{ errors.username }}</div>
+                    </div>
 
-                    <el-form-item prop="password">
+                    <div class="form-item">
                         <el-input
                             v-model="loginForm.password"
                             type="password"
@@ -53,26 +111,21 @@
                             size="large"
                             show-password
                             @keyup.enter="handleLogin"
+                            :class="{ 'input-error': errors.password }"
                         ></el-input>
-                    </el-form-item>
+                        <div class="error-text" v-if="errors.password">{{ errors.password }}</div>
+                    </div>
 
-                    <el-form-item>
-                        <el-button
-                            type="primary"
-                            :loading="loading"
-                            @click="handleLogin"
-                            size="large"
-                            style="width: 100%;"
-                        >
-                            {{ loading ? '登录中...' : '登 录' }}
-                        </el-button>
-                    </el-form-item>
-
-<!--                    <div class="login-tips">-->
-<!--                        <span>默认账号：admin</span>-->
-<!--                        <span>默认密码：123456</span>-->
-<!--                    </div>-->
-                </el-form>
+                    <el-button
+                        type="primary"
+                        :loading="loading"
+                        @click="handleLogin"
+                        size="large"
+                        class="login-button"
+                    >
+                        {{ loading ? '登录中...' : '登 录' }}
+                    </el-button>
+                </div>
             </div>
 
             <div class="login-footer">
@@ -105,77 +158,76 @@
                     password: ''
                 });
 
-                const rules = {
-                    username: [
-                        { required: true, message: '请输入用户名', trigger: 'blur' }
-                    ],
-                    password: [
-                        { required: true, message: '请输入密码', trigger: 'blur' },
-                        { min: 6, message: '密码长度至少 6 位', trigger: 'blur' }
-                    ]
-                };
+                const errors = Vue.reactive({
+                    username: '',
+                    password: ''
+                });
 
                 const loading = Vue.ref(false);
                 const loginFormRef = Vue.ref(null);
 
-                const handleInputChange = () => {
-                    if (loginFormRef.value) {
-                        loginFormRef.value.clearValidate();
-                    }
-                };
-
                 const handleLogin = async () => {
-                    if (!loginFormRef.value) return;
+                    // 清空错误
+                    errors.username = '';
+                    errors.password = '';
 
-                    await loginFormRef.value.validate(async (valid) => {
-                        if (valid) {
-                            loading.value = true;
+                    // 简单验证
+                    if (!loginForm.username) {
+                        errors.username = '请输入用户名';
+                        return;
+                    }
+                    if (!loginForm.password) {
+                        errors.password = '请输入密码';
+                        return;
+                    }
+                    if (loginForm.password.length < 6) {
+                        errors.password = '密码长度至少 6 位';
+                        return;
+                    }
 
-                            try {
-                                const response = await fetch('/api/auth/login', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json'
-                                    },
-                                    body: JSON.stringify({
-                                        username: loginForm.username,
-                                        password: loginForm.password,
-                                        tenantId: 1
-                                    })
-                                });
+                    loading.value = true;
 
-                                const result = await response.json();
+                    try {
+                        const response = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                username: loginForm.username,
+                                password: loginForm.password,
+                                tenantId: 1
+                            })
+                        });
 
-                                if (result.code === 200 && result.data) {
-                                    const userData = result.data;
-                                    localStorage.setItem('user', JSON.stringify(userData));
-                                    localStorage.setItem('token', userData.token);
+                        const result = await response.json();
 
-                                    ElementPlus.ElMessage.success('登录成功！');
+                        if (result.code === 200 && result.data) {
+                            const userData = result.data;
+                            localStorage.setItem('user', JSON.stringify(userData));
+                            localStorage.setItem('token', userData.token);
 
-                                    setTimeout(() => {
-                                        window.location.href = '/admin.html';
-                                    }, 500);
-                                } else {
-                                    ElementPlus.ElMessage.error(result.message || '登录失败');
-                                }
-                            } catch (error) {
-                                console.error('登录失败:', error);
-                                ElementPlus.ElMessage.error('网络错误，请稍后重试');
-                            } finally {
-                                loading.value = false;
-                            }
+                            ElementPlus.ElMessage.success('登录成功！');
+
+                            setTimeout(() => {
+                                window.location.href = '/admin.html';
+                            }, 500);
+                        } else {
+                            ElementPlus.ElMessage.error(result.message || '登录失败');
                         }
-                    });
+                    } catch (error) {
+                        console.error('登录失败:', error);
+                        ElementPlus.ElMessage.error('网络错误，请稍后重试');
+                    } finally {
+                        loading.value = false;
+                    }
                 };
 
                 return {
                     loginForm,
-                    rules,
+                    errors,
                     loading,
-                    loginFormRef,
-                    handleLogin,
-                    handleInputChange
+                    handleLogin
                 };
             }
         });
