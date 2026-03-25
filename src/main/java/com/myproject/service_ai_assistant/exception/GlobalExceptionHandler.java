@@ -21,7 +21,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BusinessException.class)
     public Result<Void> handleBusinessException(BusinessException e) {
-        log.error("业务异常：{}", e.getMessage());
+        log.error("【业务异常】code={}, message={}", e.getCode(), e.getMessage());
         return Result.error(e.getCode(), e.getMessage());
     }
 
@@ -30,7 +30,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler({MethodArgumentNotValidException.class, BindException.class})
     public Result<Void> handleValidException(Exception e) {
-        log.error("参数校验异常：{}", e.getMessage());
+        log.warn("【参数校验异常】{}", e.getMessage());
         String message = "参数校验失败";
         if (e instanceof MethodArgumentNotValidException ex) {
             if (!ex.getBindingResult().getFieldErrors().isEmpty()) {
@@ -49,7 +49,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(NoHandlerFoundException.class)
     public Result<Void> handleNotFound(NoHandlerFoundException e) {
-        log.error("资源不存在：{}", e.getRequestURL());
+        log.warn("【资源不存在】url={}", e.getRequestURL());
         return Result.error(ResultCode.NOT_FOUND);
     }
 
@@ -58,7 +58,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public Result<Void> handleException(Exception e) {
-        log.error("系统异常：{}", e.getMessage(), e);
+        log.error("【系统异常】message={}", e.getMessage(), e);
         return Result.error(ResultCode.INTERNAL_SERVER_ERROR);
     }
 }

@@ -20,6 +20,7 @@ public class ServiceAiAssistantApplication {
         log.info("API 文档地址：http://localhost:8080/swagger-ui.html");
         log.info("管理后台：http://localhost:8080/admin.html");
         log.info("聊天页面：http://localhost:8080/chat.html");
+        log.info("后台登陆：http://localhost:8080/login.html");
         log.info("====================================");
     }
 

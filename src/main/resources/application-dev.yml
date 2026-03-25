@@ -4,10 +4,18 @@
 
 server:
   port: 8080
+  tomcat:
+    uri-encoding: UTF-8
 
 spring:
   application:
     name: ai-think-tank
+  
+  # 数据库初始化配置（禁用 Spring Boot 自动执行）
+  sql:
+    init:
+      mode: never
+      # continue-on-error: false
   
   # 数据源配置
   datasource:
@@ -46,6 +54,19 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 100MB
+  
+  # 静态资源配置（禁用缓存，开发环境使用）
+  web:
+    resources:
+      cache-period: 0
+      static-locations: classpath:/static/
+  
+  # Devtools 热部署配置
+  devtools:
+    restart:
+      enabled: false  # 禁用热部署，加快启动速度
+    livereload:
+      enabled: false
 
 # MyBatis-Plus 配置
 mybatis-plus:
@@ -70,10 +91,21 @@ knife4j:
 # 日志配置
 logging:
   level:
-    root: INFO
-    com.myproject.service_ai_assistant: DEBUG
+    root: WARN
+    com.myproject.service_ai_assistant: INFO
+    org.springframework.web: WARN
+    com.baomidou.mybatisplus: WARN
   pattern:
     console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n'
+    file: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n'
+  charset:
+    console: UTF-8
+    file: UTF-8
+  file:
+    name: logs/ai-think-tank.log
+    max-size: 10MB
+    max-history: 30
+    total-size-cap: 100MB
 
 # AI 模型配置（以文心一言为例）
 ai:

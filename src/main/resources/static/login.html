@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - AI 智库管理平台</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <link rel="stylesheet" href="css/login.css">
+    <style>
+        [v-cloak] {
+            display: none;
+        }
+        .login-tips {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f0f9eb;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #67c23a;
+        }
+        .login-tips span {
+            margin-right: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" v-cloak>
+        <div class="login-container">
+            <div class="login-box">
+                <div class="login-header">
+                    <div class="logo">🤖</div>
+                    <h1>AI 智库管理平台</h1>
+                    <p>欢迎登录</p>
+                </div>
+
+                <el-form :model="loginForm" :rules="rules" ref="loginFormRef" class="login-form">
+                    <el-form-item prop="username">
+                        <el-input
+                            v-model="loginForm.username"
+                            placeholder="请输入用户名"
+                            prefix-icon="User"
+                            size="large"
+                            clearable
+                        ></el-input>
+                    </el-form-item>
+
+                    <el-form-item prop="password">
+                        <el-input
+                            v-model="loginForm.password"
+                            type="password"
+                            placeholder="请输入密码"
+                            prefix-icon="Lock"
+                            size="large"
+                            show-password
+                            @keyup.enter="handleLogin"
+                        ></el-input>
+                    </el-form-item>
+
+                    <el-form-item>
+                        <el-button
+                            type="primary"
+                            :loading="loading"
+                            @click="handleLogin"
+                            size="large"
+                            style="width: 100%;"
+                        >
+                            {{ loading ? '登录中...' : '登 录' }}
+                        </el-button>
+                    </el-form-item>
+
+<!--                    <div class="login-tips">-->
+<!--                        <span>默认账号：admin</span>-->
+<!--                        <span>默认密码：123456</span>-->
+<!--                    </div>-->
+                </el-form>
+            </div>
+
+            <div class="login-footer">
+                <p>© 2026 AI 智库管理平台 版权所有</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入 Vue 和 Element Plus（使用和 admin.html 相同的 CDN） -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/@element-plus/icons-vue"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.min.js"></script>
+    
+    <!-- 登录逻辑 -->
+    <script>
+        const { createApp } = Vue;
+
+        // 检查 Vue 是否加载
+        if (typeof Vue === 'undefined') {
+            document.getElementById('app').innerHTML = '<div style="padding:50px;text-align:center;"><h2 style="color:red;">❌ 资源加载失败，请检查网络</h2><button onclick="location.reload()" style="padding:10px 30px;margin-top:20px;">刷新</button></div>';
+        } else {
+            console.log('✅ Vue 已加载');
+        }
+
+        const app = createApp({
+            setup() {
+                const loginForm = Vue.reactive({
+                    username: '',
+                    password: ''
+                });
+
+                const rules = {
+                    username: [
+                        { required: true, message: '请输入用户名', trigger: 'blur' }
+                    ],
+                    password: [
+                        { required: true, message: '请输入密码', trigger: 'blur' },
+                        { min: 6, message: '密码长度至少 6 位', trigger: 'blur' }
+                    ]
+                };
+
+                const loading = Vue.ref(false);
+                const loginFormRef = Vue.ref(null);
+
+                const handleInputChange = () => {
+                    if (loginFormRef.value) {
+                        loginFormRef.value.clearValidate();
+                    }
+                };
+
+                const handleLogin = async () => {
+                    if (!loginFormRef.value) return;
+
+                    await loginFormRef.value.validate(async (valid) => {
+                        if (valid) {
+                            loading.value = true;
+
+                            try {
+                                const response = await fetch('/api/auth/login', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        username: loginForm.username,
+                                        password: loginForm.password,
+                                        tenantId: 1
+                                    })
+                                });
+
+                                const result = await response.json();
+
+                                if (result.code === 200 && result.data) {
+                                    const userData = result.data;
+                                    localStorage.setItem('user', JSON.stringify(userData));
+                                    localStorage.setItem('token', userData.token);
+
+                                    ElementPlus.ElMessage.success('登录成功！');
+
+                                    setTimeout(() => {
+                                        window.location.href = '/admin.html';
+                                    }, 500);
+                                } else {
+                                    ElementPlus.ElMessage.error(result.message || '登录失败');
+                                }
+                            } catch (error) {
+                                console.error('登录失败:', error);
+                                ElementPlus.ElMessage.error('网络错误，请稍后重试');
+                            } finally {
+                                loading.value = false;
+                            }
+                        }
+                    });
+                };
+
+                return {
+                    loginForm,
+                    rules,
+                    loading,
+                    loginFormRef,
+                    handleLogin,
+                    handleInputChange
+                };
+            }
+        });
+
+        // 使用 Element Plus 和中文语言包
+        app.use(ElementPlus, { locale: ElementPlusLocaleZhCn });
+        app.mount('#app');
+    </script>
+</body>
+</html>

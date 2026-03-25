@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分类管理 - AI 智库管理后台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f7fa;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 500;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        
+        .toolbar {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+        }
+        
+        .table-title {
+            font-size: 18px;
+            font-weight: 500;
+            color: #303133;
+            margin-bottom: 20px;
+        }
+        
+        .back-btn {
+            margin-right: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" v-cloak>
+        <!-- 顶部导航 -->
+        <div class="header">
+            <h1>📋 分类管理</h1>
+        </div>
+        
+        <!-- 主容器 -->
+        <div class="container">
+            <!-- 工具栏 -->
+            <div class="toolbar">
+                <div>
+                    <el-button type="info" @click="goBack" class="back-btn">
+                        <el-icon><arrow-left /></el-icon> 返回管理后台
+                    </el-button>
+                </div>
+                <el-button type="primary" @click="showAddCategory">
+                    <el-icon><plus /></el-icon> 新增分类
+                </el-button>
+            </div>
+            
+            <!-- 分类列表 -->
+            <div class="table-container">
+                <div class="table-title">分类列表</div>
+                <el-table :data="categoryList" stripe style="width: 100%" v-loading="loading">
+                    <el-table-column prop="id" label="ID" width="80" />
+                    <el-table-column prop="categoryName" label="分类名称" min-width="200" />
+                    <el-table-column prop="sortOrder" label="排序" width="100" align="center" />
+                    <el-table-column label="状态" width="120" align="center">
+                        <template #default="scope">
+                            <el-tag :type="scope.row.status === 1 ? 'success' : 'info'" size="small">
+                                {{ scope.row.status === 1 ? '启用' : '禁用' }}
+                            </el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="200" fixed="right">
+                        <template #default="scope">
+                            <el-button size="small" type="primary" @click="editCategory(scope.row)">编辑</el-button>
+                            <el-button size="small" type="danger" @click="deleteCategory(scope.row.id)">删除</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </div>
+        </div>
+        
+        <!-- 新增/编辑分类对话框 -->
+        <el-dialog
+            v-model="categoryFormDialogVisible"
+            :title="editingCategory.id ? '编辑分类' : '新增分类'"
+            width="500px"
+        >
+            <el-form :model="editingCategory" label-width="80px">
+                <el-form-item label="分类名称" required>
+                    <el-input v-model="editingCategory.categoryName" placeholder="请输入分类名称" />
+                </el-form-item>
+                <el-form-item label="排序">
+                    <el-input-number v-model="editingCategory.sortOrder" :min="0" style="width: 100%;" />
+                </el-form-item>
+                <el-form-item label="状态">
+                    <el-radio-group v-model="editingCategory.status">
+                        <el-radio :label="1">启用</el-radio>
+                        <el-radio :label="0">禁用</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="categoryFormDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="saveCategory">确定</el-button>
+            </template>
+        </el-dialog>
+    </div>
+    
+    <!-- 引入 Vue 和 Element Plus -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/@element-plus/icons-vue"></script>
+    
+    <!-- 引入分类管理模块 -->
+    <script src="js/knowledge.js"></script>
+    <script src="js/categories.js"></script>
+</body>
+</html>

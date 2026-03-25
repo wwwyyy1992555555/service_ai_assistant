@@ -469,13 +469,40 @@
                 }
 
                 onMounted(() => {
-                    // 加载配置
+                    // 加载配置和热门问题
                     loadConfig();
+                    loadHotQuestions();
                 });
 
                 async function loadConfig() {
-                    // TODO: 从后端加载租户配置
-                    // 这里先使用默认配置
+                    try {
+                        // TODO: 从后端加载租户配置
+                        // 暂时使用默认配置
+                        const response = await fetch(`${API_BASE_URL}/statistics/dashboard?tenantId=1`);
+                        const result = await response.json();
+                        
+                        if (result.code === 200) {
+                            // 可以从统计接口获取一些配置信息
+                            console.log('加载配置成功:', result.data);
+                        }
+                    } catch (error) {
+                        console.error('加载配置失败:', error);
+                    }
+                }
+
+                async function loadHotQuestions() {
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/consult/hot-questions?tenantId=1&limit=4`);
+                        const result = await response.json();
+                        
+                        if (result.code === 200 && result.data && result.data.length > 0) {
+                            // 提取问题作为快捷问题
+                            quickQuestions.value = result.data.map(item => item.question);
+                        }
+                    } catch (error) {
+                        console.error('加载热门问题失败:', error);
+                        // 使用默认问题
+                    }
                 }
 
                 return {

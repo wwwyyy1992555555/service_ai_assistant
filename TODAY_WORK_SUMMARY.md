@@ -1,129 +1,175 @@
-# 工作总结 - 2026-03-23
+# 工作总结 - 2026-03-25
 
 ## 📋 完成的主要工作
 
-### 1. ✅ 数据库初始化脚本修复
-**问题：** MySQL 9.0 兼容性错误
-**解决方案：**
-- 移除 `WITH PARSER ngram`（MySQL 8.0+ 不支持）
-- 调整 DECIMAL 精度从 (10,8)/(11,8) 改为 (10,6)/(11,6)
-- 修正字段名 `working_hours` → `opening_hours`
-
-**文件：** `src/main/resources/db/init.sql`
-
----
-
-### 2. ✅ Maven 依赖问题修复
+### 1. ✅ 登录功能修复与完善
 **问题：** 
-- Druid 依赖未解析
-- Knife4j 版本不兼容 Spring Boot 3.0.2
+- CDN 资源加载失败（jsdelivr、elemecdn 访问超时）
+- Vue 模板未渲染，显示原始 `{{ }}` 语法
+- 密码验证失败（BCrypt 加密方式不一致）
 
 **解决方案：**
-- Druid: `druid-spring-boot-3-starter` → `druid-spring-boot-starter`
-- 最终切换到 Springdoc: `springdoc-openapi-starter-webmvc-ui:2.0.2`
-- 添加 Spring Boot Actuator 支持
-
-**文件：** `pom.xml`
-
----
-
-### 3. ✅ API 文档配置迁移
-**问题：** Swagger 2.x 注解无法在 Spring Boot 3.0+ 中使用
-
-**解决方案：**
-- 替换所有 `@ApiOperation` → `@Operation`
-- 添加 `@Parameter` 参数注解
-- 更新实体类添加 `@Schema` 注解
-- 从 Knife4j 迁移到 Springdoc OpenAPI
+- 切换到 unpkg.com CDN（和 admin.html 保持一致）
+- 重写 login.html，内嵌所有逻辑，不依赖外部 JS 文件
+- 添加 v-cloak 防止模板闪烁
+- 更新 init.sql 中的密码为正确的 Hutool BCrypt 加密格式
+- 添加详细日志，便于调试
 
 **文件：** 
-- `KnowledgeController.java`
-- `ConsultController.java`
-- `RedisTestController.java`
-- `KnowledgeItem.java`
-- `SwaggerConfig.java` → 简化为 `OpenApiConfig.java`
+- `src/main/resources/static/login.html`（重写）
+- `src/main/resources/db/init.sql`（密码更新）
+- `src/main/java/com/myproject/service_ai_assistant/service/impl/UserServiceImpl.java`（日志增强）
 
 ---
 
-### 4. ✅ 静态资源访问问题
-**问题：** admin.html、chat.html 返回 404
-
-**根本原因：** `context-path: /api` 配置导致静态资源被拦截
+### 2. ✅ 并发控制与事务管理
+**问题：** 多人同时操作数据可能导致数据不一致
 
 **解决方案：**
-- 移除 `application-dev.yml` 中的 `context-path: /api`
-- 创建 `WebConfig.java` 配置静态资源映射
+- 为 SystemConfigServiceImpl.saveConfig() 添加 @Transactional
+- 为 UserServiceImpl.login() 添加 @Transactional
+- 为所有 Service 实现类添加事务注解导入
+- 说明：MyBatis-Plus ServiceImpl 基类已有基础 CRUD 事务
 
 **文件：**
-- `src/main/resources/application-dev.yml`
-- `src/main/java/com/myproject/service_ai_assistant/config/WebConfig.java`
+- `SystemConfigServiceImpl.java`
+- `UserServiceImpl.java`
+- `KnowledgeItemServiceImpl.java`
+- `ConsultationRecordServiceImpl.java`
+- `KnowledgeCategoryServiceImpl.java`
 
 ---
 
-### 5. ✅ Lombok 日志支持
-**问题：** 启动类使用 `log.info()` 但找不到方法
+### 3. ✅ 登录界面 UI 优化
+**问题：** 输入文本时 UI 会变化，体验不好
 
-**解决方案：** 添加 `@Slf4j` 注解
+**解决方案：**
+- 移除输入时的 `@input` 事件监听
+- 移除 `handleInputChange()` 方法
+- 只在提交时进行验证
+- 优化提示文本居中显示
 
-**文件：** `ServiceAiAssistantApplication.java`
+**文件：** `src/main/resources/static/login.html`
+
+---
+
+### 4. ✅ 单点登录（SSO）TODO 备注
+**需求：** 实现同一账号只能在一台设备登录，新登录踢掉旧登录
+
+**已添加 TODO 的位置：**
+1. **UserServiceImpl.java** - 登录逻辑
+   - 实现单点登录（SSO）或多设备登录控制
+   - 使用 Redis 存储用户会话信息
+   - 实现 Token 过期和刷新机制
+   - 实现异地登录检测和踢人功能
+   - 使用 JWT 生成 Token
+
+2. **AuthInterceptor.java** - 认证拦截器（新建）
+   - 实现 Token 验证逻辑
+   - 从请求头获取 Token
+   - 验证 Token 有效性（Redis）
+   - 排除不需要认证的路径
+
+3. **WebConfig.java** - Web 配置
+   - 注册认证拦截器（已注释，待启用）
+
+4. **pom.xml** - 依赖配置
+   - JWT 依赖已预留（需要时取消注释）
+
+**文件：**
+- `src/main/java/com/myproject/service_ai_assistant/config/AuthInterceptor.java`（新建）
+- `src/main/java/com/myproject/service_ai_assistant/config/WebConfig.java`
+- `pom.xml`
+
+---
+
+### 5. ✅ 代码清理
+**清理内容：**
+- 删除调试控制器：`DebugController.java`
+- 删除 Redis 测试控制器：`RedisTestController.java`
+- 删除测试密码文件：`TestPassword.java`
+- 清理 pom.xml 中的 JWT 依赖注释块
+
+**文件：**
+- 已删除：`src/main/java/com/myproject/service_ai_assistant/controller/DebugController.java`
+- 已删除：`src/main/java/com/myproject/service_ai_assistant/controller/RedisTestController.java`
+- 已删除：`TestPassword.java`
+- 已清理：`pom.xml`
 
 ---
 
 ## 🎯 当前项目状态
 
-### ✅ 已配置完成
-| 组件 | 状态 | 访问地址 |
-|------|------|----------|
-| Spring Boot 3.0.2 | ✅ 正常 | - |
-| MySQL 9.0 | ✅ 已适配 | - |
-| Redis 5.0 | ✅ 已配置 | - |
-| MyBatis-Plus 3.5.3.1 | ✅ 已配置 | - |
-| Druid 连接池 | ✅ 已配置 | - |
-| Springdoc OpenAPI | ✅ 已配置 | http://localhost:8080/swagger-ui.html |
-| 静态资源配置 | ✅ 已完成 | - |
+### ✅ 已完成功能
+| 功能模块 | 状态 | 备注 |
+|---------|------|------|
+| 登录功能 | ✅ 正常 | 账号 admin，密码 123456 |
+| 密码加密 | ✅ Hutool BCrypt | 统一加密方式 |
+| 事务管理 | ✅ 已配置 | @Transactional |
+| 并发控制 | ✅ 已处理 | 数据库唯一索引 + 事务 |
+| CDN 资源 | ✅ 稳定 | unpkg.com |
+| UI 体验 | ✅ 优化 | 输入时 UI 稳定 |
 
-### ⚠️ 需要注意的事项
+### ⚠️ 待实现功能
 
-1. **Maven 依赖刷新**
-   - 修改 pom.xml 后需要执行：`mvn clean compile -U`
-   - 或在 IDEA 中：File → Invalidate Caches → Invalidate and Restart
+1. **单点登录（SSO)**
+   - 需要添加 JWT 依赖
+   - 实现 Token 生成和验证
+   - 使用 Redis 存储会话
+   - 启用认证拦截器
 
-2. **API 文档地址变更**
-   - ❌ 旧地址：http://localhost:8080/api/doc.html
-   - ✅ 新地址：http://localhost:8080/swagger-ui.html
+2. **Token 机制改进**
+   - 当前：UUID + 时间戳（简单实现）
+   - 后续：JWT（包含用户信息、过期时间、签名）
 
-3. **静态资源访问**
-   - ✅ admin.html: http://localhost:8080/admin.html
-   - ✅ chat.html: http://localhost:8080/chat.html
-   - ✅ 根路径直接访问，无需 /static/ 前缀
-
-4. **Java 版本要求**
-   - 必须使用 Java 17+（Spring Boot 3.0 强制要求）
-   - Maven Compiler 配置：source/target = 17
+3. **异地登录检测**
+   - 检测同一账号在不同地点登录
+   - 发送通知或强制下线旧会话
 
 ---
 
-## 📝 遗留问题与后续优化建议
+## 📝 技术要点总结
 
-### 🔧 技术债务
-1. **Knife4j 迁移遗留**
-   - 项目中可能还有旧的 Knife4j 缓存
-   - 建议完全清理后重新编译
+### 1. BCrypt 密码加密
+```java
+// 加密
+String encoded = BCrypt.hashpw(password, BCrypt.gensalt());
 
-2. **JWT 认证功能**
-   - SwaggerConfig 中已预留 JWT 配置
-   - 后续需要实现完整的认证逻辑
+// 验证
+boolean match = BCrypt.checkpw(rawPassword, encodedPassword);
+```
 
-3. **AI 模型集成**
-   - application-dev.yml 中配置了 AI 平台密钥占位符
-   - 需要接入实际的 AI 服务（文心一言/通义千问/OpenAI）
+**注意：** 必须使用相同的库（Hutool），否则加密结果不兼容。
 
-### 🚀 下一步建议
-1. 实现知识库管理功能
-2. 实现咨询对话功能
-3. 完善前端页面交互
-4. 添加用户认证和权限管理
-5. 实现多租户数据隔离
+### 2. 事务管理最佳实践
+```java
+@Transactional(rollbackFor = Exception.class)
+public UserDTO login(LoginRequest request) {
+    // 多步数据库操作
+    // 1. 查询用户
+    // 2. 验证密码
+    // 3. 更新登录信息
+    // 任何一步失败都会回滚
+}
+```
+
+### 3. 防止 Vue 模板闪烁
+```html
+<style>
+    [v-cloak] {
+        display: none;
+    }
+</style>
+
+<div id="app" v-cloak>
+    <!-- 加载完成前隐藏 -->
+</div>
+```
+
+### 4. CDN 稳定性方案
+- **推荐：** unpkg.com（和 Element Plus 官方一致）
+- **备选：** jsdelivr.net、npm.elemecdn.com
+- **最佳：** 本地引入（完全不受网络影响）
 
 ---
 
@@ -134,34 +180,60 @@
 - `application-dev.yml` - 开发环境配置
 
 ### 数据库
-- `init.sql` - 数据库初始化脚本
+- `init.sql` - 数据库初始化脚本（含 BCrypt 密码）
 
 ### 前端页面
+- `login.html` - 登录页面（重写版）
 - `admin.html` - 管理后台页面
 - `chat.html` - 聊天页面
+
+### 核心业务类
+- `UserServiceImpl.java` - 用户服务（含登录逻辑）
+- `SystemConfigServiceImpl.java` - 系统配置服务
+- `AuthInterceptor.java` - 认证拦截器（待启用）
 
 ---
 
 ## 💡 经验总结
 
 ### 踩过的坑
-1. **Spring Boot 3.0 + Jakarta EE**
-   - 所有 `javax.*` 包名改为 `jakarta.*`
-   - Servlet API 需要使用 jakarta.servlet-api
 
-2. **Knife4j 兼容性**
-   - Knife4j 4.x 与 Spring Boot 3.0.2 存在兼容性问题
-   - 建议使用 Springdoc 原生支持更稳定
+1. **CDN 选择问题**
+   - jsdelivr.net：国内访问不稳定
+   - npm.elemecdn.com：偶尔超时
+   - unpkg.com：最稳定（最终选择）
 
-3. **静态资源路径**
-   - context-path 会影响静态资源访问
-   - 需要通过 WebConfig 显式配置映射关系
+2. **BCrypt 加密不一致**
+   - init.sql 中的密码是硬编码的
+   - UserInitializer 使用 Hutool BCrypt 动态生成
+   - 解决方案：统一使用 Hutool BCrypt
 
-4. **MySQL 9.0 语法变化**
-   - 移除了部分过时的 SQL 语法
-   - DECIMAL 精度定义需要符合规范
+3. **Vue 模板闪烁**
+   - 加载慢时显示 `{{ }}` 原始语法
+   - 解决方案：v-cloak + CSS 隐藏
+
+4. **输入时 UI 跳动
+   - Element Plus 的 validate 会改变布局
+   - 解决方案：移除输入时的验证触发
+
+### 最佳实践
+
+1. **事务控制**
+   - 批量操作必须加 @Transactional
+   - 设置 rollbackFor = Exception.class
+   - 异常处理中重新抛出异常
+
+2. **密码安全**
+   - 必须加密存储（BCrypt）
+   - 验证时使用专用方法（checkpw）
+   - 不返回密码字段给前端
+
+3. **代码注释**
+   - TODO 备注清晰标注后续工作
+   - 关键逻辑添加日志便于调试
+   - 配置文件保持简洁
 
 ---
 
-**记录时间：** 2026-03-23  
-**下次继续：** 实现核心业务功能
+**记录时间：** 2026-03-25  
+**下次工作：** 实现单点登录（SSO）功能
