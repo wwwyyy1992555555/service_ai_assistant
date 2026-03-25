@@ -1,7 +1,5 @@
 package com.myproject.service_ai_assistant.config;
 
-import com.myproject.service_ai_assistant.common.BusinessException;
-import com.myproject.service_ai_assistant.common.ResultCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
