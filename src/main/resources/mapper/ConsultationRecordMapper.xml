@@ -2,18 +2,22 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.myproject.service_ai_assistant.mapper.ConsultationRecordMapper">
 
-    <!-- 按会话分组查询对话记录（只显示最新的一条） -->
+    <!-- 按会话分组查询对话记录（显示第一次提问和最高匹配度） -->
     <select id="queryRecordsBySession" resultType="com.myproject.service_ai_assistant.entity.ConsultationRecord">
         SELECT t1.* FROM consultation_record t1
         INNER JOIN (
-            SELECT session_id, MAX(created_time) as max_time
+            SELECT 
+                session_id,
+                MIN(created_time) as first_time,
+                MAX(match_score) as max_score
             FROM consultation_record
             WHERE tenant_id = #{tenantId} AND deleted = 0
             GROUP BY session_id
-            ORDER BY max_time DESC
+            ORDER BY first_time DESC
             LIMIT #{offset}, #{limit}
-        ) t2 ON t1.session_id = t2.session_id AND t1.created_time = t2.max_time
+        ) t2 ON t1.session_id = t2.session_id 
         WHERE t1.deleted = 0
+          AND (t1.created_time = t2.first_time OR t1.match_score = t2.max_score)
         ORDER BY t1.created_time DESC
     </select>
 
@@ -24,21 +28,25 @@
         WHERE tenant_id = #{tenantId} AND deleted = 0
     </select>
 
-    <!-- 搜索按会话分组的对话记录 -->
+    <!-- 搜索按会话分组的对话记录（显示第一次提问） -->
     <select id="searchRecordsBySession" resultType="com.myproject.service_ai_assistant.entity.ConsultationRecord">
-        SELECT t1.* FROM consultation_record t1
+        SELECT 
+            first_record.*
+        FROM consultation_record first_record
         INNER JOIN (
-            SELECT session_id, MAX(created_time) as max_time
+            SELECT 
+                session_id,
+                MIN(created_time) as first_time
             FROM consultation_record
             WHERE tenant_id = #{tenantId} 
               AND deleted = 0
               AND (question LIKE #{keyword1} OR answer LIKE #{keyword2})
             GROUP BY session_id
-            ORDER BY max_time DESC
+            ORDER BY first_time DESC
             LIMIT #{offset}, #{limit}
-        ) t2 ON t1.session_id = t2.session_id AND t1.created_time = t2.max_time
-        WHERE t1.deleted = 0
-        ORDER BY t1.created_time DESC
+        ) t2 ON first_record.session_id = t2.session_id AND first_record.created_time = t2.first_time
+        WHERE first_record.deleted = 0
+        ORDER BY first_record.created_time DESC
     </select>
 
     <!-- 统计搜索符合条件的会话总数 -->
@@ -48,6 +56,13 @@
         WHERE tenant_id = #{tenantId} 
           AND deleted = 0
           AND (question LIKE #{keyword1} OR answer LIKE #{keyword2})
+    </select>
+
+    <!-- 查询指定会话的最高匹配度 -->
+    <select id="selectMaxMatchScore" resultType="java.lang.Double">
+        SELECT MAX(match_score)
+        FROM consultation_record
+        WHERE session_id = #{sessionId} AND tenant_id = #{tenantId} AND deleted = 0
     </select>
 
 </mapper>

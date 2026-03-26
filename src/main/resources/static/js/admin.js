@@ -13,21 +13,16 @@ if (!token || !userStr) {
 
 const user = userStr ? JSON.parse(userStr) : null;
 
-const { createApp, ref, reactive, onMounted, computed } = Vue;
+const { createApp, ref, reactive, onMounted, computed, watch } = Vue;
 
 const app = createApp({
     setup() {
         // 从 localStorage 获取用户信息
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
         
-        console.log('🔍【调试】当前用户对象:', currentUser);
-        console.log('🔍【调试】currentUser.realName:', currentUser.realName);
-        console.log('🔍【调试】currentUser.username:', currentUser.username);
-        
         // 计算用户显示名称（优先显示 username）
         const userDisplayName = computed(() => {
             const name = currentUser.username || currentUser.realName || '用户';
-            console.log('🔍【调试】计算得到的用户名:', name);
             return name;
         });
         
@@ -35,6 +30,11 @@ const app = createApp({
         const currentMenu = ref('dashboard');
         const searchKeyword = ref('');
         const searchQuestion = ref('');
+        
+        // 筛选条件
+        const filterPublishStatus = ref(null);
+        const filterIsTop = ref(null);
+        
         const knowledgeDialogVisible = ref(false);
         const editingKnowledge = ref({});
         const loading = ref(false);
@@ -128,6 +128,11 @@ const app = createApp({
             return names[currentMenu.value];
         };
         
+        // 切换菜单
+        const switchMenu = (menu) => {
+            currentMenu.value = menu;
+        };
+        
         // 加载数据
         const loadDashboard = async () => {
             const data = await window.loadDashboard();
@@ -138,16 +143,26 @@ const app = createApp({
         
         const loadHotQuestions = async () => {
             const data = await window.loadHotQuestions(10);
-            if (data && data.length > 0) {
-                hotQuestions.value.splice(0, hotQuestions.value.length, ...data);
+            if (data) {
+                hotQuestions.value = data;
                 renderKey.value++;
             }
         };
         
         const loadKnowledgeList = async () => {
-            const result = await window.loadKnowledgeList(knowledgePage.current, knowledgePage.size);
+            const result = await window.loadKnowledgeList(knowledgePage.current, knowledgePage.size, searchKeyword.value, filterPublishStatus.value, filterIsTop.value);
             knowledgeList.value = result.records;
             knowledgePage.total = result.total;
+        };
+        
+        // 筛选条件变化处理（带防抖）
+        let filterTimer = null;
+        const handleFilterChange = () => {
+            if (filterTimer) clearTimeout(filterTimer);
+            filterTimer = setTimeout(() => {
+                knowledgePage.current = 1;
+                loadKnowledgeList();
+            }, 300);
         };
         
         const loadRecords = async () => {
@@ -226,9 +241,14 @@ const app = createApp({
         };
         
         // 事件处理
+        // 搜索对话记录（带防抖）
+        let recordsSearchTimer = null;
         const handleSearchRecords = () => {
-            recordsPage.current = 1;
-            loadRecords();
+            if (recordsSearchTimer) clearTimeout(recordsSearchTimer);
+            recordsSearchTimer = setTimeout(() => {
+                recordsPage.current = 1;
+                loadRecords();
+            }, 300);
         };
         
         const handleClearSearchRecords = () => {
@@ -314,18 +334,23 @@ const app = createApp({
             }
         };
         
+        // 搜索处理（带防抖）
+        let searchTimer = null;
         const handleSearch = async () => {
-            knowledgePage.current = 1;
-            if (searchKeyword.value && searchKeyword.value.trim()) {
-                // 执行搜索
-                const result = await window.searchKnowledge(searchKeyword.value.trim(), 1, knowledgePage.size);
-                knowledgeList.value = result.records;
-                knowledgePage.total = result.total;
-                ElementPlus.ElMessage.success(`找到 ${result.total} 条相关记录`);
-            } else {
-                // 清空搜索，重新加载
-                await loadKnowledgeList();
-            }
+            if (searchTimer) clearTimeout(searchTimer);
+            searchTimer = setTimeout(async () => {
+                knowledgePage.current = 1;
+                if (searchKeyword.value && searchKeyword.value.trim()) {
+                    // 执行搜索（带筛选条件）
+                    const result = await window.searchKnowledge(searchKeyword.value.trim(), 1, knowledgePage.size, filterPublishStatus.value, filterIsTop.value);
+                    knowledgeList.value = result.records;
+                    knowledgePage.total = result.total;
+                    ElementPlus.ElMessage.success(`找到 ${result.total} 条相关记录`);
+                } else {
+                    // 清空搜索，重新加载
+                    await loadKnowledgeList();
+                }
+            }, 300);
         };
         
         // 搜索后分页处理
@@ -565,6 +590,17 @@ const app = createApp({
             ]);
         });
         
+        // 监听菜单切换，只在进入数据看板时刷新热门问题
+        let menuTimer = null;
+        watch(currentMenu, async (newVal, oldVal) => {
+            if (newVal === 'dashboard' && oldVal !== newVal) {
+                if (menuTimer) clearTimeout(menuTimer);
+                menuTimer = setTimeout(async () => {
+                    await loadHotQuestions();
+                }, 300);
+            }
+        });
+        
         return {
             currentMenu,
             searchQuestion,
@@ -591,7 +627,11 @@ const app = createApp({
             totalPages,
             jumpPage,
             userDisplayName,
+            filterPublishStatus,
+            filterIsTop,
             getMenuName,
+            switchMenu,
+            handleFilterChange,
             showAddKnowledgeDialog,
             editKnowledge,
             deleteKnowledge,
@@ -650,5 +690,3 @@ app.use(ElementPlus, {
 
 // 挂载应用并显示页面
 app.mount('#app');
-
-console.log('✅ admin.js 已加载 - 20260325_1530');

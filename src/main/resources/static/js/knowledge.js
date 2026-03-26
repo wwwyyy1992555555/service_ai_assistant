@@ -12,7 +12,7 @@ async function loadCategories() {
             return result.data || [];
         }
     } catch (error) {
-        console.error('加载分类列表失败:', error);
+        // 静默失败
     }
     return [];
 }
@@ -30,7 +30,6 @@ async function saveCategory(data) {
         const result = await response.json();
         return result;
     } catch (error) {
-        console.error('保存分类失败:', error);
         return { success: false, message: '网络错误' };
     }
 }
@@ -44,37 +43,55 @@ async function deleteCategory(id) {
         const result = await response.json();
         return result;
     } catch (error) {
-        console.error('删除分类失败:', error);
         return { success: false, message: '网络错误' };
     }
 }
 
-// 加载知识列表
-async function loadKnowledgeList(current = 1, size = 10) {
+// 加载知识列表（支持筛选）
+async function loadKnowledgeList(current = 1, size = 10, keyword = '', publishStatus = null, isTop = null) {
     try {
-        const response = await fetch(`/api/knowledge/list?tenantId=1&current=${current}&size=${size}`);
-        const result = await response.json();
+        let url = `/api/knowledge/list?tenantId=1&current=${current}&size=${size}`;
         
-        console.log('加载知识列表:', result);
+        // 添加筛选参数
+        if (keyword && keyword.trim()) {
+            url += `&keyword=${encodeURIComponent(keyword.trim())}`;
+        }
+        if (publishStatus !== null && publishStatus !== undefined) {
+            url += `&publishStatus=${publishStatus}`;
+        }
+        if (isTop !== null && isTop !== undefined) {
+            url += `&isTop=${isTop}`;
+        }
+        
+        const response = await fetch(url);
+        const result = await response.json();
         
         if (result.code === 200) {
             return {
                 records: result.data.records || [],
                 total: result.data.total || 0
             };
-        } else {
-            console.error('加载知识列表失败:', result.message);
         }
     } catch (error) {
-        console.error('加载知识列表失败:', error);
+        // 静默失败
     }
     return { records: [], total: 0 };
 }
 
-// 搜索知识
-async function searchKnowledge(keyword, current = 1, size = 10) {
+// 搜索知识（支持筛选）
+async function searchKnowledge(keyword, current = 1, size = 10, publishStatus = null, isTop = null) {
     try {
-        const response = await fetch(`/api/knowledge/list?tenantId=1&current=${current}&size=${size}&keyword=${encodeURIComponent(keyword)}`);
+        let url = `/api/knowledge/list?tenantId=1&current=${current}&size=${size}&keyword=${encodeURIComponent(keyword)}`;
+        
+        // 添加筛选参数
+        if (publishStatus !== null && publishStatus !== undefined) {
+            url += `&publishStatus=${publishStatus}`;
+        }
+        if (isTop !== null && isTop !== undefined) {
+            url += `&isTop=${isTop}`;
+        }
+        
+        const response = await fetch(url);
         const result = await response.json();
         
         if (result.code === 200) {
@@ -84,7 +101,7 @@ async function searchKnowledge(keyword, current = 1, size = 10) {
             };
         }
     } catch (error) {
-        console.error('搜索知识失败:', error);
+        // 静默失败
     }
     return { records: [], total: 0 };
 }
@@ -114,7 +131,6 @@ async function saveKnowledge(data) {
             return { success: false, message: result.message || '保存失败' };
         }
     } catch (error) {
-        console.error('保存失败:', error);
         return { success: false, message: '网络错误' };
     }
 }
@@ -134,7 +150,6 @@ async function deleteKnowledge(id) {
             return { success: false, message: '删除失败' };
         }
     } catch (error) {
-        console.error('删除失败:', error);
         return { success: false, message: '网络错误' };
     }
 }

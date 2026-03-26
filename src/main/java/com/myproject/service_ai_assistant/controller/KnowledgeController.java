@@ -3,6 +3,8 @@
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.myproject.service_ai_assistant.common.Result;
+import com.myproject.service_ai_assistant.dto.CategoryDTO;
+import com.myproject.service_ai_assistant.dto.KnowledgeDTO;
 import com.myproject.service_ai_assistant.entity.KnowledgeCategory;
 import com.myproject.service_ai_assistant.entity.KnowledgeItem;
 import com.myproject.service_ai_assistant.service.KnowledgeCategoryService;
@@ -39,27 +41,24 @@ public class KnowledgeController {
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
             @Parameter(description = "分类 ID") @RequestParam(required = false) Long categoryId,
             @Parameter(description = "搜索关键词") @RequestParam(required = false) String keyword,
+            @Parameter(description = "发布状态 (0:草稿，1:已发布)") @RequestParam(required = false) Integer publishStatus,
+            @Parameter(description = "是否置顶 (0:未置顶，1:已置顶)") @RequestParam(required = false) Integer isTop,
             @Parameter(description = "当前页码") @RequestParam(defaultValue = "1") Integer current,
             @Parameter(description = "每页大小") @RequestParam(defaultValue = "10") Integer size
     ) {
-        log.info("【知识列表】查询参数：tenantId={}, categoryId={}, keyword={}, current={}, size={}", 
-                tenantId, categoryId, keyword, current, size);
+        log.info("【知识列表】查询参数：tenantId={}, categoryId={}, keyword={}, publishStatus={}, isTop={}, current={}, size={}", 
+                tenantId, categoryId, keyword, publishStatus, isTop, current, size);
         
         Page<KnowledgeItem> page = new Page<>(current, size);
         Page<KnowledgeItem> result;
         
-        // 如果有搜索关键词，使用搜索接口
+        // 如果有搜索关键词，使用搜索接口（带筛选）
         if (StrUtil.isNotBlank(keyword)) {
-            List<KnowledgeItem> searchResults = knowledgeItemService.searchKnowledge(tenantId, keyword);
-            // 手动实现分页
-            long total = searchResults.size();
-            int fromIndex = (current - 1) * size;
-            int toIndex = Math.min(fromIndex + size, (int)total);
-            List<KnowledgeItem> pagedResults = fromIndex < total ? searchResults.subList(fromIndex, toIndex) : List.of();
-            result = new Page<>(current, size, total);
-            result.setRecords(pagedResults);
+            // 使用原有的搜索方法，筛选逻辑在 SQL 中处理
+            result = knowledgeItemService.searchKnowledgeWithFiltersPage(tenantId, keyword, publishStatus, isTop, page);
         } else {
-            result = knowledgeItemService.queryKnowledgeList(tenantId, categoryId, page);
+            // 使用带筛选的分页查询
+            result = knowledgeItemService.queryKnowledgeListWithFilters(tenantId, categoryId, publishStatus, isTop, page);
         }
         
         log.info("【知识列表】查询成功：total={}", result.getTotal());
@@ -134,34 +133,9 @@ public class KnowledgeController {
         item.setAttachments(dto.getAttachments());
         item.setPublishStatus(dto.getPublishStatus());
         item.setAuthor(dto.getAuthor());
+        item.setIsTop(dto.getIsTop());
     }
 
-    @Data
-    public static class KnowledgeDTO {
-        
-        private Long id;
-        
-        private Long tenantId;
-        
-        private Long categoryId;
-        
-        private String title;
-        
-        private String keywords;
-        
-        private String question;
-        
-        private String answer;
-        
-        private String contentType;
-        
-        private String attachments;
-        
-        private Integer publishStatus;
-        
-        private String author;
-    }
-    
     @GetMapping("/categories")
     @Operation(summary = "查询分类列表")
     public Result<List<KnowledgeCategory>> getCategories() {
@@ -203,14 +177,5 @@ public class KnowledgeController {
         log.info("【删除分类】id={}", id);
         knowledgeCategoryService.removeById(id);
         return Result.success(true);
-    }
-    
-    @Data
-    public static class CategoryDTO {
-        private Long id;
-        private Long tenantId;
-        private String categoryName;
-        private Integer sortOrder;
-        private Integer status;
     }
 }

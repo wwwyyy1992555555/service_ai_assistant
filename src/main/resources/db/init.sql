@@ -1,5 +1,5 @@
 -- ========================================
--- AI 智库企业咨询平台 - 数据库初始化脚本（完全初始化会覆盖数据）
+-- AI 智库企业咨询平台 - 数据库初始化脚本
 -- ========================================
 
 -- 创建数据库
@@ -30,34 +30,7 @@ CREATE TABLE `tenant_info` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='租户信息表';
 
 -- ========================================
--- 3. 服务网点表（位置、导航）
--- ========================================
-DROP TABLE IF EXISTS `service_location`;
-CREATE TABLE `service_location` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `tenant_id` BIGINT NOT NULL COMMENT '租户 ID',
-  `location_name` VARCHAR(100) NOT NULL COMMENT '网点名称',
-  `location_type` VARCHAR(50) DEFAULT NULL COMMENT '网点类型：总部/分店/办事处',
-  `province` VARCHAR(50) DEFAULT NULL COMMENT '省',
-  `city` VARCHAR(50) DEFAULT NULL COMMENT '市',
-  `district` VARCHAR(50) DEFAULT NULL COMMENT '区',
-  `detail_address` VARCHAR(500) DEFAULT NULL COMMENT '详细地址',
-  `latitude` DECIMAL(10,6) DEFAULT NULL COMMENT '纬度',
-  `longitude` DECIMAL(11,6) DEFAULT NULL COMMENT '经度',
-  `phone` VARCHAR(50) DEFAULT NULL COMMENT '联系电话',
-  `opening_hours` VARCHAR(100) DEFAULT NULL COMMENT '营业时间',
-  `facilities` VARCHAR(500) DEFAULT NULL COMMENT '设施：停车场/WiFi/无障碍通道',
-  `traffic_guide` TEXT COMMENT '交通指引',
-  `sort_order` INT DEFAULT 0 COMMENT '排序',
-  `status` TINYINT DEFAULT 1 COMMENT '状态：0-关闭 1-营业中',
-  `created_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  `deleted` TINYINT DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `idx_tenant_id` (`tenant_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='服务网点表';
-
--- ========================================
--- 4. 知识库分类表（多级分类）
+-- 2. 知识库分类表（多级分类）
 -- ========================================
 DROP TABLE IF EXISTS `knowledge_category`;
 CREATE TABLE `knowledge_category` (
@@ -77,7 +50,7 @@ CREATE TABLE `knowledge_category` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='知识库分类表';
 
 -- ========================================
--- 5. 知识条目表（核心知识库）
+-- 3. 知识条目表（核心知识库）
 -- ========================================
 DROP TABLE IF EXISTS `knowledge_item`;
 CREATE TABLE `knowledge_item` (
@@ -105,32 +78,7 @@ CREATE TABLE `knowledge_item` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='知识条目表';
 
 -- ========================================
--- 6. 专家/团队表
--- ========================================
-DROP TABLE IF EXISTS `expert_team`;
-CREATE TABLE `expert_team` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `tenant_id` BIGINT NOT NULL COMMENT '租户 ID',
-  `expert_name` VARCHAR(100) NOT NULL COMMENT '专家姓名',
-  `title` VARCHAR(100) DEFAULT NULL COMMENT '职称/职务',
-  `specialty` VARCHAR(500) DEFAULT NULL COMMENT '擅长领域',
-  `introduction` TEXT COMMENT '个人简介',
-  `photo_url` VARCHAR(500) DEFAULT NULL COMMENT '照片',
-  `years_experience` INT DEFAULT NULL COMMENT '从业年限',
-  `success_rate` DECIMAL(5,2) DEFAULT NULL COMMENT '成功率（%）',
-  `case_count` INT DEFAULT 0 COMMENT '案例数量',
-  `schedule_info` JSON DEFAULT NULL COMMENT '排班信息（JSON）',
-  `appointment_enabled` TINYINT DEFAULT 1 COMMENT '是否可预约',
-  `sort_order` INT DEFAULT 0 COMMENT '排序',
-  `status` TINYINT DEFAULT 1 COMMENT '状态',
-  `created_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  `deleted` TINYINT DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `idx_tenant_id` (`tenant_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='专家团队表';
-
--- ========================================
--- 7. 对话记录表
+-- 4. 对话记录表
 -- ========================================
 DROP TABLE IF EXISTS `consultation_record`;
 CREATE TABLE `consultation_record` (
@@ -158,29 +106,7 @@ CREATE TABLE `consultation_record` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='咨询对话记录表';
 
 -- ========================================
--- 8. 数据统计表（按天统计）
--- ========================================
-DROP TABLE IF EXISTS `daily_statistics`;
-CREATE TABLE `daily_statistics` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `tenant_id` BIGINT NOT NULL COMMENT '租户 ID',
-  `stat_date` DATE NOT NULL COMMENT '统计日期',
-  `total_questions` INT DEFAULT 0 COMMENT '总提问数',
-  `solved_questions` INT DEFAULT 0 COMMENT '已解决数',
-  `unsolved_questions` INT DEFAULT 0 COMMENT '未解决数',
-  `total_users` INT DEFAULT 0 COMMENT '总用户数',
-  `new_users` INT DEFAULT 0 COMMENT '新增用户数',
-  `avg_response_time` INT DEFAULT 0 COMMENT '平均响应时间（毫秒）',
-  `avg_satisfaction` DECIMAL(3,2) DEFAULT 0 COMMENT '平均满意度',
-  `top_questions` JSON DEFAULT NULL COMMENT '热门问题 TOP10（JSON）',
-  `created_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  `deleted` TINYINT DEFAULT 0,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_tenant_date` (`tenant_id`, `stat_date`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='每日统计表';
-
--- ========================================
--- 9. 系统配置表
+-- 5. 系统配置表
 -- ========================================
 DROP TABLE IF EXISTS `system_config`;
 CREATE TABLE `system_config` (
@@ -199,7 +125,7 @@ CREATE TABLE `system_config` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统配置表';
 
 -- ========================================
--- 10. 员工信息表
+-- 6. 员工信息表
 -- ========================================
 DROP TABLE IF EXISTS `employee_info`;
 CREATE TABLE `employee_info` (
@@ -225,7 +151,7 @@ CREATE TABLE `employee_info` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='员工信息表';
 
 -- ========================================
--- 11. 咨询反馈表
+-- 7. 咨询反馈表
 -- ========================================
 DROP TABLE IF EXISTS `consultation_feedback`;
 CREATE TABLE `consultation_feedback` (
@@ -257,10 +183,6 @@ CREATE TABLE `consultation_feedback` (
 -- 示例租户
 INSERT INTO `tenant_info` (`tenant_name`, `tenant_code`, `industry_type`, `contact_person`, `contact_phone`, `theme_color`, `welcome_message`) VALUES
 ('XX 市政务服务中心', 'gov_demo_001', 'government', '张主任', '13800138000', '#1890ff', '您好，XX 市政务服务中心很高兴为您服务！');
-
--- 示例服务网点
-INSERT INTO `service_location` (`tenant_id`, `location_name`, `location_type`, `city`, `detail_address`, `opening_hours`, `traffic_guide`) VALUES
-(1, '市民之家政务大厅', '总部', 'XX 市', 'XX 区 XX 路 100 号', '周一至周日 9:00-17:00', '地铁 1 号线市民之家站 C 口直达；公交 101、102 路市民之家站下车即到');
 
 -- 示例知识分类
 INSERT INTO `knowledge_category` (`tenant_id`, `category_name`, `parent_id`, `level`) VALUES

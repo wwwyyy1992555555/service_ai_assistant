@@ -54,7 +54,6 @@ async function sendMessageToAI(sessionId, question) {
             throw new Error(result.message || '请求失败');
         }
     } catch (error) {
-        console.error('发送消息失败:', error);
         return {
             success: false,
             answer: '抱歉，网络开小差了，请稍后再试。',
@@ -71,10 +70,8 @@ async function sendMessageToAI(sessionId, question) {
 async function submitSatisfaction(messageId, satisfaction) {
     try {
         // TODO: 实现后端接口
-        console.log('提交满意度:', messageId, satisfaction);
         return true;
     } catch (error) {
-        console.error('提交满意度失败:', error);
         return false;
     }
 }
@@ -89,7 +86,7 @@ async function loadHotQuestions(limit = 4) {
             return result.data.map(item => item.question);
         }
     } catch (error) {
-        console.error('加载热门问题失败:', error);
+        // 静默失败
     }
     return [];
 }

@@ -532,3 +532,29 @@ body {
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(24, 144, 255, 0.2);
 }
+
+/* 反馈对话框样式 */
+.feedback-container {
+    min-width: 400px;
+}
+
+.feedback-title {
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #333;
+}
+
+.feedback-options {
+    margin-bottom: 16px;
+}
+
+.feedback-suggestion {
+    margin-top: 12px;
+}
+
+/* 手机端适配 */
+@media screen and (max-width: 768px) {
+    .feedback-container {
+        min-width: 300px;
+    }
+}

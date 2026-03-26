@@ -29,12 +29,11 @@
                 <div class="welcome-text">{{ config.welcomeMessage }}</div>
                 <div class="quick-questions">
                     <button 
-                        v-for="(question, index) in quickQuestions" 
+                        v-for="(item, index) in quickQuestions" 
                         :key="index"
                         class="quick-question-btn"
-                        @click="sendQuickQuestion(question)"
-                    >
-                        💬 {{ question }}
+                        @click="sendQuickQuestion(item.question)">
+                        {{ item.isTop === 1 ? '🔥 ' : '' }}{{ item.question }}
                     </button>
                 </div>
             </div>
@@ -119,14 +118,17 @@
                 </button>
             </div>
         </div>
-    </div>
 
-    <!-- 反馈对话框 -->
-    <div id="feedback-dialog" style="display: none;">
-        <div class="feedback-container">
-            <div class="feedback-title">请选择原因（可多选）</div>
-            <div class="feedback-options">
-                <el-checkbox-group v-model="feedbackForm.reasons">
+        <!-- 反馈对话框 -->
+        <el-dialog
+            v-model="feedbackDialogVisible"
+            title="帮助我们改进"
+            width="450px"
+            :close-on-click-modal="false"
+        >
+            <div style="margin-bottom: 20px;">
+                <div style="font-size: 14px; color: #666; margin-bottom: 12px;">请选择原因（可多选）</div>
+                <el-checkbox-group v-model="feedbackForm.reasons" style="display: flex; flex-direction: column; gap: 12px;">
                     <el-checkbox label="答案不准确">答案不准确</el-checkbox>
                     <el-checkbox label="答案不完整">答案不完整</el-checkbox>
                     <el-checkbox label="答案太官方">答案太官方</el-checkbox>
@@ -134,7 +136,7 @@
                     <el-checkbox label="其他">其他</el-checkbox>
                 </el-checkbox-group>
             </div>
-            <div class="feedback-suggestion">
+            <div style="margin-bottom: 20px;">
                 <el-input
                     v-model="feedbackForm.suggestion"
                     type="textarea"
@@ -142,7 +144,13 @@
                     placeholder="您有什么建议或补充？（选填）"
                 ></el-input>
             </div>
-        </div>
+            <template #footer>
+                <span class="dialog-footer">
+                    <el-button @click="feedbackDialogVisible = false">取消</el-button>
+                    <el-button type="primary" @click="handleFeedbackSubmit">提交</el-button>
+                </span>
+            </template>
+        </el-dialog>
     </div>
 
     <!-- 引入 Vue 和 Element Plus -->
@@ -265,15 +273,16 @@
                     '新生儿医保如何办理？'
                 ]);
 
+                // 反馈表单
                 const feedbackForm = reactive({
-                    messageId: null,
                     consultationId: null,
                     satisfaction: 0,
                     reasons: [],
                     suggestion: ''
                 });
 
-                let feedbackDialog = null;
+                const feedbackDialogVisible = ref(false);
+                let currentMessage = null;
 
                 function getCurrentTime() {
                     const now = new Date();
@@ -680,6 +689,7 @@
                         content: aiResponse.answer,
                         time: getCurrentTime(),
                         id: aiResponse.consultationId, // 咨询记录 ID
+                        consultationId: aiResponse.consultationId, // 咨询记录 ID（备用字段）
                         matchScore: aiResponse.matchScore,
                         knowledgeTitle: aiResponse.knowledgeTitle,
                         categoryName: aiResponse.categoryName,
@@ -715,43 +725,40 @@
                     }
 
                     // 保存当前消息和评分
-                    feedbackForm.messageId = message;
-                    feedbackForm.consultationId = message.id;
+                    const consultationId = message.consultationId || message.id;
+                    if (!consultationId) {
+                        console.error('咨询记录 ID 不存在:', message);
+                        ElementPlus.ElMessage.error('提交失败，请刷新页面重试');
+                        message.satisfaction = 0;
+                        return;
+                    }
+                    
+                    feedbackForm.consultationId = consultationId;
                     feedbackForm.satisfaction = message.satisfaction;
                     feedbackForm.reasons = [];
                     feedbackForm.suggestion = '';
+                    currentMessage = message;
+                    feedbackDialogVisible.value = true;
+                }
 
-                    // 显示 Element Plus 对话框
-                    feedbackDialog = ElementPlus.ElMessageBox({
-                        title: '帮助我们改进',
-                        message: document.getElementById('feedback-dialog').innerHTML,
-                        showCancelButton: true,
-                        confirmButtonText: '提交',
-                        cancelButtonText: '取消',
-                        customClass: 'feedback-message-box',
-                        closeOnClickModal: false
-                    }).then(async () => {
-                        await submitFeedbackToBackend(message);
-                    }).catch(() => {
-                        // 用户取消，重置评分
-                        message.satisfaction = 0;
-                    });
+                function handleFeedbackSubmit() {
+                    if (currentMessage) {
+                        submitFeedbackToBackend(currentMessage);
+                        feedbackDialogVisible.value = false;
+                    }
                 }
 
                 async function submitFeedbackToBackend(message) {
-                    if (!message.id) {
+                    const consultationId = feedbackForm.consultationId;
+                    if (!consultationId) {
                         console.error('咨询记录 ID 不存在');
+                        ElementPlus.ElMessage.error('提交失败，请刷新页面重试');
                         return;
                     }
 
                     try {
-                        const formData = new FormData();
-                        formData.append('consultationId', message.id);
-                        formData.append('satisfaction', message.satisfaction || feedbackForm.satisfaction);
-                        
-                        const reasons = feedbackForm.reasons && feedbackForm.reasons.length > 0 
-                            ? feedbackForm.reasons 
-                            : [];
+                        const reasons = feedbackForm.reasons || [];
+                        const suggestion = feedbackForm.suggestion || '';
                         
                         // 以 JSON 格式发送原因
                         const response = await fetch(`${API_BASE_URL}/consult/feedback/submit`, {
@@ -760,10 +767,10 @@
                                 'Content-Type': 'application/json'
                             },
                             body: JSON.stringify({
-                                consultationId: message.id,
-                                satisfaction: message.satisfaction || feedbackForm.satisfaction,
+                                consultationId: consultationId,
+                                satisfaction: message.satisfaction,
                                 reasons: reasons,
-                                suggestion: feedbackForm.suggestion
+                                suggestion: suggestion
                             })
                         });
 
@@ -789,7 +796,7 @@
                         const result = await response.json();
                         
                         if (result.code === 200 && result.data && result.data.length > 0) {
-                            quickQuestions.value = result.data.map(item => item.question);
+                            quickQuestions.value = result.data;  // 保存完整数据，包含 isTop 字段
                         }
                     } catch (error) {
                         console.error('加载热门问题失败:', error);
@@ -802,7 +809,6 @@
                 });
 
                 return {
-                    Math,
                     messages,
                     inputMessage,
                     isLoading,
@@ -813,7 +819,9 @@
                     sendQuickQuestion,
                     submitSatisfaction,
                     showFeedbackDialog,
-                    feedbackForm
+                    feedbackForm,
+                    feedbackDialogVisible,
+                    handleFeedbackSubmit
                 };
             }
         });

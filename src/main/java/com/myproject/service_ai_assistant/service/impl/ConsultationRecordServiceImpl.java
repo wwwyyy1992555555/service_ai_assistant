@@ -22,27 +22,16 @@ public class ConsultationRecordServiceImpl extends ServiceImpl<ConsultationRecor
 
     @Override
     public Page<ConsultationRecord> queryRecords(Long tenantId, Page<ConsultationRecord> page) {
-        // 使用子查询按会话分组，每个会话只显示最新的一条记录
-        String sql = """
-            SELECT t1.* FROM consultation_record t1
-            INNER JOIN (
-                SELECT session_id, MAX(created_time) as max_time
-                FROM consultation_record
-                WHERE tenant_id = ? AND deleted = 0
-                GROUP BY session_id
-                ORDER BY max_time DESC
-                LIMIT ?, ?
-            ) t2 ON t1.session_id = t2.session_id AND t1.created_time = t2.max_time
-            WHERE t1.deleted = 0
-            ORDER BY t1.created_time DESC
-            """;
-        
+        // 使用子查询按会话分组，每个会话显示第一次提问的记录
         long offset = (page.getCurrent() - 1) * page.getSize();
         long limit = page.getSize();
         List<ConsultationRecord> records = this.baseMapper.queryRecordsBySession(tenantId, offset, limit);
         
         // 查询总数（按会话分组）
         long total = this.baseMapper.countSessions(tenantId);
+        
+        // 注意：不再补充最高匹配度，直接显示第一条记录的原始匹配度
+        // 这样更真实反映首次问题的解决情况
         
         Page<ConsultationRecord> result = new Page<>(page.getCurrent(), page.getSize(), total);
         result.setRecords(records);
@@ -58,30 +47,13 @@ public class ConsultationRecordServiceImpl extends ServiceImpl<ConsultationRecor
             return queryRecords(tenantId, page);
         }
         
-        // 搜索时也需要按会话分组，返回包含关键词的会话的最新记录
-        String sql = """
-            SELECT t1.* FROM consultation_record t1
-            INNER JOIN (
-                SELECT session_id, MAX(created_time) as max_time
-                FROM consultation_record
-                WHERE tenant_id = ? 
-                  AND deleted = 0
-                  AND (question LIKE ? OR answer LIKE ?)
-                GROUP BY session_id
-                ORDER BY max_time DESC
-                LIMIT ?, ?
-            ) t2 ON t1.session_id = t2.session_id AND t1.created_time = t2.max_time
-            WHERE t1.deleted = 0
-            ORDER BY t1.created_time DESC
-            """;
-        
-        String likeKeyword = "%" + keyword + "%";
+        // 搜索时也需要按会话分组，返回包含关键词的会话的第一条记录
         long offset = (page.getCurrent() - 1) * page.getSize();
         long limit = page.getSize();
-        List<ConsultationRecord> records = this.baseMapper.searchRecordsBySession(tenantId, likeKeyword, likeKeyword, offset, limit);
+        List<ConsultationRecord> records = this.baseMapper.searchRecordsBySession(tenantId, "%" + keyword + "%", "%" + keyword + "%", offset, limit);
         
         // 查询符合条件的会话总数
-        long total = this.baseMapper.countSearchedSessions(tenantId, likeKeyword, likeKeyword);
+        long total = this.baseMapper.countSearchedSessions(tenantId, "%" + keyword + "%", "%" + keyword + "%");
         
         Page<ConsultationRecord> result = new Page<>(page.getCurrent(), page.getSize(), total);
         result.setRecords(records);

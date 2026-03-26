@@ -20,6 +20,17 @@ public interface KnowledgeItemService extends IService<KnowledgeItem> {
     List<KnowledgeItem> searchKnowledge(Long tenantId, String keyword);
 
     /**
+     * 搜索知识库 (根据关键词 + 筛选条件) - 分页版本
+     * @param tenantId 租户 ID
+     * @param keyword 关键词
+     * @param publishStatus 发布状态 (null:全部，0:草稿，1:已发布)
+     * @param isTop 是否置顶 (null:全部，0:未置顶，1:已置顶)
+     * @param page 分页参数
+     * @return 分页结果
+     */
+    Page<KnowledgeItem> searchKnowledgeWithFiltersPage(Long tenantId, String keyword, Integer publishStatus, Integer isTop, Page<KnowledgeItem> page);
+
+    /**
      * 获取热门问题
      * @param tenantId 租户 ID
      * @param limit 数量限制
@@ -35,6 +46,17 @@ public interface KnowledgeItemService extends IService<KnowledgeItem> {
      * @return 分页结果
      */
     Page<KnowledgeItem> queryKnowledgeList(Long tenantId, Long categoryId, Page<KnowledgeItem> page);
+
+    /**
+     * 分页查询知识列表 (带筛选条件)
+     * @param tenantId 租户 ID
+     * @param categoryId 分类 ID(可选)
+     * @param publishStatus 发布状态 (null:全部，0:草稿，1:已发布)
+     * @param isTop 是否置顶 (null:全部，0:未置顶，1:已置顶)
+     * @param page 分页参数
+     * @return 分页结果
+     */
+    Page<KnowledgeItem> queryKnowledgeListWithFilters(Long tenantId, Long categoryId, Integer publishStatus, Integer isTop, Page<KnowledgeItem> page);
 
     /**
      * 统计知识库总数

@@ -25,11 +25,15 @@ public class FeedbackController {
 
     @PostMapping("/submit")
     @Operation(summary = "提交反馈", description = "用户对咨询结果进行满意度评价并提交反馈意见")
-    public Result<Void> submitFeedback(
-            @RequestParam Long consultationId,
-            @RequestParam Integer satisfaction,
-            @RequestBody(required = false) List<String> reasons,
-            @RequestParam(required = false) String suggestion) {
+    public Result<Void> submitFeedback(@RequestBody Map<String, Object> request) {
+        
+        Long consultationId = Long.valueOf(request.get("consultationId").toString());
+        Integer satisfaction = (Integer) request.get("satisfaction");
+        
+        @SuppressWarnings("unchecked")
+        List<String> reasons = (List<String>) request.get("reasons");
+        
+        String suggestion = (String) request.get("suggestion");
         
         feedbackService.submitFeedback(consultationId, satisfaction, reasons, suggestion);
         return Result.success();

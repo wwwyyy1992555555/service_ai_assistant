@@ -40,4 +40,9 @@ public interface ConsultationRecordMapper extends BaseMapper<ConsultationRecord>
     long countSearchedSessions(@Param("tenantId") Long tenantId,
                                @Param("keyword1") String keyword1,
                                @Param("keyword2") String keyword2);
+
+    /**
+     * 查询指定会话的最高匹配度
+     */
+    Double selectMaxMatchScore(@Param("sessionId") String sessionId, @Param("tenantId") Long tenantId);
 }

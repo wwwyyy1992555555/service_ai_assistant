@@ -12,7 +12,7 @@ async function loadDashboard() {
             return result.data;
         }
     } catch (error) {
-        console.error('加载看板数据失败:', error);
+        // 静默失败
     }
     return null;
 }
@@ -27,10 +27,14 @@ async function loadHotQuestions(limit = 10) {
             return result.data || [];
         }
     } catch (error) {
-        console.error('热门问题加载失败:', error);
+        // 静默失败
     }
     return [];
 }
+
+// 挂载到全局 window 对象
+window.loadDashboard = loadDashboard;
+window.loadHotQuestions = loadHotQuestions;
 
 // 渲染统计数据
 function renderStats(stats) {

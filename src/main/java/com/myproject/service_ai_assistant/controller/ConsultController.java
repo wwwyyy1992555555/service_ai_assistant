@@ -4,6 +4,8 @@ import cn.hutool.core.util.StrUtil;
 import com.myproject.service_ai_assistant.common.Result;
 import com.myproject.service_ai_assistant.common.SimilarityUtil;
 import com.myproject.service_ai_assistant.config.LlmConfig;
+import com.myproject.service_ai_assistant.dto.ConsultRequest;
+import com.myproject.service_ai_assistant.dto.ConsultResponse;
 import com.myproject.service_ai_assistant.dto.UserInfoParseRequest;
 import com.myproject.service_ai_assistant.entity.ConsultationRecord;
 import com.myproject.service_ai_assistant.entity.KnowledgeItem;
@@ -536,53 +538,5 @@ public class ConsultController {
         double viewBonus = Math.min(item.getViewCount() * 0.001, 0.1);  // 最多加 0.1
 
         return Math.min(totalScore + viewBonus, 1.0);  // 不超过 1.0
-    }
-
-    /**
-     * 问答请求参数
-     */
-    @Data
-    public static class ConsultRequest {
-        
-        @NotBlank(message = "会话 ID 不能为空")
-        private String sessionId;
-        
-        @NotBlank(message = "问题不能为空")
-        private String question;
-        
-        private Long tenantId = 1L; // 默认租户
-        
-        private String userId;
-        
-        private String userName;
-        
-        private String userPhone;
-        
-        private String deviceType = "web";
-        
-        private String ipAddress;
-    }
-
-    /**
-     * 问答响应数据
-     */
-    @Data
-    public static class ConsultResponse {
-        
-        private String answer;
-        
-        private Long matchedKnowledgeId;
-        
-        private Double matchScore;
-        
-        private String knowledgeTitle;
-        
-        private String categoryName;
-        
-        private Integer viewCount;
-        
-        private Long consultationId; // 咨询记录 ID
-        
-        private List<String> suggestedQuestions;
     }
 }

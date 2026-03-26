@@ -77,6 +77,42 @@ public class KnowledgeItemServiceImpl extends ServiceImpl<KnowledgeItemMapper, K
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public Page<KnowledgeItem> searchKnowledgeWithFiltersPage(Long tenantId, String keyword, Integer publishStatus, Integer isTop, Page<KnowledgeItem> page) {
+        if (StrUtil.isBlank(keyword)) {
+            return new Page<>(page.getCurrent(), page.getSize(), 0);
+        }
+
+        log.info("【知识搜索（带筛选分页）】keyword={}, publishStatus={}, isTop={}", keyword, publishStatus, isTop);
+
+        // 构建查询条件
+        LambdaQueryWrapper<KnowledgeItem> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(KnowledgeItem::getTenantId, tenantId);
+        
+        // 添加发布状态筛选
+        if (publishStatus != null) {
+            wrapper.eq(KnowledgeItem::getPublishStatus, publishStatus);
+        }
+        
+        // 添加置顶状态筛选
+        if (isTop != null) {
+            wrapper.eq(KnowledgeItem::getIsTop, isTop);
+        }
+        
+        // 关键词模糊查询
+        wrapper.and(w -> w.like(KnowledgeItem::getQuestion, keyword)
+                .or()
+                .like(KnowledgeItem::getKeywords, keyword)
+                .or()
+                .like(KnowledgeItem::getTitle, keyword));
+
+        // 执行分页查询
+        Page<KnowledgeItem> result = this.page(page, wrapper);
+        log.debug("【知识搜索（带筛选分页）】total={}", result.getTotal());
+
+        return result;
+    }
+
     /**
      * 计算综合匹配分数
      */
@@ -112,7 +148,12 @@ public class KnowledgeItemServiceImpl extends ServiceImpl<KnowledgeItemMapper, K
         // 综合计算
         double totalScore = questionScore * 0.5 + keywordScore * 0.3 + titleScore * 0.2 + numberBonus;
 
-        // 5. 浏览量微调（热门问题略微加分）
+        // 5. 完全匹配奖励：如果问题完全相同，直接返回 1.0
+        if (question.trim().equalsIgnoreCase(item.getQuestion().trim())) {
+            return 1.0;
+        }
+
+        // 6. 浏览量微调（热门问题略微加分）
         double viewBonus = Math.min(item.getViewCount() * 0.001, 0.1);  // 最多加 0.1
 
         return Math.min(totalScore + viewBonus, 1.0);  // 不超过 1.0
@@ -144,8 +185,8 @@ public class KnowledgeItemServiceImpl extends ServiceImpl<KnowledgeItemMapper, K
         LambdaQueryWrapper<KnowledgeItem> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(KnowledgeItem::getTenantId, tenantId)
                 .eq(KnowledgeItem::getPublishStatus, 1)
-                // 不再限制 is_hot=1，直接按浏览量排序
-                .orderByDesc(KnowledgeItem::getViewCount)
+                .orderByDesc(KnowledgeItem::getIsTop)  // 置顶的排前面
+                .orderByDesc(KnowledgeItem::getViewCount)  // 再按浏览量排序
                 .last("LIMIT " + limit);
 
         return this.list(wrapper);
@@ -164,6 +205,35 @@ public class KnowledgeItemServiceImpl extends ServiceImpl<KnowledgeItemMapper, K
         
         Page<KnowledgeItem> result = this.page(page, wrapper);
         log.debug("【知识列表查询】tenantId={}, categoryId={}, total={}", tenantId, categoryId, result.getTotal());
+        
+        return result;
+    }
+
+    @Override
+    public Page<KnowledgeItem> queryKnowledgeListWithFilters(Long tenantId, Long categoryId, Integer publishStatus, Integer isTop, Page<KnowledgeItem> page) {
+        LambdaQueryWrapper<KnowledgeItem> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(KnowledgeItem::getTenantId, tenantId);
+        
+        // 添加分类筛选
+        if (categoryId != null) {
+            wrapper.eq(KnowledgeItem::getCategoryId, categoryId);
+        }
+        
+        // 添加发布状态筛选
+        if (publishStatus != null) {
+            wrapper.eq(KnowledgeItem::getPublishStatus, publishStatus);
+        }
+        
+        // 添加置顶状态筛选
+        if (isTop != null) {
+            wrapper.eq(KnowledgeItem::getIsTop, isTop);
+        }
+        
+        wrapper.orderByDesc(KnowledgeItem::getCreatedTime);
+        
+        Page<KnowledgeItem> result = this.page(page, wrapper);
+        log.debug("【知识列表查询（带筛选）】tenantId={}, categoryId={}, publishStatus={}, isTop={}, total={}", 
+                tenantId, categoryId, publishStatus, isTop, result.getTotal());
         
         return result;
     }
