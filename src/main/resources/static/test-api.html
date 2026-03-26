@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 问答接口测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1890ff;
+        }
+        h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .test-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .test-btn {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .test-btn:hover {
+            background: #40a9ff;
+        }
+        .result {
+            background: #f9f9f9;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #1890ff;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            border-left-color: #52c41a;
+        }
+        .error {
+            border-left-color: #ff4d4f;
+        }
+        .knowledge-list {
+            list-style: none;
+            padding: 0;
+        }
+        .knowledge-item {
+            background: #f0f8ff;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #1890ff;
+        }
+        .knowledge-item h3 {
+            margin: 0 0 10px 0;
+            color: #1890ff;
+        }
+        .tag {
+            display: inline-block;
+            background: #e6f7ff;
+            color: #1890ff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 AI 问答接口测试工具</h1>
+
+    <!-- 测试 1：检查知识库列表 -->
+    <div class="test-section">
+        <h2>📚 测试 1：查看知识库列表</h2>
+        <button class="test-btn" onclick="testKnowledgeList()">获取知识库列表</button>
+        <div id="knowledgeResult" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- 测试 2：测试问答接口 -->
+    <div class="test-section">
+        <h2>🤖 测试 2：测试问答接口</h2>
+        <input type="text" id="questionInput" class="test-input" placeholder="输入问题，例如：居住证怎么办理？" value="居住证怎么办理？">
+        <button class="test-btn" onclick="testAsk()">发送问题</button>
+        <div id="askResult" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- 测试 3：知识库搜索 -->
+    <div class="test-section">
+        <h2>🔍 测试 3：知识库搜索</h2>
+        <input type="text" id="searchInput" class="test-input" placeholder="输入关键词搜索知识库" value="居住证">
+        <button class="test-btn" onclick="testSearch()">搜索知识库</button>
+        <div id="searchResult" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+
+        function showResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = 'result ' + (isError ? 'error' : 'success');
+            element.textContent = JSON.stringify(data, null, 2);
+        }
+
+        // 测试 1：获取知识库列表
+        async function testKnowledgeList() {
+            try {
+                const response = await fetch(`${API_BASE}/knowledge/list?tenantId=1&current=1&size=20`);
+                const result = await response.json();
+                
+                if (result.code === 200) {
+                    const records = result.data.records || [];
+                    let html = `<div style="margin-bottom: 10px;"><strong>共 ${records.length} 条知识</strong></div>`;
+                    
+                    records.forEach((item, index) => {
+                        html += `
+                            <div class="knowledge-item">
+                                <h3>${index + 1}. ${item.title || '无标题'}</h3>
+                                <div><strong>问题：</strong>${item.question || '无'}</div>
+                                <div><strong>关键词：</strong>${item.keywords || '无'}</div>
+                                <div><strong>答案：</strong>${item.answer ? item.answer.substring(0, 100) + '...' : '无'}</div>
+                                <div><strong>分类 ID：</strong>${item.categoryId || '未分类'}</div>
+                                <div><strong>浏览数：</strong>${item.viewCount || 0}</div>
+                                <div><strong>发布状态：</strong>${item.publishStatus === 1 ? '已发布' : '草稿'}</div>
+                            </div>
+                        `;
+                    });
+                    
+                    document.getElementById('knowledgeResult').innerHTML = html;
+                    document.getElementById('knowledgeResult').style.display = 'block';
+                    document.getElementById('knowledgeResult').className = 'result success';
+                } else {
+                    showResult('knowledgeResult', result, true);
+                }
+            } catch (error) {
+                showResult('knowledgeResult', { error: error.message, tip: '请确保后端服务已启动' }, true);
+            }
+        }
+
+        // 测试 2：问答接口
+        async function testAsk() {
+            const question = document.getElementById('questionInput').value.trim();
+            if (!question) {
+                alert('请输入问题');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/consult/ask`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId: 'test_' + Date.now(),
+                        question: question,
+                        tenantId: 1,
+                        userId: 'test_user',
+                        deviceType: 'web'
+                    })
+                });
+                const result = await response.json();
+                
+                if (result.code === 200) {
+                    const data = result.data;
+                    let html = `
+                        <div><strong>✅ 回答：</strong><br>${data.answer || '无回答'}</div>
+                        <div style="margin-top: 10px;"><strong>📊 匹配度：</strong>${(data.matchScore * 100).toFixed(0)}%</div>
+                        ${data.knowledgeTitle ? `<div style="margin-top: 5px;"><strong>📖 来源：</strong>《${data.knowledgeTitle}》</div>` : ''}
+                        ${data.categoryName ? `<div style="margin-top: 5px;"><strong>📚 分类：</strong>${data.categoryName}</div>` : ''}
+                        ${data.viewCount ? `<div style="margin-top: 5px;"><strong>👁️ 浏览：</strong>${data.viewCount} 次</div>` : ''}
+                        ${data.suggestedQuestions && data.suggestedQuestions.length > 0 ? 
+                            `<div style="margin-top: 10px;"><strong>💡 推荐问题：</strong><br>${data.suggestedQuestions.join('<br>')}</div>` : ''}
+                    `;
+                    document.getElementById('askResult').innerHTML = html;
+                    document.getElementById('askResult').style.display = 'block';
+                    document.getElementById('askResult').className = 'result success';
+                } else {
+                    showResult('askResult', result, true);
+                }
+            } catch (error) {
+                showResult('askResult', { error: error.message, tip: '请确保后端服务已启动' }, true);
+            }
+        }
+
+        // 测试 3：搜索知识库
+        async function testSearch() {
+            const keyword = document.getElementById('searchInput').value.trim();
+            if (!keyword) {
+                alert('请输入关键词');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/knowledge/list?tenantId=1&current=1&size=20&keyword=${encodeURIComponent(keyword)}`);
+                const result = await response.json();
+                
+                if (result.code === 200) {
+                    const records = result.data.records || [];
+                    let html = `<div style="margin-bottom: 10px;"><strong>🔍 搜索关键词：${keyword}</strong></div>`;
+                    html += `<div style="margin-bottom: 10px;"><strong>共找到 ${records.length} 条结果</strong></div>`;
+                    
+                    records.forEach((item, index) => {
+                        html += `
+                            <div class="knowledge-item">
+                                <h3>${index + 1}. ${item.title || '无标题'}</h3>
+                                <div><strong>问题：</strong>${item.question || '无'}</div>
+                                <div><strong>关键词：</strong>${item.keywords || '无'}</div>
+                                <div><strong>答案：</strong>${item.answer ? item.answer.substring(0, 100) + '...' : '无'}</div>
+                            </div>
+                        `;
+                    });
+                    
+                    document.getElementById('searchResult').innerHTML = html;
+                    document.getElementById('searchResult').style.display = 'block';
+                    document.getElementById('searchResult').className = 'result success';
+                } else {
+                    showResult('searchResult', result, true);
+                }
+            } catch (error) {
+                showResult('searchResult', { error: error.message, tip: '请确保后端服务已启动' }, true);
+            }
+        }
+    </script>
+</body>
+</html>

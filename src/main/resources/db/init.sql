@@ -30,34 +30,6 @@ CREATE TABLE `tenant_info` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='租户信息表';
 
 -- ========================================
--- 2. 企业基础信息表
--- ========================================
-DROP TABLE IF EXISTS `company_profile`;
-CREATE TABLE `company_profile` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `tenant_id` BIGINT NOT NULL COMMENT '租户 ID',
-  `company_name` VARCHAR(200) NOT NULL COMMENT '企业全称',
-  `company_short_name` VARCHAR(100) DEFAULT NULL COMMENT '企业简称',
-  `founded_year` INT DEFAULT NULL COMMENT '成立年份',
-  `company_size` VARCHAR(50) DEFAULT NULL COMMENT '企业规模：如"50-100 人"',
-  `description` TEXT COMMENT '企业简介',
-  `history` TEXT COMMENT '发展历程',
-  `business_scope` TEXT COMMENT '业务范围',
-  `honors` TEXT COMMENT '荣誉资质',
-  `address` VARCHAR(500) DEFAULT NULL COMMENT '办公地址',
-  `latitude` DECIMAL(10,6) DEFAULT NULL COMMENT '纬度',
-  `longitude` DECIMAL(11,6) DEFAULT NULL COMMENT '经度',
-  `working_hours` VARCHAR(100) DEFAULT '周一至周五 9:00-18:00' COMMENT '营业时间',
-  `website` VARCHAR(200) DEFAULT NULL COMMENT '官方网站',
-  `email` VARCHAR(100) DEFAULT NULL COMMENT '官方邮箱',
-  `created_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  `updated_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `deleted` TINYINT DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `idx_tenant_id` (`tenant_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='企业基础信息表';
-
--- ========================================
 -- 3. 服务网点表（位置、导航）
 -- ========================================
 DROP TABLE IF EXISTS `service_location`;
@@ -227,10 +199,10 @@ CREATE TABLE `system_config` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统配置表';
 
 -- ========================================
--- 10. 用户信息表
+-- 10. 员工信息表
 -- ========================================
-DROP TABLE IF EXISTS `user_info`;
-CREATE TABLE `user_info` (
+DROP TABLE IF EXISTS `employee_info`;
+CREATE TABLE `employee_info` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `tenant_id` BIGINT NOT NULL COMMENT '租户 ID',
   `username` VARCHAR(50) NOT NULL COMMENT '用户名（登录账号）',
@@ -250,7 +222,33 @@ CREATE TABLE `user_info` (
   UNIQUE KEY `uk_tenant_username` (`tenant_id`, `username`),
   KEY `idx_tenant_id` (`tenant_id`),
   KEY `idx_phone` (`phone`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户信息表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='员工信息表';
+
+-- ========================================
+-- 11. 咨询反馈表
+-- ========================================
+DROP TABLE IF EXISTS `consultation_feedback`;
+CREATE TABLE `consultation_feedback` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `tenant_id` BIGINT NOT NULL COMMENT '租户 ID',
+  `consultation_id` BIGINT NOT NULL COMMENT '咨询记录 ID',
+  `session_id` VARCHAR(100) COMMENT '会话 ID',
+  `user_id` VARCHAR(50) COMMENT '用户 ID',
+  `satisfaction` INT NOT NULL COMMENT '满意度评分：1-5 星',
+  `feedback_reasons` TEXT COMMENT '反馈原因（JSON 数组）',
+  `user_suggestion` TEXT COMMENT '用户建议',
+  `is_processed` INT DEFAULT 0 COMMENT '是否已处理：0-未处理 1-已处理',
+  `process_remark` TEXT COMMENT '处理备注',
+  `processor` VARCHAR(50) COMMENT '处理人',
+  `process_time` DATETIME COMMENT '处理时间',
+  `created_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `deleted` INT DEFAULT 0 COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_tenant` (`tenant_id`),
+  KEY `idx_consultation` (`consultation_id`),
+  KEY `idx_processed` (`is_processed`),
+  KEY `idx_created` (`created_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='咨询反馈表';
 
 -- ========================================
 -- 插入示例数据（政务服务场景）
@@ -259,10 +257,6 @@ CREATE TABLE `user_info` (
 -- 示例租户
 INSERT INTO `tenant_info` (`tenant_name`, `tenant_code`, `industry_type`, `contact_person`, `contact_phone`, `theme_color`, `welcome_message`) VALUES
 ('XX 市政务服务中心', 'gov_demo_001', 'government', '张主任', '13800138000', '#1890ff', '您好，XX 市政务服务中心很高兴为您服务！');
-
--- 示例企业信息
-INSERT INTO `company_profile` (`tenant_id`, `company_name`, `company_short_name`, `founded_year`, `company_size`, `description`, `address`, `working_hours`) VALUES
-(1, 'XX 市政务服务中心', '政务中心', 2015, '200-500 人', 'XX 市政务服务中心是市政府设立的综合性政务服务平台，提供一站式行政审批和公共服务。', 'XX 市 XX 区 XX 路 100 号市民之家', '周一至周日 9:00-17:00');
 
 -- 示例服务网点
 INSERT INTO `service_location` (`tenant_id`, `location_name`, `location_type`, `city`, `detail_address`, `opening_hours`, `traffic_guide`) VALUES
@@ -328,8 +322,8 @@ INSERT INTO `system_config` (`tenant_id`, `config_key`, `config_value`, `config_
 (1, 'service_email', 'service@gov.cn', 'string', '客服邮箱'),
 (1, 'service_phone', '12345', 'string', '客服电话');
 
--- 用户初始化数据（密码为 123456，使用 Hutool BCrypt 加密）
+-- 员工初始化数据（密码为 123456，使用 Hutool BCrypt 加密）
 -- 生成方式：BCrypt.hashpw("123456", BCrypt.gensalt())
-INSERT INTO `user_info` (`tenant_id`, `username`, `password`, `real_name`, `phone`, `email`, `role`, `status`) VALUES
+INSERT INTO `employee_info` (`tenant_id`, `username`, `password`, `real_name`, `phone`, `email`, `role`, `status`) VALUES
 (1, 'admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '管理员', '13800138000', 'admin@gov.cn', 'admin', 1),
 (1, 'operator', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '操作员', '13800138001', 'operator@gov.cn', 'operator', 1);

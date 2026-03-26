@@ -32,4 +32,9 @@ public class SystemConfigDTO {
      * 客服电话
      */
     private String phone;
+
+    /**
+     * 工作时间描述
+     */
+    private String serviceTime;
 }

@@ -7,10 +7,10 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 用户信息表 - 实体类
+ * 员工信息表 - 实体类
  */
 @Data
-@TableName("user_info")
+@TableName("employee_info")
 public class User implements Serializable {
 
     private static final long serialVersionUID = 1L;

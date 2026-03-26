@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>匹配算法测试</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #1890ff;
+            text-align: center;
+        }
+        .test-section {
+            background: #f5f7fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .test-case {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .test-btn {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .test-btn:hover {
+            background: #40a9ff;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e6f7ff;
+            border-radius: 4px;
+        }
+        .highlight {
+            color: #f5222d;
+            font-weight: bold;
+        }
+        .score {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #52c41a;
+            color: white;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .score.low {
+            background: #faad14;
+        }
+        .score.high {
+            background: #f5222d;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        th {
+            background: #fafafa;
+            font-weight: bold;
+        }
+        .algo-explanation {
+            background: #fff7e6;
+            padding: 15px;
+            border-left: 4px solid #fa8c16;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 智能匹配算法测试</h1>
+    
+    <div class="algo-explanation">
+        <h3>📊 匹配算法说明（严格模式）</h3>
+        <p><strong>匹配度 = 包含匹配 (70%) + 关键词匹配 (30%) × 长度惩罚系数</strong></p>
+        <ul>
+            <li>✅ <strong>必要条件</strong>：必须包含共同关键词（否则直接返回 0）</li>
+            <li>✅ <strong>包含匹配</strong>：检查问题是否相互包含（权重 70%）</li>
+            <li>✅ <strong>关键词匹配</strong>：提取关键词计算 Jaccard 相似度（权重 30%）</li>
+            <li>✅ <strong>长度惩罚</strong>：长度差异过大时降低分数</li>
+            <li>❌ <strong>已移除</strong>：编辑距离匹配（太宽松，容易误匹配）</li>
+        </ul>
+        <p style="color: #f5222d; font-weight: bold; margin-top: 10px;">
+            🎯 阈值说明：≥0.8 高匹配 | ≥0.5 中匹配 | <0.5 低匹配（不返回）
+        </p>
+    </div>
+
+    <div class="test-section">
+        <h3>🧪 测试用例 1：完全匹配</h3>
+        <div class="test-case">
+            <p><strong>用户问题：</strong>居住证怎么办理？</p>
+            <p><strong>知识库问题：</strong>居住证怎么办理？</p>
+            <button class="test-btn" onclick="testSimilarity('居住证怎么办理', '居住证怎么办理')">测试匹配度</button>
+            <div id="result1" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>🧪 测试用例 2：相似问题</h3>
+        <div class="test-case">
+            <p><strong>用户问题：</strong>如何办理居住证？</p>
+            <p><strong>知识库问题：</strong>居住证怎么办理？</p>
+            <button class="test-btn" onclick="testSimilarity('如何办理居住证', '居住证怎么办理')">测试匹配度</button>
+            <div id="result2" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>🧪 测试用例 3：关键词匹配</h3>
+        <div class="test-case">
+            <p><strong>用户问题：</strong>居住证办理需要什么材料？</p>
+            <p><strong>知识库问题：</strong>居住证怎么办理？</p>
+            <button class="test-btn" onclick="testSimilarity('居住证办理需要什么材料', '居住证怎么办理')">测试匹配度</button>
+            <div id="result3" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>🧪 测试用例 4：包含数字</h3>
+        <div class="test-case">
+            <p><strong>用户问题：</strong>电话 12365665 是什么号码？</p>
+            <p><strong>知识库问题：</strong>12365665 是服务热线吗？</p>
+            <button class="test-btn" onclick="testSimilarity('电话 12365665 是什么号码', '12365665 是服务热线吗')">测试匹配度</button>
+            <div id="result4" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>🧪 测试用例 5：不相关问题</h3>
+        <div class="test-case">
+            <p><strong>用户问题：</strong>今天天气怎么样？</p>
+            <p><strong>知识库问题：</strong>居住证怎么办理？</p>
+            <button class="test-btn" onclick="testSimilarity('今天天气怎么样', '居住证怎么办理')">测试匹配度</button>
+            <div id="result5" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>📋 测试用例 6：批量测试</h3>
+        <div class="test-case">
+            <input type="text" id="userQuestion" class="test-input" placeholder="输入用户问题（如：居住证怎么办）">
+            <table id="batchTestTable">
+                <thead>
+                    <tr>
+                        <th>知识库问题</th>
+                        <th>匹配度</th>
+                        <th>评级</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>居住证怎么办理？</td>
+                        <td id="score1">-</td>
+                        <td id="level1">-</td>
+                    </tr>
+                    <tr>
+                        <td>如何办理暂住证？</td>
+                        <td id="score2">-</td>
+                        <td id="level2">-</td>
+                    </tr>
+                    <tr>
+                        <td>办理居住证需要哪些材料？</td>
+                        <td id="score3">-</td>
+                        <td id="level3">-</td>
+                    </tr>
+                    <tr>
+                        <td>社保卡丢了怎么补办？</td>
+                        <td id="score4">-</td>
+                        <td id="level4">-</td>
+                    </tr>
+                </tbody>
+            </table>
+            <button class="test-btn" style="margin-top: 10px;" onclick="batchTest()">批量测试</button>
+        </div>
+    </div>
+
+    <script>
+        // 相似度计算工具类（简化版，用于前端演示）
+        const SimilarityUtil = {
+            calculateSimilarity: function(text1, text2) {
+                if (!text1 || !text2) return 0.0;
+                if (text1 === text2) return 1.0;
+
+                // 1. 检查是否包含共同关键词（必要条件）
+                if (!this.hasCommonKeywords(text1, text2)) {
+                    return 0.0;
+                }
+
+                // 2. 包含匹配（70%）
+                const containScore = this.calculateContainScore(text1, text2);
+                
+                // 3. 关键词匹配（30%）
+                const keywordScore = this.calculateKeywordScore(text1, text2);
+                
+                // 4. 计算总分
+                let totalScore = containScore * 0.7 + keywordScore * 0.3;
+                
+                // 5. 长度惩罚
+                const penalty = this.calculateLengthPenalty(text1, text2);
+                totalScore *= penalty;
+                
+                return Math.round(Math.min(totalScore, 1.0) * 100) / 100;
+            },
+
+            hasCommonKeywords: function(text1, text2) {
+                const keywords1 = this.extractKeywords(text1);
+                const keywords2 = this.extractKeywords(text2);
+                
+                if (keywords1.length === 0 || keywords2.length === 0) {
+                    // 检查数字匹配
+                    const numbers1 = text1.replace(/\D/g, '');
+                    const numbers2 = text2.replace(/\D/g, '');
+                    return numbers1 === numbers2 || numbers1.includes(numbers2) || numbers2.includes(numbers1);
+                }
+                
+                // 检查是否有共同关键词
+                for (let kw1 of keywords1) {
+                    for (let kw2 of keywords2) {
+                        if (kw1 === kw2 || kw1.includes(kw2) || kw2.includes(kw1)) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            },
+
+            calculateLengthPenalty: function(text1, text2) {
+                const len1 = text1.length;
+                const len2 = text2.length;
+                const ratio = Math.min(len1, len2) / Math.max(len1, len2);
+                
+                if (ratio < 0.33) return 0.5;
+                if (ratio < 0.5) return 0.7;
+                return 1.0;
+            },
+
+            calculateContainScore: function(text1, text2) {
+                const t1 = text1.toLowerCase();
+                const t2 = text2.toLowerCase();
+                
+                if (t1.includes(t2) || t2.includes(t1)) return 1.0;
+                
+                const words1 = this.splitWords(t1);
+                const words2 = this.splitWords(t2);
+                
+                let matchCount = 0;
+                for (let word1 of words1) {
+                    for (let word2 of words2) {
+                        if (word1.includes(word2) || word2.includes(word1)) {
+                            matchCount++;
+                            break;
+                        }
+                    }
+                }
+                
+                return words1.length > 0 ? matchCount / words1.length : 0.0;
+            },
+
+            calculateKeywordScore: function(text1, text2) {
+                const keywords1 = this.extractKeywords(text1);
+                const keywords2 = this.extractKeywords(text2);
+                
+                if (keywords1.length === 0 || keywords2.length === 0) return 0.0;
+                
+                const intersection = keywords1.filter(k => keywords2.includes(k));
+                const union = [...new Set([...keywords1, ...keywords2])];
+                
+                return intersection.length / union.length;
+            },
+
+            calculateEditScore: function(text1, text2) {
+                const distance = this.levenshteinDistance(text1, text2);
+                const maxLen = Math.max(text1.length, text2.length);
+                return maxLen === 0 ? 1.0 : 1.0 - distance / maxLen;
+            },
+
+            splitWords: function(text) {
+                return text.replace(/[^\w\s\u4e00-\u9fa5]/g, ' ').trim().split(/\s+/);
+            },
+
+            extractKeywords: function(text) {
+                const stopwords = ['的', '了', '在', '是', '我', '有', '和', '就', '不', '人', '都', '一', '一个', '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好', '自己', '这', '那', '什么', '怎么', '如何', '吗', '呢', '吧', '啊', '呀', '请问', '问一下'];
+                const words = this.splitWords(text);
+                
+                // 严格：至少 2 个字符
+                let keywords = words.filter(w => w.length >= 2 && !stopwords.includes(w));
+                
+                // 如果没有关键词，保留所有 2 字以上词
+                if (keywords.length === 0 && words.length > 0) {
+                    keywords = words.filter(w => w.length >= 2);
+                }
+                
+                return keywords;
+            },
+
+            levenshteinDistance: function(s1, s2) {
+                // 严格模式下不再使用
+                return 0;
+            },
+
+            containsKeyNumbers: function(text1, text2) {
+                // 严格模式下，数字匹配只用于无关键词时
+                return false;
+            }
+        };
+
+        function testSimilarity(text1, text2) {
+            const score = SimilarityUtil.calculateSimilarity(text1, text2);
+            const resultDiv = event.target.nextElementSibling;
+            
+            let level = '';
+            let colorClass = '';
+            if (score >= 0.8) {
+                level = '高匹配度 ✅';
+                colorClass = 'high';
+            } else if (score >= 0.5) {
+                level = '中匹配度 ⚠️';
+                colorClass = 'low';
+            } else {
+                level = '低匹配度 ❌';
+                colorClass = 'low';
+            }
+            
+            resultDiv.innerHTML = `
+                <p><strong>匹配度：</strong><span class="score ${colorClass}">${(score * 100).toFixed(0)}%</span></p>
+                <p><strong>评级：</strong>${level}</p>
+                <p><strong>详细分析：</strong></p>
+                <ul>
+                    <li>${this.hasCommonKeywords(text1, text2) ? '✅ 共同关键词：包含核心关键词' : '❌ 共同关键词：无共同关键词（匹配度为 0）'}</li>
+                    <li>包含匹配：检查文本是否相互包含（权重 70%）</li>
+                    <li>关键词匹配：提取核心词汇计算相似度（权重 30%）</li>
+                    <li>${this.calculateLengthPenalty(text1, text2) < 1.0 ? '⚠️ 长度惩罚：长度差异过大' : '✅ 长度正常'}</li>
+                </ul>
+            `;
+            resultDiv.style.display = 'block';
+        }
+
+        function batchTest() {
+            const userQuestion = document.getElementById('userQuestion').value.trim();
+            if (!userQuestion) {
+                alert('请输入用户问题');
+                return;
+            }
+
+            const knowledgeQuestions = [
+                '居住证怎么办理？',
+                '如何办理暂住证？',
+                '办理居住证需要哪些材料？',
+                '社保卡丢了怎么补办？'
+            ];
+
+            knowledgeQuestions.forEach((kbQuestion, index) => {
+                const score = SimilarityUtil.calculateSimilarity(userQuestion, kbQuestion);
+                document.getElementById(`score${index + 1}`).textContent = (score * 100).toFixed(0) + '%';
+                
+                let level = '';
+                if (score >= 0.8) level = '高匹配 ✅';
+                else if (score >= 0.5) level = '中匹配 ⚠️';
+                else level = '低匹配 ❌';
+                
+                document.getElementById(`level${index + 1}`).textContent = level;
+            });
+        }
+
+        function containsKeyNumbers(text1, text2) {
+            const numbers1 = text1.replace(/\D/g, '');
+            const numbers2 = text2.replace(/\D/g, '');
+            return numbers1 === numbers2 || numbers1.includes(numbers2) || numbers2.includes(numbers1);
+        }
+    </script>
+</body>
+</html>

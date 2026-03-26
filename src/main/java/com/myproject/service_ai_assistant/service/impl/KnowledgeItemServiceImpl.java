@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.myproject.service_ai_assistant.common.SimilarityUtil;
 import com.myproject.service_ai_assistant.entity.KnowledgeItem;
 import com.myproject.service_ai_assistant.mapper.KnowledgeItemMapper;
 import com.myproject.service_ai_assistant.service.KnowledgeItemService;
@@ -11,7 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 知识条目服务实现类
@@ -26,20 +28,115 @@ public class KnowledgeItemServiceImpl extends ServiceImpl<KnowledgeItemMapper, K
             return List.of();
         }
 
-        // 构建查询条件：租户隔离 + 关键词匹配（包含已发布和未发布）
+        log.info("【知识搜索】keyword={}", keyword);
+
+        // 1. 先进行数据库模糊查询，获取候选集（缩小范围）
         LambdaQueryWrapper<KnowledgeItem> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(KnowledgeItem::getTenantId, tenantId)
+                .eq(KnowledgeItem::getPublishStatus, 1)  // 只查询已发布的知识
                 .and(w -> w.like(KnowledgeItem::getQuestion, keyword)
                         .or()
-                        .like(KnowledgeItem::getKeywords, keyword)
-                        .or()
-                        .like(KnowledgeItem::getTitle, keyword)
-                        .or()
-                        .like(KnowledgeItem::getAnswer, keyword))
-                .orderByDesc(KnowledgeItem::getIsTop)
-                .orderByDesc(KnowledgeItem::getViewCount);
+                        .like(KnowledgeItem::getKeywords, keyword));
 
-        return this.list(wrapper);
+        List<KnowledgeItem> candidates = this.list(wrapper);
+        log.debug("【知识搜索】初步候选集数量：{}", candidates.size());
+
+        // 2. 如果没有精确匹配，扩大搜索范围（但仍需包含关键词）
+        if (candidates.isEmpty()) {
+            wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(KnowledgeItem::getTenantId, tenantId)
+                    .eq(KnowledgeItem::getPublishStatus, 1)
+                    .and(w -> w.like(KnowledgeItem::getQuestion, keyword)
+                            .or()
+                            .like(KnowledgeItem::getTitle, keyword));
+            candidates = this.list(wrapper);
+            log.debug("【知识搜索】扩大搜索后数量：{}", candidates.size());
+        }
+
+        // 3. 对候选集进行智能匹配度计算
+        List<KnowledgeItemWithScore> scoredList = new ArrayList<>();
+        for (KnowledgeItem item : candidates) {
+            double score = calculateMatchScore(keyword, item);
+            
+            // 严格模式：只保留匹配度大于 0.5 的结果
+            if (score >= 0.5) {
+                scoredList.add(new KnowledgeItemWithScore(item, score));
+                log.debug("【知识搜索】匹配成功：{} - 分数：{}", item.getQuestion(), score);
+            } else {
+                log.debug("【知识搜索】匹配失败：{} - 分数：{}", item.getQuestion(), score);
+            }
+        }
+
+        // 4. 按匹配度排序
+        scoredList.sort((a, b) -> Double.compare(b.score, a.score));
+        log.debug("【知识搜索】最终返回数量：{}", scoredList.size());
+
+        // 5. 返回排序后的结果
+        return scoredList.stream()
+                .map(KnowledgeItemWithScore::getItem)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 计算综合匹配分数
+     */
+    private double calculateMatchScore(String question, KnowledgeItem item) {
+        // 1. 问题与问题匹配（权重 0.5）
+        double questionScore = SimilarityUtil.calculateSimilarity(question, item.getQuestion());
+
+        // 2. 问题与关键词匹配（权重 0.3）
+        double keywordScore = 0.0;
+        if (StrUtil.isNotBlank(item.getKeywords())) {
+            String[] keywords = item.getKeywords().split("[,，;；\\s]+");
+            int matchCount = 0;
+            for (String kw : keywords) {
+                if (question.contains(kw.trim())) {
+                    matchCount++;
+                }
+            }
+            keywordScore = (double) matchCount / keywords.length;
+        }
+
+        // 3. 问题与标题匹配（权重 0.2）
+        double titleScore = 0.0;
+        if (StrUtil.isNotBlank(item.getTitle())) {
+            titleScore = SimilarityUtil.calculateSimilarity(question, item.getTitle());
+        }
+
+        // 4. 数字匹配加成（如果包含数字且匹配）
+        double numberBonus = 0.0;
+        if (SimilarityUtil.containsKeyNumbers(question, item.getQuestion())) {
+            numberBonus = 0.2;
+        }
+
+        // 综合计算
+        double totalScore = questionScore * 0.5 + keywordScore * 0.3 + titleScore * 0.2 + numberBonus;
+
+        // 5. 浏览量微调（热门问题略微加分）
+        double viewBonus = Math.min(item.getViewCount() * 0.001, 0.1);  // 最多加 0.1
+
+        return Math.min(totalScore + viewBonus, 1.0);  // 不超过 1.0
+    }
+
+    /**
+     * 带分数的知识条目包装类
+     */
+    private static class KnowledgeItemWithScore {
+        private final KnowledgeItem item;
+        private final double score;
+
+        public KnowledgeItemWithScore(KnowledgeItem item, double score) {
+            this.item = item;
+            this.score = score;
+        }
+
+        public KnowledgeItem getItem() {
+            return item;
+        }
+
+        public double getScore() {
+            return score;
+        }
     }
 
     @Override

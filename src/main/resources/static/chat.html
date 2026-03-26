@@ -2,280 +2,20 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 智能助手</title>
+    <!-- 引入 Element Plus CSS（使用 CDN） -->
     <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <link rel="stylesheet" href="css/chat.css?v=20260326">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', Arial, sans-serif;
-            background: #f5f5f5;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-        }
-
-        /* 头部 */
-        .chat-header {
-            background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
-            color: white;
-            padding: 16px 20px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .chat-header h1 {
-            font-size: 18px;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .chat-header p {
-            font-size: 12px;
-            opacity: 0.9;
-            margin-top: 4px;
-        }
-
-        /* 聊天内容区 */
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-
-        .message {
-            display: flex;
-            margin-bottom: 20px;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .message.user {
-            justify-content: flex-end;
-        }
-
-        .message.ai {
-            justify-content: flex-start;
-        }
-
-        .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            flex-shrink: 0;
-        }
-
-        .ai .avatar {
-            background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
-            margin-right: 12px;
-        }
-
-        .user .avatar {
-            background: #87d068;
-            margin-left: 12px;
-        }
-
-        .message-content {
-            max-width: 70%;
-            padding: 12px 16px;
-            border-radius: 12px;
-            line-height: 1.5;
-            word-wrap: break-word;
-        }
-
-        .ai .message-content {
-            background: white;
-            border: 1px solid #e8e8e8;
-        }
-
-        .user .message-content {
-            background: #1890ff;
-            color: white;
-        }
-
-        .message-time {
-            font-size: 12px;
-            color: #999;
-            margin-top: 6px;
-            text-align: right;
-        }
-
-        /* 欢迎语和快捷问题 */
-        .welcome-section {
-            text-align: center;
-            padding: 30px 20px;
-        }
-
-        .welcome-text {
-            font-size: 16px;
-            color: #333;
-            margin-bottom: 20px;
-        }
-
-        .quick-questions {
-            display: grid;
-            gap: 12px;
-        }
-
-        .quick-question-btn {
-            background: white;
-            border: 1px solid #1890ff;
-            color: #1890ff;
-            padding: 12px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-align: left;
-        }
-
-        .quick-question-btn:hover {
-            background: #1890ff;
-            color: white;
-        }
-
-        /* 输入区域 */
-        .chat-input-area {
-            background: white;
-            border-top: 1px solid #e8e8e8;
-            padding: 12px 16px;
-        }
-
-        .input-wrapper {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .chat-input {
-            flex: 1;
-            border: 1px solid #d9d9d9;
-            border-radius: 20px;
-            padding: 10px 16px;
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-
-        .chat-input:focus {
-            border-color: #1890ff;
-        }
-
-        .send-btn {
-            background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.2s;
-        }
-
-        .send-btn:hover {
-            transform: scale(1.1);
-        }
-
-        .send-btn:active {
-            transform: scale(0.95);
-        }
-
-        /* 推荐问题 */
-        .suggested-questions {
-            margin-top: 12px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .suggested-question-tag {
-            background: white;
-            border: 1px solid #d9d9d9;
-            padding: 6px 12px;
-            border-radius: 16px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .suggested-question-tag:hover {
-            border-color: #1890ff;
-            color: #1890ff;
-        }
-
-        /* 加载动画 */
-        .typing-indicator {
-            display: flex;
-            gap: 4px;
-            padding: 12px 16px;
-        }
-
-        .typing-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #999;
-            animation: typing 1.4s infinite;
-        }
-
-        .typing-dot:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .typing-dot:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-        @keyframes typing {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-10px); }
-        }
-
-        /* 滚动条美化 */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 3px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
+        /* Vue 编译完成前隐藏模板 */
+        [v-cloak] {
+            display: none;
         }
     </style>
 </head>
 <body>
-    <div id="app" class="chat-container">
+    <div id="app" class="chat-container" v-cloak>
         <!-- 头部 -->
         <div class="chat-header">
             <h1>{{ config.companyName }}</h1>
@@ -301,24 +41,52 @@
 
             <!-- 消息列表 -->
             <div v-for="(message, index) in messages" :key="index" class="message" :class="message.type">
-                <div class="avatar">{{ message.type === 'ai' ? '🤖' : '👤' }}</div>
-                <div>
-                    <div class="message-content">{{ message.content }}</div>
-                    <div class="message-time">{{ message.time }}</div>
-                    
-                    <!-- 推荐问题 -->
-                    <div v-if="message.type === 'ai' && message.suggestedQuestions && message.suggestedQuestions.length > 0" 
-                         class="suggested-questions">
-                        <div 
-                            v-for="(q, i) in message.suggestedQuestions" 
-                            :key="i"
-                            class="suggested-question-tag"
-                            @click="sendQuickQuestion(q)"
-                        >
-                            {{ q }}
+                <div v-if="message.type === 'ai'" class="avatar">🤖</div>
+                <div class="message-wrapper">
+                    <div class="message-content">
+                        <!-- AI 匹配度标识 -->
+                        <div v-if="message.type === 'ai' && message.matchScore !== undefined" 
+                             class="match-badge" 
+                             :class="{'low': message.matchScore < 0.8}">
+                            🎯 匹配度 {{ Math.round(message.matchScore * 100) }}%
+                        </div>
+                        
+                        <!-- 消息内容 -->
+                        {{ message.content }}
+                        
+                        <!-- 来源信息（仅 AI 消息） -->
+                        <div v-if="message.type === 'ai' && message.knowledgeTitle" class="source-info">
+                            <div>📖 来自：《{{ message.knowledgeTitle }}》</div>
+                            <div v-if="message.categoryName">📚 分类：{{ message.categoryName }}</div>
+                            <div v-if="message.viewCount" class="view-count">👁️ 已帮助 {{ message.viewCount }} 人</div>
+                        </div>
+                        
+                        <!-- 满意度评价（仅 AI 消息） -->
+                        <div v-if="message.type === 'ai' && !message.rated" class="satisfaction-area">
+                            <div class="satisfaction-text">这个回答对您有帮助吗？</div>
+                            <el-rate 
+                                v-model="message.satisfaction" 
+                                @change="showFeedbackDialog(message)"
+                                :colors="['#99A9BF', '#F7BA2A', '#F7BA2A']"
+                                size="small"
+                            />
+                        </div>
+                        
+                        <!-- 推荐问题 -->
+                        <div v-if="message.type === 'ai' && message.suggestedQuestions && message.suggestedQuestions.length > 0" 
+                             class="suggested-questions">
+                            <div 
+                                v-for="(q, i) in message.suggestedQuestions" 
+                                :key="i"
+                                class="suggested-question-tag"
+                                @click="sendQuickQuestion(q)">
+                                💡 {{ q }}
+                            </div>
                         </div>
                     </div>
+                    <div class="message-time">{{ message.time }}</div>
                 </div>
+                <div v-if="message.type === 'user'" class="avatar">👤</div>
             </div>
 
             <!-- AI 输入中 -->
@@ -353,26 +121,142 @@
         </div>
     </div>
 
+    <!-- 反馈对话框 -->
+    <div id="feedback-dialog" style="display: none;">
+        <div class="feedback-container">
+            <div class="feedback-title">请选择原因（可多选）</div>
+            <div class="feedback-options">
+                <el-checkbox-group v-model="feedbackForm.reasons">
+                    <el-checkbox label="答案不准确">答案不准确</el-checkbox>
+                    <el-checkbox label="答案不完整">答案不完整</el-checkbox>
+                    <el-checkbox label="答案太官方">答案太官方</el-checkbox>
+                    <el-checkbox label="没有解决我的问题">没有解决我的问题</el-checkbox>
+                    <el-checkbox label="其他">其他</el-checkbox>
+                </el-checkbox-group>
+            </div>
+            <div class="feedback-suggestion">
+                <el-input
+                    v-model="feedbackForm.suggestion"
+                    type="textarea"
+                    :rows="3"
+                    placeholder="您有什么建议或补充？（选填）"
+                ></el-input>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入 Vue 和 Element Plus -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/@element-plus/icons-vue"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.min.js"></script>
 
     <script>
+        console.log('=== 开始加载 Vue ===');
+        console.log('Vue 对象:', typeof Vue);
+        
         const { createApp, ref, reactive, nextTick, onMounted } = Vue;
-
         const API_BASE_URL = 'http://localhost:8080/api';
+
+        console.log('=== 创建 Vue 应用 ===');
+
+        /**
+         * 调整颜色亮度
+         * @param {string} color - 颜色值（支持十六进制和 RGB/RGBA 格式）
+         * @param {number} amount - 调整值（正数变亮，负数变暗）
+         * @returns {string} 调整后的颜色
+         */
+        function adjustColorBrightness(color, amount) {
+            // 处理 RGB/RGBA 格式
+            if (color.startsWith('rgb')) {
+                // 解析 rgb(r, g, b) 或 rgba(r, g, b, a) 格式
+                const rgbMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                if (!rgbMatch) {
+                    return color;
+                }
+                let r = parseInt(rgbMatch[1]);
+                let g = parseInt(rgbMatch[2]);
+                let b = parseInt(rgbMatch[3]);
+                
+                // 调整亮度
+                r = Math.max(0, Math.min(255, r + amount));
+                g = Math.max(0, Math.min(255, g + amount));
+                b = Math.max(0, Math.min(255, b + amount));
+                
+                return `rgb(${r}, ${g}, ${b})`;
+            }
+            
+            // 处理十六进制格式
+            let usePound = false;
+            if (color[0] === "#") {
+                color = color.slice(1);
+                usePound = true;
+            }
+            
+            // 处理短格式十六进制（如 #fff）
+            if (color.length === 3) {
+                color = color[0] + color[0] + color[1] + color[1] + color[2] + color[2];
+            }
+            
+            const num = parseInt(color, 16);
+            let r = (num >> 16) & 255;
+            let g = (num >> 8) & 255;
+            let b = num & 255;
+            
+            // 调整亮度
+            r = Math.max(0, Math.min(255, r + amount));
+            g = Math.max(0, Math.min(255, g + amount));
+            b = Math.max(0, Math.min(255, b + amount));
+            
+            // 转回十六进制
+            return (usePound ? "#" : "") + 
+                r.toString(16).padStart(2, '0') + 
+                g.toString(16).padStart(2, '0') + 
+                b.toString(16).padStart(2, '0');
+        }
 
         const app = createApp({
             setup() {
                 const messages = ref([]);
                 const inputMessage = ref('');
                 const isLoading = ref(false);
-                const sessionId = ref(generateSessionId());
+                const sessionId = ref('session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
                 const messagesContainer = ref(null);
 
                 const config = reactive({
-                    companyName: 'XX 市政务服务中心',
-                    serviceTime: '工作时间：周一至周日 9:00-17:00',
-                    welcomeMessage: '您好！我是 AI 智能助手，请问有什么可以帮您？'
+                    tenantId: 1,
+                    companyName: '',
+                    serviceTime: '',
+                    welcomeMessage: '',
+                    themeColor: '#1890ff'
                 });
+
+                // 加载系统配置
+                async function loadSystemConfig() {
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/settings/get?tenantId=${config.tenantId}`);
+                        const result = await response.json();
+                        
+                        if (result.code === 200 && result.data) {
+                            config.companyName = result.data.companyName || 'XX 市政务服务中心';
+                            config.serviceTime = result.data.serviceTime || '工作时间：周一至周日 9:00-17:00';
+                            config.welcomeMessage = result.data.welcomeMessage || '您好！我是 AI 智能助手，请问有什么可以帮您？';
+                            config.themeColor = result.data.themeColor || '#1890ff';
+                            
+                            // 应用主题色到 CSS 变量
+                            document.documentElement.style.setProperty('--primary-color', config.themeColor);
+                            // 计算深色版本（用于渐变）
+                            const darkColor = adjustColorBrightness(config.themeColor, -20);
+                            document.documentElement.style.setProperty('--primary-color-dark', darkColor);
+                        }
+                    } catch (error) {
+                        console.error('加载系统配置失败:', error);
+                        // 使用默认配置
+                        config.companyName = 'XX 市政务服务中心';
+                        config.serviceTime = '工作时间：周一至周日 9:00-17:00';
+                        config.welcomeMessage = '您好！我是 AI 智能助手，请问有什么可以帮您？';
+                    }
+                }
 
                 const quickQuestions = ref([
                     '居住证怎么办理？',
@@ -381,9 +265,15 @@
                     '新生儿医保如何办理？'
                 ]);
 
-                function generateSessionId() {
-                    return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                }
+                const feedbackForm = reactive({
+                    messageId: null,
+                    consultationId: null,
+                    satisfaction: 0,
+                    reasons: [],
+                    suggestion: ''
+                });
+
+                let feedbackDialog = null;
 
                 function getCurrentTime() {
                     const now = new Date();
@@ -398,26 +288,293 @@
                     });
                 }
 
-                async function sendMessageToAI(question) {
+                // 用户信息存储（会话级别）
+                const userInfo = reactive({
+                    name: null,
+                    phone: null
+                });
+
+                /**
+                 * 前端快速过滤（仅检测明显的问题）
+                 */
+                function quickFilter(text) {
+                    // 检测是否包含问号或明显疑问词
+                    if (text.includes('?') || text.includes('?') ||
+                        text.match(/(怎么 | 如何 | 什么 | 为什么 | 哪里 | 何时)/)) {
+                        return { type: 'question' };
+                    }
+                    
+                    // 检测是否是纯手机号（11 位数字）
+                    if (/^1[3-9]\d{9}$/.test(text)) {
+                        return { type: 'phone', phone: text };
+                    }
+                    
+                    // 其他情况 → 交给后端解析
+                    return { type: 'unknown', text: text };
+                }
+
+                /**
+                 * 调用后端解析用户输入
+                 */
+                async function parseUserInput(text) {
                     try {
+                        const response = await fetch(`${API_BASE_URL}/consult/parse-user-input`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                text: text,
+                                sessionId: sessionId.value,
+                                tenantId: 1
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.code === 200 && result.data) {
+                            return {
+                                success: true,
+                                name: result.data.name,
+                                phone: result.data.phone,
+                                isQuestion: result.data.isQuestion
+                            };
+                        }
+                        
+                        return { success: false };
+                    } catch (error) {
+                        console.error('解析用户输入失败:', error);
+                        return { success: false };
+                    }
+                }
+
+                /**
+                 * 智能解析用户身份信息（增强版）
+                 * 改进：1. 增强姓名识别 2. 区分提问和信息提供
+                 */
+                function parseUserInfo(text, existingName = null, existingPhone = null) {
+                    let result = { name: null, phone: null };
+                    
+                    // 如果已经有完整信息，不再解析
+                    if (existingName && existingPhone) {
+                        return result;
+                    }
+                    
+                    // 清理文本（去除语气词、标点）
+                    const cleanText = text.trim()
+                        .replace(/[，,。！？?!]/g, ' ')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                    
+                    console.log('清理后的文本:', cleanText);
+                    
+                    // === 0. 先判断是否是提问（如果是提问，不解析用户信息）
+                    const questionPatterns = [
+                        /^(为什么 | 怎么 | 如何 | 什么 | 哪里 | 何时 | 什么时候 | 谁 | 多少 | 吗 | 呢 | 么)/,  // 疑问词开头
+                        /(^|[^\u4e00-\u9fa5])(为什么 | 怎么 | 如何 | 什么 | 哪里 | 何时 | 谁 | 多少 | 吗 | 呢 | 么)($|[^\u4e00-\u9fa5])/,  // 包含疑问词
+                        /.*\?.*/,  // 包含问号
+                        /.*(办理 | 处理 | 解决 | 弄 | 搞).*/,  // 包含"怎么办"类词汇
+                        /.*(是 | 在 | 有).*(吗 | 么|？|\?).*/,  // "是...吗"句式
+                        /.*(哪里 | 哪儿|).*/,  // 地点疑问
+                        /.*(多久 | 几天 | 几次).*/,  // 时间疑问
+                        /.*(能不能 | 可不可以 | 可以吗).*/,  // 可否疑问
+                        /.*(谁|什么|哪个|哪些).*/,  // 特殊疑问
+                        /^([\u4e00-\u9fa5]{1,2})(\?|？|呢|吗|么)$/,  // 简短疑问（如"学校呢？"）
+                    ];
+                    
+                    const isQuestion = questionPatterns.some(pattern => pattern.test(cleanText));
+                    console.log('是否是提问:', isQuestion);
+                    
+                    // 如果是提问，不解析用户信息
+                    if (isQuestion) {
+                        return result;
+                    }
+                    
+                    // === 1. 手机号识别（多种格式） ===
+                    const phonePatterns = [
+                        // 标准格式
+                        { pattern: /^(1[3-9]\d{8,9})$/, type: 'pure' },                    // 纯手机号（10-11 位）
+                        { pattern: /(?:电话 | 手机 | 号码 | 号|联系方式|微信)[：:：\s]?(1[3-9]\d{8,9})/, type: 'prefix' },  // 电话：138...
+                        { pattern: /(?:是 | 为|1)[：:：\s]?(1[3-9]\d{8,9})/, type: 'is' },   // 是 138...
+                        { pattern: /(1[3-9]\d{8,9})(?:号 | 手机 | 电话|的)/, type: 'suffix' },      // 138...号
+                        { pattern: /(1[3-9]\d{8,9})/, type: 'embedded' },  // 嵌入在文本中
+                        // 带空格的手机号
+                        { pattern: /(1[3-9]\d{2})\s?(\d{3,4})\s?(\d{4})/, type: 'spaced' }, // 138 0013 8000
+                        // 带横杠的手机号
+                        { pattern: /(1[3-9]\d{2})-(\d{3,4})-(\d{4})/, type: 'dashed' }  // 138-0013-8000
+                    ];
+                    
+                    for (let {pattern, type} of phonePatterns) {
+                        const match = cleanText.match(pattern);
+                        if (match && !existingPhone) {
+                            if (type === 'spaced' || type === 'dashed') {
+                                // 合并带空格或横杠的手机号
+                                result.phone = match[1] + match[2] + match[3];
+                            } else {
+                                result.phone = match[1] || match[0];
+                            }
+                            console.log(`手机号匹配 (${type}):`, result.phone);
+                            break;
+                        }
+                    }
+                    
+                    // === 2. 姓名识别（增强版） ===
+                    const namePatterns = [
+                        // === 标准格式 ===
+                        { pattern: /^我 ([姓姓名])([\u4e00-\u9fa5]{2,4})$/, type: 'i_surname' },         // 我姓吴
+                        { pattern: /^(?:叫我 | 我是|本人是)([\u4e00-\u9fa5]{2,4})(?:先 | 先 | 女 | 小姐 | 先生)?$/, type: 'call_me' }, // 叫我小王、我是小王
+                        { pattern: /^(?:本人 | 我)(?:叫 | 是)([\u4e00-\u9fa5]{2,4})$/, type: 'i_call' },  // 我叫吴 XX
+                        { pattern: /^(?:称呼 | 喊我)([\u4e00-\u9fa5]{2,4})$/, type: 'address_me' },  // 称呼我吴 XX
+                        
+                        // === 简洁格式（单字或双字）===
+                        { pattern: /^([\u4e00-\u9fa5]{2,3})$/, type: 'pure_name' },  // 纯姓名（2-3 个字）
+                        { pattern: /^([\u4e00-\u9fa5]{2,4})(?:先 | 先 | 女 | 小姐 | 先生 | 哥 | 姐 | 叔 | 姨)$/, type: 'title' },  // 吴先生、吴小姐、吴哥、吴姐
+                        
+                        // === 带上下文的姓名 ===
+                        { pattern: /(?:我 | 本人)(?:姓 | 叫 | 是)([\u4e00-\u9fa5]{2,4})/, type: 'i_am' },  // 我姓吴、我叫吴 XX
+                        { pattern: /(?:贵 | 免) 姓 ([\u4e00-\u9fa5]{1,2})/, type: 'polite' },  // 贵姓吴、免姓吴
+                        { pattern: /([\u4e00-\u9fa5]{2,4})[的](?:电话 | 手机 | 联系方式)/, type: 'possessive' },  // 吴的电话
+                        { pattern: /([\u4e00-\u9fa5]{2,4})(?:先生 | 小姐 | 女士 | 同志)[，,]?/, type: 'formal' },  // 吴先生，
+                        
+                        // === 特殊格式 ===
+                        { pattern: /^([姓姓名])([\u4e00-\u9fa5]{2,3})$/, type: 'standard' },           // 姓吴（名字）
+                        { pattern: /^小 ([\u4e00-\u9fa5]{1,2})$/, type: 'little' },  // 小王
+                        { pattern: /^老 ([\u4e00-\u9fa5]{1,2})$/, type: 'old' },  // 老吴
+                    ];
+                                        
+                    for (let {pattern, type} of namePatterns) {
+                        const match = cleanText.match(pattern);
+                        if (match && !existingName) {
+                            // 提取姓名（去掉姓氏前缀）
+                            let name = match[2] || match[1];
+                                                
+                            // 特殊处理：贵姓、免姓
+                            if (type === 'polite') {
+                                name = match[1];
+                            }
+                                                
+                            // 特殊处理：小 X、老 X
+                            if (type === 'little' || type === 'old') {
+                                name = match[1];
+                            }
+                                                
+                            // 清理多余字符
+                            name = name.replace(/^[姓姓名]/, '');
+                                                
+                            // 验证：姓名不能包含明显的问题词汇
+                            const invalidWords = ['学校', '公司', '单位', '问题', '怎么', '如何', '什么', '办理', '电话', '手机', '地址', '哪里', '什么', '时间'];
+                                                
+                            // 新增：单字验证（单字很可能是误匹配）
+                            if (name.length === 1) {
+                                // 单字姓名，需要更严格验证
+                                const commonSurnames = ['赵', '钱', '孙', '李', '周', '吴', '郑', '王', '冯', '陈', '褚', '卫', '蒋', '沈', '韩', '杨', '朱', '秦', '尤', '许', '何', '吕', '施', '张', '孔', '曹', '严', '华', '金', '魏', '陶', '姜', '戚', '谢', '邹', '喻', '柏', '水', '窦', '章', '云', '苏', '潘', '葛', '奚', '范', '彭', '郎', '鲁', '韦', '昌', '马', '苗', '凤', '花', '方', '俞', '任', '袁', '柳', '酆', '鲍', '史', '唐', '费', '廉', '岑', '薛', '雷', '贺', '倪', '汤', '滕', '殷', '罗', '毕', '郝', '邬', '安', '常', '乐', '于', '时', '傅', '皮', '卞', '齐', '康', '伍', '余', '元', '卜', '顾', '孟', '平', '黄', '和', '穆', '萧', '尹', '姚', '邵', '湛', '汪', '祁', '毛', '禹', '狄', '米', '贝', '明', '臧', '计', '伏', '成', '戴', '谈', '宋', '茅', '庞', '熊', '纪', '舒', '屈', '项', '祝', '董', '梁', '杜', '阮', '蓝', '闵', '席', '季', '麻', '强', '贾', '路', '娄', '危', '江', '童', '颜', '郭', '梅', '盛', '林', '刁', '钟', '徐', '邱', '骆', '高', '夏', '蔡', '田', '樊', '胡', '凌', '霍', '虞', '万', '支', '柯', '昝', '管', '卢', '莫', '经', '房', '裘', '缪', '干', '解', '应', '宗', '丁', '宣', '邓', '郁', '单', '杭', '洪', '包', '诸', '左', '石', '崔', '吉', '钮', '龚', '程', '嵇', '邢', '滑', '裴', '陆', '荣', '翁', '荀', '羊', '於', '惠', '甄', '曲', '家', '封', '芮', '羿', '储', '晋', '汲', '邴', '糜', '松', '井', '段', '富', '巫', '乌', '焦', '巴', '弓', '牧', '隗', '山', '谷', '车', '侯', '宓', '蓬', '全', '郗', '班', '仰', '秋', '仲', '伊', '宫', '宁', '仇', '栾', '暴', '甘', '钭', '厉', '戎', '祖', '武', '符', '刘', '景', '詹', '束', '龙', '叶', '幸', '司', '韶', '郜', '黎', '蓟', '薄', '印', '宿', '白', '怀', '蒲', '邰', '从', '鄂', '索', '咸', '籍', '赖', '卓', '蔺', '屠', '蒙', '池', '乔', '阴', '郁', '胥', '能', '苍', '双', '闻', '莘', '党', '翟', '谭', '贡', '劳', '逄', '姬', '申', '扶', '堵', '冉', '宰', '郦', '雍', '却', '璩', '桑', '桂', '濮', '牛', '寿', '通', '边', '扈', '燕', '冀', '郏', '浦', '尚', '农', '温', '别', '庄', '晏', '柴', '瞿', '阎', '充', '慕', '连', '茹', '习', '宦', '艾', '鱼', '容', '向', '古', '易', '慎', '戈', '廖', '庾', '终', '暨', '居', '衡', '步', '都', '耿', '满', '弘', '匡', '国', '文', '寇', '广', '禄', '阙', '东', '欧', '殳', '沃', '利', '蔚', '越', '夔', '隆', '师', '巩', '厍', '聂', '晁', '勾', '敖', '融', '冷', '訾', '辛', '阚', '那', '简', '饶', '空', '曾', '毋', '沙', '乜', '养', '鞠', '须', '丰', '巢', '关', '蒯', '相', '查', '后', '荆', '红', '游', '竺', '权', '逯', '盖', '益', '桓', '公'];
+                                
+                                if (commonSurnames.includes(name)) {
+                                    result.name = name;
+                                    console.log(`姓名匹配 (${type}):`, result.name);
+                                    break;
+                                } else {
+                                    console.log('过滤掉非单字姓名:', name);
+                                }
+                            } else if (name.length === 2 || name.length === 3) {
+                                // 双字或三字姓名，只需检查是否包含无效词
+                                if (!invalidWords.some(word => name.includes(word))) {
+                                    result.name = name;
+                                    console.log(`姓名匹配 (${type}):`, result.name);
+                                    break;
+                                } else {
+                                    console.log('过滤掉非姓名词汇:', name);
+                                }
+                            } else if (name.length === 4) {
+                                // 四字姓名（复姓）
+                                result.name = name;
+                                console.log(`姓名匹配 (${type}):`, result.name);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // === 3. 组合识别（姓名 + 手机） ===
+                    const combinedPatterns = [
+                        /([姓姓名]?[\u4e00-\u9fa5]{2,4})[，,](1[3-9]\d{9})/,  // 姓吴，138...
+                        /([\u4e00-\u9fa5]{2,4})(?:先生 | 小姐|女士)[，,](?:电话 | 手机|是)?(1[3-9]\d{9})/,  // 吴先生，138...
+                        /(?:我 | 本人)(?:姓 | 叫)([\u4e00-\u9fa5]{2,4})[，,](?:电话 | 手机|是)?(1[3-9]\d{9})/,  // 我姓吴，138...
+                        /(1[3-9]\d{9})[，,]([\u4e00-\u9fa5]{2,4})(?:先生 | 小姐|女士)/  // 138...，吴先生
+                    ];
+                    
+                    for (let pattern of combinedPatterns) {
+                        const combinedMatch = cleanText.match(pattern);
+                        if (combinedMatch) {
+                            if (!existingName) {
+                                let name = combinedMatch[1].replace(/^[姓姓名]/, '');
+                                // 如果是手机号在前，姓名在后
+                                if (pattern.toString().includes('1[3-9]')) {
+                                    name = combinedMatch[2].replace(/^[姓姓名]/, '');
+                                }
+                                result.name = name;
+                            }
+                            if (!existingPhone) {
+                                result.phone = combinedMatch[2] || combinedMatch[1];
+                            }
+                            console.log('组合匹配：', result.name, result.phone);
+                            break;
+                        }
+                    }
+                    
+                    // === 4. 智能推断（基于上下文） ===
+                    // 如果只有手机号，尝试从上下文中推断姓名
+                    if (!result.name && existingPhone && !existingName) {
+                        const contextPatterns = [
+                            /(?:我 | 本人)(?:叫 | 是)([\u4e00-\u9fa5]{2,4})/,
+                            /称呼我 ([\u4e00-\u9fa5]{2,4})/
+                        ];
+                        for (let pattern of contextPatterns) {
+                            const match = cleanText.match(pattern);
+                            if (match) {
+                                result.name = match[1];
+                                console.log('上下文推断姓名:', result.name);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    return result;
+                }
+
+                async function callApi(question, userName = null, userPhone = null) {
+                    try {
+                        const requestBody = {
+                            sessionId: sessionId.value,
+                            question: question,
+                            tenantId: 1,
+                            deviceType: 'web'
+                        };
+                        
+                        // 如果有用户信息，添加到请求体
+                        if (userName) {
+                            requestBody.userName = userName;
+                        }
+                        if (userPhone) {
+                            requestBody.userPhone = userPhone;
+                        }
+                        
+                        console.log('发送请求：', requestBody);
+                        
                         const response = await fetch(`${API_BASE_URL}/consult/ask`, {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                sessionId: sessionId.value,
-                                question: question,
-                                tenantId: 1,
-                                deviceType: 'web'
-                            })
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(requestBody)
                         });
 
                         const result = await response.json();
                         
                         if (result.code === 200) {
                             return {
+                                success: true,
                                 answer: result.data.answer,
+                                matchScore: result.data.matchScore || 0,
+                                knowledgeTitle: result.data.knowledgeTitle,
+                                categoryName: result.data.categoryName,
+                                viewCount: result.data.viewCount || 0,
+                                consultationId: result.data.consultationId, // 咨询记录 ID
                                 suggestedQuestions: result.data.suggestedQuestions || []
                             };
                         } else {
@@ -426,7 +583,12 @@
                     } catch (error) {
                         console.error('发送消息失败:', error);
                         return {
+                            success: false,
                             answer: '抱歉，网络开小差了，请稍后再试。',
+                            matchScore: 0,
+                            knowledgeTitle: null,
+                            categoryName: null,
+                            viewCount: 0,
                             suggestedQuestions: []
                         };
                     }
@@ -436,7 +598,64 @@
                     const question = inputMessage.value.trim();
                     if (!question) return;
 
-                    // 添加用户消息
+                    console.log('发送消息:', question);
+                    
+                    // === 重构方案：前端只做简单过滤，后端深度识别 ===
+                    
+                    // 1. 前端快速过滤（仅检测明显的问题）
+                    const quickResult = quickFilter(question);
+                    
+                    let parsedInfo = { name: null, phone: null };
+                    
+                    if (quickResult.type === 'question') {
+                        // 明显的问题 → 不解析用户信息
+                        console.log('检测到是问题，跳过信息解析');
+                    } else if (quickResult.type === 'phone') {
+                        // 纯手机号 → 直接使用
+                        parsedInfo.phone = quickResult.phone;
+                        console.log('检测到纯手机号:', parsedInfo.phone);
+                    } else {
+                        // 其他情况 → 调用后端 API 智能解析
+                        try {
+                            const parseResponse = await fetch(`${API_BASE_URL}/consult/parse-user-input`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    text: question,
+                                    sessionId: sessionId.value,
+                                    tenantId: 1
+                                })
+                            });
+                            
+                            const parseResult = await parseResponse.json();
+                            
+                            if (parseResult.code === 200 && parseResult.data) {
+                                parsedInfo.name = parseResult.data.name;
+                                parsedInfo.phone = parseResult.data.phone;
+                                
+                                // 如果是提问，不保存用户信息
+                                if (parseResult.data.isQuestion) {
+                                    console.log('后端检测到是问题，跳过信息解析');
+                                    parsedInfo = { name: null, phone: null };
+                                }
+                            }
+                        } catch (error) {
+                            console.error('调用后端解析失败:', error);
+                            // 降级处理：使用前端简单解析
+                            parsedInfo = parseUserInfo(question, userInfo.name, userInfo.phone);
+                        }
+                    }
+                    
+                    // 更新用户信息
+                    if (parsedInfo.name) {
+                        userInfo.name = parsedInfo.name;
+                    }
+                    if (parsedInfo.phone) {
+                        userInfo.phone = parsedInfo.phone;
+                    }
+                    
+                    console.log('当前用户信息：', userInfo);
+
                     messages.value.push({
                         type: 'user',
                         content: question,
@@ -447,17 +666,27 @@
                     isLoading.value = true;
                     scrollToBottom();
 
-                    // 调用 AI 接口
-                    const aiResponse = await sendMessageToAI(question);
+                    // 发送时带上用户信息（包括之前保存的）
+                    const aiResponse = await callApi(
+                        question, 
+                        userInfo.name, 
+                        userInfo.phone
+                    );
 
                     isLoading.value = false;
 
-                    // 添加 AI 回复
                     messages.value.push({
                         type: 'ai',
                         content: aiResponse.answer,
                         time: getCurrentTime(),
-                        suggestedQuestions: aiResponse.suggestedQuestions
+                        id: aiResponse.consultationId, // 咨询记录 ID
+                        matchScore: aiResponse.matchScore,
+                        knowledgeTitle: aiResponse.knowledgeTitle,
+                        categoryName: aiResponse.categoryName,
+                        viewCount: aiResponse.viewCount,
+                        suggestedQuestions: aiResponse.suggestedQuestions,
+                        satisfaction: 0,
+                        rated: false
                     });
 
                     scrollToBottom();
@@ -468,25 +697,89 @@
                     sendMessage();
                 }
 
-                onMounted(() => {
-                    // 加载配置和热门问题
-                    loadConfig();
-                    loadHotQuestions();
-                });
-
-                async function loadConfig() {
+                async function submitSatisfaction(message) {
+                    if (message.rated) return;
                     try {
-                        // TODO: 从后端加载租户配置
-                        // 暂时使用默认配置
-                        const response = await fetch(`${API_BASE_URL}/statistics/dashboard?tenantId=1`);
+                        console.log('提交满意度:', message.satisfaction);
+                        message.rated = true;
+                    } catch (error) {
+                        console.error('提交满意度失败:', error);
+                    }
+                }
+
+                function showFeedbackDialog(message) {
+                    // 只有 1-3 星才弹出反馈对话框
+                    if (message.satisfaction >= 4) {
+                        submitFeedbackToBackend(message);
+                        return;
+                    }
+
+                    // 保存当前消息和评分
+                    feedbackForm.messageId = message;
+                    feedbackForm.consultationId = message.id;
+                    feedbackForm.satisfaction = message.satisfaction;
+                    feedbackForm.reasons = [];
+                    feedbackForm.suggestion = '';
+
+                    // 显示 Element Plus 对话框
+                    feedbackDialog = ElementPlus.ElMessageBox({
+                        title: '帮助我们改进',
+                        message: document.getElementById('feedback-dialog').innerHTML,
+                        showCancelButton: true,
+                        confirmButtonText: '提交',
+                        cancelButtonText: '取消',
+                        customClass: 'feedback-message-box',
+                        closeOnClickModal: false
+                    }).then(async () => {
+                        await submitFeedbackToBackend(message);
+                    }).catch(() => {
+                        // 用户取消，重置评分
+                        message.satisfaction = 0;
+                    });
+                }
+
+                async function submitFeedbackToBackend(message) {
+                    if (!message.id) {
+                        console.error('咨询记录 ID 不存在');
+                        return;
+                    }
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('consultationId', message.id);
+                        formData.append('satisfaction', message.satisfaction || feedbackForm.satisfaction);
+                        
+                        const reasons = feedbackForm.reasons && feedbackForm.reasons.length > 0 
+                            ? feedbackForm.reasons 
+                            : [];
+                        
+                        // 以 JSON 格式发送原因
+                        const response = await fetch(`${API_BASE_URL}/consult/feedback/submit`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                consultationId: message.id,
+                                satisfaction: message.satisfaction || feedbackForm.satisfaction,
+                                reasons: reasons,
+                                suggestion: feedbackForm.suggestion
+                            })
+                        });
+
                         const result = await response.json();
                         
                         if (result.code === 200) {
-                            // 可以从统计接口获取一些配置信息
-                            console.log('加载配置成功:', result.data);
+                            ElementPlus.ElMessage.success('感谢您的反馈！');
+                            message.rated = true;
+                        } else {
+                            ElementPlus.ElMessage.error(result.message || '提交失败');
+                            message.rated = false;
                         }
                     } catch (error) {
-                        console.error('加载配置失败:', error);
+                        console.error('提交反馈失败:', error);
+                        ElementPlus.ElMessage.error('提交失败，请稍后重试');
+                        message.rated = false;
                     }
                 }
 
@@ -496,16 +789,20 @@
                         const result = await response.json();
                         
                         if (result.code === 200 && result.data && result.data.length > 0) {
-                            // 提取问题作为快捷问题
                             quickQuestions.value = result.data.map(item => item.question);
                         }
                     } catch (error) {
                         console.error('加载热门问题失败:', error);
-                        // 使用默认问题
                     }
                 }
 
+                onMounted(() => {
+                    loadSystemConfig();
+                    loadHotQuestions();
+                });
+
                 return {
+                    Math,
                     messages,
                     inputMessage,
                     isLoading,
@@ -513,12 +810,21 @@
                     quickQuestions,
                     messagesContainer,
                     sendMessage,
-                    sendQuickQuestion
+                    sendQuickQuestion,
+                    submitSatisfaction,
+                    showFeedbackDialog,
+                    feedbackForm
                 };
             }
         });
 
+        console.log('=== 注册 Element Plus ===');
+        app.use(ElementPlus, { locale: ElementPlusLocaleZhCn });
+        
+        console.log('=== 挂载到 #app ===');
         app.mount('#app');
+        
+        console.log('=== Vue 应用启动成功 ===');
     </script>
 </body>
 </html>

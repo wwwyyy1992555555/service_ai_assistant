@@ -4,7 +4,7 @@ import com.myproject.service_ai_assistant.dto.LoginRequest;
 import com.myproject.service_ai_assistant.dto.UserDTO;
 
 /**
- * 用户服务接口
+ * 员工服务接口
  */
 public interface UserService {
 

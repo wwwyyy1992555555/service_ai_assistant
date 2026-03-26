@@ -384,6 +384,9 @@
                             <el-form-item label="客服电话">
                                 <el-input v-model="settings.phone" placeholder="请输入客服电话" />
                             </el-form-item>
+                            <el-form-item label="工作时间">
+                                <el-input v-model="settings.serviceTime" placeholder="例如：工作时间：周一至周日 9:00-17:00" />
+                            </el-form-item>
                             <el-form-item>
                                 <el-button type="primary" @click="saveSettings">保存设置</el-button>
                             </el-form-item>

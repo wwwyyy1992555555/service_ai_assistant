@@ -94,7 +94,8 @@ const app = createApp({
             welcomeMessage: '您好，XX 市政务服务中心很高兴为您服务！',
             themeColor: '#1890ff',
             email: 'service@gov.cn',
-            phone: '12345'
+            phone: '12345',
+            serviceTime: '工作时间：周一至周日 9:00-17:00'
         });
         
         const jumpPage = ref(1);

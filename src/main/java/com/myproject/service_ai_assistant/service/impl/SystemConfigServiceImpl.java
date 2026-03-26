@@ -28,6 +28,7 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
     private static final String KEY_THEME_COLOR = "theme_color";
     private static final String KEY_SERVICE_EMAIL = "service_email";
     private static final String KEY_SERVICE_PHONE = "service_phone";
+    private static final String KEY_SERVICE_TIME = "service_time";
 
     @Override
     public SystemConfigDTO getConfig(Long tenantId) {
@@ -49,6 +50,7 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
         dto.setThemeColor(configMap.getOrDefault(KEY_THEME_COLOR, "#1890ff"));
         dto.setEmail(configMap.getOrDefault(KEY_SERVICE_EMAIL, ""));
         dto.setPhone(configMap.getOrDefault(KEY_SERVICE_PHONE, ""));
+        dto.setServiceTime(configMap.getOrDefault(KEY_SERVICE_TIME, "工作时间：周一至周日 9:00-17:00"));
         
         log.debug("【获取系统配置成功】tenantId={}, config={}", tenantId, dto);
         
@@ -67,7 +69,8 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
                 createConfig(tenantId, KEY_WELCOME_MESSAGE, configDTO.getWelcomeMessage(), "text", "欢迎语"),
                 createConfig(tenantId, KEY_THEME_COLOR, configDTO.getThemeColor(), "color", "主题颜色"),
                 createConfig(tenantId, KEY_SERVICE_EMAIL, configDTO.getEmail(), "string", "客服邮箱"),
-                createConfig(tenantId, KEY_SERVICE_PHONE, configDTO.getPhone(), "string", "客服电话")
+                createConfig(tenantId, KEY_SERVICE_PHONE, configDTO.getPhone(), "string", "客服电话"),
+                createConfig(tenantId, KEY_SERVICE_TIME, configDTO.getServiceTime(), "text", "工作时间描述")
             );
             
             // 批量插入或更新

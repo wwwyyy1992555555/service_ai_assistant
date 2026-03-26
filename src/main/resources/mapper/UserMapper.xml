@@ -22,7 +22,7 @@
 
     <!-- 根据用户名查询 -->
     <select id="selectByUsername" resultMap="BaseResultMap">
-        SELECT * FROM user_info
+        SELECT * FROM employee_info
         WHERE tenant_id = #{tenantId}
           AND username = #{username}
           AND deleted = 0
@@ -30,7 +30,7 @@
 
     <!-- 根据手机号查询 -->
     <select id="selectByPhone" resultMap="BaseResultMap">
-        SELECT * FROM user_info
+        SELECT * FROM employee_info
         WHERE tenant_id = #{tenantId}
           AND phone = #{phone}
           AND deleted = 0

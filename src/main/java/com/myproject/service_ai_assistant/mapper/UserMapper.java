@@ -6,7 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 /**
- * 用户信息 Mapper
+ * 员工信息 Mapper
  */
 @Mapper
 public interface UserMapper extends BaseMapper<User> {
