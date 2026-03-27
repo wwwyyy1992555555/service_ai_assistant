@@ -1,0 +1,184 @@
+/* ===== 知识库管理模块样式 ===== */
+
+/* 解决 iframe/模块页表格正文被压扁的问题 */
+.module-page .app-container {
+    display: block;
+    min-height: 100vh;
+}
+
+.module-page .table-container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 40px);
+    overflow: hidden;
+}
+
+.module-page .el-table {
+    flex: 1;
+    min-height: 0;
+}
+
+.module-page .el-table__inner-wrapper {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.module-page .el-table__body-wrapper {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+.module-page .el-table__body-wrapper .el-scrollbar__wrap {
+    overflow: auto;
+}
+
+/* 工具栏布局 */
+.table-header .toolbar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-left: auto;
+}
+
+/* 表格操作按钮 */
+.action-btn {
+    margin-right: 8px;
+}
+
+/* 知识详情对话框 */
+.knowledge-detail-descriptions {
+    margin-bottom: 20px;
+}
+
+/* 分类标签 */
+.category-tag {
+    margin-right: 4px;
+}
+
+/* 搜索框样式优化 */
+.knowledge-search-input {
+    width: 300px;
+}
+
+/* 状态筛选下拉框 */
+.filter-select {
+    width: 120px;
+}
+
+/* 表格列样式 */
+.knowledge-table .el-table {
+    font-size: 14px;
+}
+
+.knowledge-table .el-table th {
+    background: #fafafa;
+    color: #262626;
+    font-weight: 600;
+    padding: 14px 0;
+    font-size: 14px;
+}
+
+.knowledge-table .el-table__cell {
+    padding: 12px 0;
+}
+
+/* 标题单元格 */
+.knowledge-table .title-cell {
+    color: #409eff;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.knowledge-table .title-cell:hover {
+    color: #67c23a;
+    cursor: pointer;
+}
+
+/* 浏览数单元格 */
+.knowledge-table .view-count-cell {
+    font-weight: bold;
+    color: #f56c6c;
+    font-size: 15px;
+}
+
+/* 置顶标签 */
+.knowledge-table .is-top-cell .el-tag {
+    padding: 4px 12px;
+    font-size: 12px;
+    border-radius: 12px;
+}
+
+/* 分类标签 */
+.knowledge-table .category-cell .el-tag {
+    padding: 4px 10px;
+    font-size: 12px;
+    border-radius: 8px;
+    background: #ecf5ff;
+    color: #409eff;
+    border: 1px solid #d9ecff;
+}
+
+/* 编辑对话框 - 单选按钮横向排列 */
+.edit-dialog .el-form-item .el-radio-group {
+    display: flex !important;
+    gap: 20px;
+}
+
+/* ===== 移动端适配 ===== */
+@media screen and (max-width: 768px) {
+    /* 表格字体调小 */
+    .knowledge-table .el-table {
+        font-size: 12px;
+    }
+    
+    .knowledge-table .el-table th {
+        font-size: 12px;
+        padding: 10px 0;
+    }
+    
+    .knowledge-table .el-table__cell {
+        padding: 8px 0;
+    }
+    
+    /* 标题单元格允许换行 */
+    .knowledge-table .title-cell {
+        white-space: normal;
+        line-height: 1.4;
+    }
+    
+    /* 工具栏调整 */
+    .table-header .toolbar {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .knowledge-search-input {
+        width: 100%;
+    }
+    
+    .filter-select {
+        width: 100px;
+    }
+}
+
+/* 知识详情对话框 - 优化标签列排版 */
+.knowledge-detail-dialog .el-descriptions__label {
+    font-weight: 600;
+    color: #606266;
+    width: 100px; /* 固定标签宽度 */
+    flex-shrink: 0; /* 防止被压缩 */
+}
+
+.knowledge-detail-dialog .el-descriptions__content {
+    min-width: 200px; /* 保证内容列有足够空间 */
+    flex: 1; /* 让内容列占据剩余空间 */
+}
+
+/* 答案内容特殊处理 - 允许自动换行 */
+.knowledge-detail-dialog .el-descriptions-item[label="答案"] .el-descriptions__content {
+    white-space: pre-wrap; /* 保留换行符 */
+    word-break: break-word; /* 长文本自动换行 */
+}

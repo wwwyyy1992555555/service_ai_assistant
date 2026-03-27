@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -30,8 +31,28 @@ public class ConsultationRecordServiceImpl extends ServiceImpl<ConsultationRecor
         // 查询总数（按会话分组）
         long total = this.baseMapper.countSessions(tenantId);
         
-        // 注意：不再补充最高匹配度，直接显示第一条记录的原始匹配度
-        // 这样更真实反映首次问题的解决情况
+        // 为每个会话补充最新的用户信息
+        if (!records.isEmpty()) {
+            List<ConsultationRecord> processedRecords = new ArrayList<>();
+            for (ConsultationRecord record : records) {
+                // 查询该会话的最新用户信息
+                LambdaQueryWrapper<ConsultationRecord> wrapper = new LambdaQueryWrapper<>();
+                wrapper.eq(ConsultationRecord::getSessionId, record.getSessionId())
+                        .eq(ConsultationRecord::getTenantId, tenantId)
+                        .orderByDesc(ConsultationRecord::getCreatedTime)
+                        .last("LIMIT 1");
+                
+                ConsultationRecord latestRecord = this.getOne(wrapper);
+                if (latestRecord != null) {
+                    // 补充最新用户信息
+                    record.setUserName(latestRecord.getUserName());
+                    record.setUserPhone(latestRecord.getUserPhone());
+                    record.setUserId(latestRecord.getUserId());
+                }
+                processedRecords.add(record);
+            }
+            records = processedRecords;
+        }
         
         Page<ConsultationRecord> result = new Page<>(page.getCurrent(), page.getSize(), total);
         result.setRecords(records);
@@ -42,23 +63,66 @@ public class ConsultationRecordServiceImpl extends ServiceImpl<ConsultationRecor
     }
 
     @Override
-    public Page<ConsultationRecord> searchRecords(Long tenantId, String keyword, Page<ConsultationRecord> page) {
-        if (keyword == null || keyword.trim().isEmpty()) {
+    public Page<ConsultationRecord> searchRecords(Long tenantId, String keyword, String userName, String userPhone, Page<ConsultationRecord> page) {
+        // 如果没有搜索条件，返回空结果
+        if ((keyword == null || keyword.trim().isEmpty()) && 
+            (userName == null || userName.trim().isEmpty()) && 
+            (userPhone == null || userPhone.trim().isEmpty())) {
             return queryRecords(tenantId, page);
         }
         
-        // 搜索时也需要按会话分组，返回包含关键词的会话的第一条记录
-        long offset = (page.getCurrent() - 1) * page.getSize();
-        long limit = page.getSize();
-        List<ConsultationRecord> records = this.baseMapper.searchRecordsBySession(tenantId, "%" + keyword + "%", "%" + keyword + "%", offset, limit);
+        // 构建查询条件
+        LambdaQueryWrapper<ConsultationRecord> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ConsultationRecord::getTenantId, tenantId);
         
-        // 查询符合条件的会话总数
-        long total = this.baseMapper.countSearchedSessions(tenantId, "%" + keyword + "%", "%" + keyword + "%");
+        // 智能识别：如果是手机号格式，优先按手机号精确匹配（高性能）
+        if (userPhone != null && !userPhone.trim().isEmpty()) {
+            String cleanPhone = userPhone.replaceAll("\\s+", "");
+            // 先精确匹配完整手机号
+            wrapper.eq(ConsultationRecord::getUserPhone, cleanPhone);
+        }
+        // 如果是姓名，按姓名模糊匹配
+        else if (userName != null && !userName.trim().isEmpty()) {
+            wrapper.like(ConsultationRecord::getUserName, userName);
+        }
+        // 否则按关键词搜索（只搜索问题字段，保证性能）
+        else if (keyword != null && !keyword.trim().isEmpty()) {
+            // 只搜索问题字段，避免双字段 LIKE 导致性能下降
+            // 答案通常较长，且用户更可能搜索问题标题
+            wrapper.like(ConsultationRecord::getQuestion, keyword);
+        }
         
-        Page<ConsultationRecord> result = new Page<>(page.getCurrent(), page.getSize(), total);
-        result.setRecords(records);
+        // 按会话分组，获取每个会话的第一条记录
+        wrapper.orderByDesc(ConsultationRecord::getCreatedTime);
         
-        log.debug("【对话记录搜索】tenantId={}, keyword={}, current={}, size={}, total={}", tenantId, keyword, page.getCurrent(), page.getSize(), total);
+        // 执行分页查询
+        Page<ConsultationRecord> result = this.page(page, wrapper);
+        
+        // 为每个会话补充最新的用户信息
+        if (!result.getRecords().isEmpty()) {
+            List<ConsultationRecord> processedRecords = new ArrayList<>();
+            for (ConsultationRecord record : result.getRecords()) {
+                // 查询该会话的最新用户信息
+                LambdaQueryWrapper<ConsultationRecord> userWrapper = new LambdaQueryWrapper<>();
+                userWrapper.eq(ConsultationRecord::getSessionId, record.getSessionId())
+                        .eq(ConsultationRecord::getTenantId, tenantId)
+                        .orderByDesc(ConsultationRecord::getCreatedTime)
+                        .last("LIMIT 1");
+                
+                ConsultationRecord latestRecord = this.getOne(userWrapper);
+                if (latestRecord != null) {
+                    // 补充最新用户信息
+                    record.setUserName(latestRecord.getUserName());
+                    record.setUserPhone(latestRecord.getUserPhone());
+                    record.setUserId(latestRecord.getUserId());
+                }
+                processedRecords.add(record);
+            }
+            result.setRecords(processedRecords);
+        }
+        
+        log.debug("【对话记录搜索（支持用户信息）】tenantId={}, keyword={}, userName={}, userPhone={}, current={}, size={}, total={}", 
+                tenantId, keyword, userName, userPhone, page.getCurrent(), page.getSize(), result.getTotal());
         
         return result;
     }

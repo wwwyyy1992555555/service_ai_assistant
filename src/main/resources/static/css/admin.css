@@ -1,26 +1,4 @@
-/* 管理后台样式 */
-
-:root {
-    --theme-color: #1890ff;
-    --theme-gradient-start: #1890ff;
-    --theme-gradient-end: #096dd9;
-}
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
-    background: #f5f7fa;
-}
-
-.app-container {
-    display: flex;
-    min-height: 100vh;
-}
+/* 管理后台核心样式 */
 
 /* 侧边栏样式 */
 .sidebar {
@@ -92,6 +70,7 @@ body {
 .main-content {
     flex: 1;
     margin-left: 240px;
+    min-width: 0;
 }
 
 .header {
@@ -106,97 +85,101 @@ body {
 
 .content {
     padding: 24px;
-}
-
-/* 数据看板卡片 */
-.dashboard-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 24px;
-    margin-bottom: 24px;
-}
-
-.stat-card {
-    background: white;
-    border-radius: 8px;
-    padding: 24px;
-    box-shadow: 0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12);
-}
-
-.stat-title {
-    color: rgba(0,0,0,0.45);
-    font-size: 14px;
-    margin-bottom: 8px;
-}
-
-.stat-value {
-    color: #000000;
-    font-size: 30px;
-    font-weight: 600;
-    margin: 12px 0;
-}
-
-.stat-footer {
-    margin-top: 16px;
-    color: rgba(0,0,0,0.45);
-    font-size: 12px;
-}
-
-/* 表格容器 */
-.table-container {
-    background: white;
-    border-radius: 8px;
-    padding: 24px;
-    box-shadow: 0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12);
-    margin-bottom: 24px;
-}
-
-.table-header {
+    height: calc(100vh - 60px); /* 除去 header */
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
+    flex-direction: column;
+    min-height: 0;
 }
 
-.table-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #000000;
+/* iframe 容器样式 */
+.module-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+    background: transparent;
 }
 
-/* 按钮样式 - 使用主题色 */
-.action-btn {
-    margin-right: 8px;
+/* 内容区子模块占满剩余高度（dashboard/knowledge/records/settings） */
+.content > div {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
 }
 
-/* Element Plus 主按钮颜色覆盖为主题色 */
-.el-button--primary {
-    --el-color-primary: var(--theme-color) !important;
-}
-
-/* 表格中的链接色使用主题色 */
-.el-table a {
-    color: var(--theme-color);
-}
-
-/* 对话记录标签 */
-.status-tag {
-    margin-right: 4px;
-}
-
-/* 响应式 */
-@media (max-width: 768px) {
+/* ===== 移动端适配 ===== */
+@media screen and (max-width: 768px) {
+    /* 侧边栏改为顶部导航 */
     .sidebar {
         width: 100%;
-        position: relative;
         height: auto;
+        position: relative;
+        overflow-y: visible;
     }
     
+    .logo h1 {
+        font-size: 16px;
+        padding: 15px 10px;
+    }
+    
+    .menu-item {
+        display: inline-block;
+        padding: 12px 15px;
+        font-size: 13px;
+    }
+    
+    .menu-icon {
+        font-size: 16px;
+    }
+    
+    /* 主内容区边距调整 */
     .main-content {
         margin-left: 0;
     }
     
+    .header {
+        padding: 0 15px;
+        height: 50px;
+    }
+    
+    .content {
+        padding: 15px;
+        height: calc(100vh - 50px);
+    }
+    
+    /* 统计卡片改为单列或双列 */
     .dashboard-cards {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    
+    .stat-card {
+        padding: 15px;
+    }
+    
+    .stat-title {
+        font-size: 12px;
+    }
+    
+    .stat-value {
+        font-size: 24px;
+    }
+    
+    .stat-footer {
+        font-size: 11px;
+    }
+    
+    /* 表格在小屏幕上横向滚动 */
+    .el-table {
+        font-size: 12px;
+    }
+    
+    .el-table th {
+        font-size: 12px;
+        padding: 10px 0;
+    }
+    
+    .el-table__cell {
+        padding: 8px 0;
     }
 }

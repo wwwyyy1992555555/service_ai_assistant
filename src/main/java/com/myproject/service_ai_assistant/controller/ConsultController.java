@@ -223,17 +223,33 @@ public class ConsultController {
     }
 
     @GetMapping("/search")
-    @Operation(summary = "搜索对话记录", description = "根据关键词搜索问题和答案")
+    @Operation(summary = "搜索对话记录", description = "根据关键词搜索问题和答案，或根据用户信息（姓名/手机号）搜索")
     public Result<com.baomidou.mybatisplus.extension.plugins.pagination.Page<ConsultationRecord>> searchRecords(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
-            @Parameter(description = "关键词") @RequestParam(required = false) String keyword,
+            @Parameter(description = "关键词（问题/答案/姓名/手机号）") @RequestParam(required = false) String keyword,
             @Parameter(description = "当前页码") @RequestParam(defaultValue = "1") Integer current,
             @Parameter(description = "每页大小") @RequestParam(defaultValue = "10") Integer size
     ) {
         log.info("【搜索对话】tenantId={}, keyword={}, current={}, size={}", tenantId, keyword, current, size);
         
+        // 智能识别关键词类型
+        String userName = null;
+        String userPhone = null;
+        
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String cleanKeyword = keyword.trim();
+            
+            // 判断是否为手机号格式
+            if (cleanKeyword.matches("1[3-9]\\d{9}")) {
+                userPhone = cleanKeyword;
+            } else {
+                // 否则作为问题/答案/姓名的关键词搜索
+                userName = cleanKeyword;
+            }
+        }
+        
         var page = new com.baomidou.mybatisplus.extension.plugins.pagination.Page<ConsultationRecord>(current, size);
-        var result = consultationRecordService.searchRecords(tenantId, keyword, page);
+        var result = consultationRecordService.searchRecords(tenantId, keyword, userName, userPhone, page);
         
         log.info("【搜索对话】匹配到 {} 条记录", result.getTotal());
         return Result.success(result);

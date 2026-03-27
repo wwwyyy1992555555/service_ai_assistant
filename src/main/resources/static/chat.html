@@ -7,11 +7,9 @@
     <!-- 引入 Element Plus CSS（使用 CDN） -->
     <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
     <link rel="stylesheet" href="css/chat.css?v=20260326">
+    <!-- 关键：v-cloak 必须内联且优先加载，防止页面闪烁 -->
     <style>
-        /* Vue 编译完成前隐藏模板 */
-        [v-cloak] {
-            display: none;
-        }
+        [v-cloak] { display: none !important; }
     </style>
 </head>
 <body>
@@ -61,7 +59,7 @@
                         </div>
                         
                         <!-- 满意度评价（仅 AI 消息） -->
-                        <div v-if="message.type === 'ai' && !message.rated" class="satisfaction-area">
+                        <div v-if="message.type === 'ai' && !message.rated && message.consultationId" class="satisfaction-area">
                             <div class="satisfaction-text">这个回答对您有帮助吗？</div>
                             <el-rate 
                                 v-model="message.satisfaction" 
@@ -69,6 +67,11 @@
                                 :colors="['#99A9BF', '#F7BA2A', '#F7BA2A']"
                                 size="small"
                             />
+                        </div>
+                        
+                        <!-- 旧消息提示（无 consultationId） -->
+                        <div v-if="message.type === 'ai' && !message.consultationId" class="satisfaction-area" style="opacity: 0.5;">
+                            <div class="satisfaction-text" style="font-size: 12px; color: #999;">💡 历史消息暂不支持评价</div>
                         </div>
                         
                         <!-- 推荐问题 -->
@@ -129,11 +132,12 @@
             <div style="margin-bottom: 20px;">
                 <div style="font-size: 14px; color: #666; margin-bottom: 12px;">请选择原因（可多选）</div>
                 <el-checkbox-group v-model="feedbackForm.reasons" style="display: flex; flex-direction: column; gap: 12px;">
-                    <el-checkbox label="答案不准确">答案不准确</el-checkbox>
-                    <el-checkbox label="答案不完整">答案不完整</el-checkbox>
-                    <el-checkbox label="答案太官方">答案太官方</el-checkbox>
-                    <el-checkbox label="没有解决我的问题">没有解决我的问题</el-checkbox>
-                    <el-checkbox label="其他">其他</el-checkbox>
+                    <el-checkbox 
+                        v-for="reason in feedbackReasonOptions" 
+                        :key="reason" 
+                        :label="reason">
+                        {{ reason }}
+                    </el-checkbox>
                 </el-checkbox-group>
             </div>
             <div style="margin-bottom: 20px;">
@@ -142,12 +146,14 @@
                     type="textarea"
                     :rows="3"
                     placeholder="您有什么建议或补充？（选填）"
+                    maxlength="500"
+                    show-word-limit
                 ></el-input>
             </div>
             <template #footer>
                 <span class="dialog-footer">
-                    <el-button @click="feedbackDialogVisible = false">取消</el-button>
-                    <el-button type="primary" @click="handleFeedbackSubmit">提交</el-button>
+                    <el-button @click="handleFeedbackCancel">取消</el-button>
+                    <el-button type="primary" @click="handleFeedbackSubmit" :loading="submitting">提交</el-button>
                 </span>
             </template>
         </el-dialog>
@@ -283,6 +289,15 @@
 
                 const feedbackDialogVisible = ref(false);
                 let currentMessage = null;
+
+                // 反馈原因选项
+                const feedbackReasonOptions = [
+                    '答案不准确',
+                    '答案不完整',
+                    '答案太官方',
+                    '没有解决我的问题',
+                    '其他'
+                ];
 
                 function getCurrentTime() {
                     const now = new Date();
@@ -708,31 +723,51 @@
                 }
 
                 async function submitSatisfaction(message) {
-                    if (message.rated) return;
+                    // 如果已经评分，直接返回
+                    if (message.rated) {
+                        ElementPlus.ElMessage.info('您已经评价过这条回答了');
+                        return;
+                    }
+                    
                     try {
                         console.log('提交满意度:', message.satisfaction);
                         message.rated = true;
+                        // 4-5 星直接提交，不需要填写反馈原因
+                        if (message.satisfaction >= 4) {
+                            await submitFeedbackToBackend(message);
+                        }
                     } catch (error) {
                         console.error('提交满意度失败:', error);
+                        message.rated = false;
                     }
                 }
 
                 function showFeedbackDialog(message) {
-                    // 只有 1-3 星才弹出反馈对话框
-                    if (message.satisfaction >= 4) {
-                        submitFeedbackToBackend(message);
+                    // 如果已经评分，不再弹出对话框
+                    if (message.rated) {
+                        ElementPlus.ElMessage.info('您已经评价过这条回答了');
                         return;
                     }
-
-                    // 保存当前消息和评分
+                    
+                    // 验证 consultationId 是否存在
                     const consultationId = message.consultationId || message.id;
                     if (!consultationId) {
-                        console.error('咨询记录 ID 不存在:', message);
-                        ElementPlus.ElMessage.error('提交失败，请刷新页面重试');
+                        ElementPlus.ElMessage.warning('历史消息暂不支持评价');
                         message.satisfaction = 0;
                         return;
                     }
                     
+                    // 4-5 星直接提交，不弹出对话框
+                    if (message.satisfaction >= 4) {
+                        feedbackForm.consultationId = consultationId;
+                        feedbackForm.satisfaction = message.satisfaction;
+                        feedbackForm.reasons = [];
+                        feedbackForm.suggestion = '';
+                        submitFeedbackToBackend(message);
+                        return;
+                    }
+
+                    // 1-3 星弹出反馈对话框，收集原因
                     feedbackForm.consultationId = consultationId;
                     feedbackForm.satisfaction = message.satisfaction;
                     feedbackForm.reasons = [];
@@ -741,20 +776,32 @@
                     feedbackDialogVisible.value = true;
                 }
 
+                const submitting = ref(false);
+
                 function handleFeedbackSubmit() {
                     if (currentMessage) {
                         submitFeedbackToBackend(currentMessage);
-                        feedbackDialogVisible.value = false;
                     }
+                }
+
+                // 取消反馈时重置星级
+                function handleFeedbackCancel() {
+                    if (currentMessage) {
+                        currentMessage.satisfaction = 0;
+                    }
+                    feedbackDialogVisible.value = false;
                 }
 
                 async function submitFeedbackToBackend(message) {
                     const consultationId = feedbackForm.consultationId;
+                    
                     if (!consultationId) {
                         console.error('咨询记录 ID 不存在');
                         ElementPlus.ElMessage.error('提交失败，请刷新页面重试');
                         return;
                     }
+
+                    submitting.value = true;
 
                     try {
                         const reasons = feedbackForm.reasons || [];
@@ -779,6 +826,7 @@
                         if (result.code === 200) {
                             ElementPlus.ElMessage.success('感谢您的反馈！');
                             message.rated = true;
+                            feedbackDialogVisible.value = false;
                         } else {
                             ElementPlus.ElMessage.error(result.message || '提交失败');
                             message.rated = false;
@@ -787,6 +835,8 @@
                         console.error('提交反馈失败:', error);
                         ElementPlus.ElMessage.error('提交失败，请稍后重试');
                         message.rated = false;
+                    } finally {
+                        submitting.value = false;
                     }
                 }
 
@@ -821,7 +871,9 @@
                     showFeedbackDialog,
                     feedbackForm,
                     feedbackDialogVisible,
-                    handleFeedbackSubmit
+                    feedbackReasonOptions,
+                    handleFeedbackSubmit,
+                    submitting
                 };
             }
         });

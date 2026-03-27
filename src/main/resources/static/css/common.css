@@ -1,0 +1,87 @@
+/* ===== 全局公共样式 ===== */
+
+:root {
+    --theme-color: #1890ff;
+    --theme-gradient-start: #1890ff;
+    --theme-gradient-end: #096dd9;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+    background: #f5f7fa;
+}
+
+/* 默认不强制 flex，避免模块页（iframe 内）布局被压扁 */
+.app-container {
+    min-height: 100vh;
+}
+
+/* 仅后台主框架使用 flex 布局 */
+.admin-page .app-container {
+    display: flex;
+}
+
+/* ===== 通用表格容器 ===== */
+.table-container {
+    background: white;
+    border-radius: 12px;
+    padding: 0;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    margin-top: 24px;
+    overflow: hidden;
+}
+
+/* ===== 滚动条美化 ===== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* ===== 通用工具类 ===== */
+.flex-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.text-ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ===== 空状态 ===== */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #909399;
+}
+
+/* ===== Element Plus 主题色覆盖 ===== */
+.el-button--primary {
+    --el-color-primary: var(--theme-color) !important;
+}
+
+.el-table a {
+    color: var(--theme-color);
+}

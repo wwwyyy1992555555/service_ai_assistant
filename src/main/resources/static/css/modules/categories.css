@@ -1,0 +1,87 @@
+/* ===== 分类管理模块样式 ===== */
+
+/* 解决 iframe/模块页表格正文被压扁的问题 */
+.module-page .app-container {
+    display: block;
+    min-height: 100vh;
+}
+
+.module-page .table-container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 40px); /* 适配 body padding:20px */
+    overflow: hidden; /* 由表格 body 自己滚动 */
+}
+
+.module-page .el-table {
+    flex: 1;
+    min-height: 0;
+}
+
+.module-page .el-table__inner-wrapper {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.module-page .el-table__body-wrapper {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+.module-page .el-table__body-wrapper .el-scrollbar__wrap {
+    overflow: auto;
+}
+
+/* 表格样式 */
+.categories-table .el-table {
+    font-size: 14px;
+}
+
+.categories-table .el-table th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    padding: 14px 0;
+    font-size: 14px;
+    border: none;
+}
+
+.categories-table .el-table__cell {
+    padding: 16px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+/* 斑马纹优化 */
+.categories-table .el-table--striped .el-table__body tr.el-table__row--striped td {
+    background: #fafafa;
+}
+
+/* 悬停效果 */
+.categories-table .el-table__body tr:hover > td {
+    background: #f5f7fa !important;
+}
+
+/* 分类名称单元格 */
+.categories-table .category-name-cell {
+    color: #409eff;
+    font-weight: 500;
+}
+
+/* 移动端适配 */
+@media screen and (max-width: 768px) {
+    .categories-table .el-table {
+        font-size: 12px;
+    }
+    
+    .categories-table .el-table th {
+        font-size: 12px;
+        padding: 12px 0;
+    }
+    
+    .categories-table .el-table__cell {
+        padding: 12px 0;
+    }
+}

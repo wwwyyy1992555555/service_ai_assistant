@@ -216,7 +216,13 @@ public class KnowledgeItemServiceImpl extends ServiceImpl<KnowledgeItemMapper, K
         
         // 添加分类筛选
         if (categoryId != null) {
-            wrapper.eq(KnowledgeItem::getCategoryId, categoryId);
+            if (categoryId == -1) {
+                // 特殊值：筛选没有分类的数据
+                wrapper.isNull(KnowledgeItem::getCategoryId);
+            } else {
+                // 筛选指定分类
+                wrapper.eq(KnowledgeItem::getCategoryId, categoryId);
+            }
         }
         
         // 添加发布状态筛选

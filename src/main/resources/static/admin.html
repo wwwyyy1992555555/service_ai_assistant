@@ -4,21 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 智库企业咨询平台 - 管理后台</title>
+    
+    <!-- 样式文件（按依赖顺序加载） -->
     <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
-    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/common.css">        <!-- 全局公共样式 -->
+    <link rel="stylesheet" href="css/modules/dashboard.css">  <!-- 数据看板样式 -->
+    <link rel="stylesheet" href="css/modules/categories.css">  <!-- 分类管理样式 -->
+    <link rel="stylesheet" href="css/modules/knowledge.css">  <!-- 知识库样式 -->
+    <link rel="stylesheet" href="css/modules/records.css">    <!-- 对话记录样式 -->
+    <link rel="stylesheet" href="css/admin.css">              <!-- 核心布局样式 -->
+    <!-- 关键：v-cloak 必须内联且优先加载，防止页面闪烁 -->
     <style>
-        /* Vue 编译完成前隐藏模板 */
-        [v-cloak] {
-            display: none;
+        [v-cloak] { display: none !important; }
+    </style>
+    <!-- 知识详情对话框 - 优化标签列排版 -->
+    <style>
+        .knowledge-detail-dialog .el-descriptions__label {
+            font-weight: 600;
+            color: #606266;
+            width: 100px; /* 固定标签宽度 */
+            flex-shrink: 0; /* 防止被压缩 */
         }
         
-        /* 强制设置侧边栏背景色，使用内联样式确保最高优先级 */
-        .sidebar {
-            background: linear-gradient(180deg, var(--theme-gradient-start, #1890ff) 0%, var(--theme-gradient-end, #096dd9) 100%) !important;
+        .knowledge-detail-dialog .el-descriptions__content {
+            min-width: 200px; /* 保证内容列有足够空间 */
+            flex: 1; /* 让内容列占据剩余空间 */
+        }
+        
+        /* 答案内容特殊处理 - 允许自动换行 */
+        .knowledge-detail-dialog .el-descriptions-item[label="答案"] .el-descriptions__content {
+            white-space: pre-wrap; /* 保留换行符 */
+            word-break: break-word; /* 长文本自动换行 */
         }
     </style>
 </head>
-<body>
+<body class="admin-page">
     <div id="app" class="app-container" v-cloak>
         <!-- 侧边栏 -->
         <div class="sidebar">
@@ -28,6 +48,10 @@
             <div class="menu-item" :class="{ active: currentMenu === 'dashboard' }" @click="switchMenu('dashboard')">
                 <span class="menu-icon">📊</span>
                 <span>数据看板</span>
+            </div>
+            <div class="menu-item" :class="{ active: currentMenu === 'categories' }" @click="switchMenu('categories')">
+                <span class="menu-icon">📂</span>
+                <span>分类管理</span>
             </div>
             <div class="menu-item" :class="{ active: currentMenu === 'knowledge' }" @click="switchMenu('knowledge')">
                 <span class="menu-icon">📚</span>
@@ -101,10 +125,10 @@
 
                     <!-- 热门问题 TOP10 -->
                     <div class="table-container">
-                        <div class="table-header">
-                            <div class="table-title">🔥 热门问题 TOP10</div>
+                        <div class="table-header" style="padding: 16px 24px; border-bottom: 2px solid #f0f0f0; margin-bottom: 10px;">
+                            <div class="table-title" style="color: #262626; font-size: 16px; font-weight: 600;">🔥 热门问题 TOP10</div>
                         </div>
-                        <el-table :data="hotQuestions" stripe style="width: 100%" 
+                        <el-table :data="hotQuestions" stripe style="width: 100%; border-radius: 0 0 12px 12px; overflow: hidden;" 
                                   :row-style="{ cursor: 'pointer' }"
                                   @row-click="viewKnowledgeDetail">
                             <el-table-column type="index" label="排名" width="80" align="center">
@@ -122,10 +146,10 @@
                                     <span style="color: #f56c6c; font-weight: bold;">{{ scope.row.viewCount }}</span>
                                 </template>
                             </el-table-column>
-                            <el-table-column prop="isTop" label="是否置顶" width="100" align="center">
+                            <el-table-column prop="isTop" label="置顶" width="100" align="center">
                                 <template #default="scope">
                                     <el-tag :type="scope.row.isTop === 1 ? 'danger' : 'info'" size="small">
-                                        {{ scope.row.isTop === 1 ? '🔥 置顶' : '-' }}
+                                        {{ scope.row.isTop === 1 ? '是' : '否' }}
                                     </el-tag>
                                 </template>
                             </el-table-column>
@@ -135,256 +159,10 @@
                                             type="info" size="small">
                                         {{ categoryMap[scope.row.categoryId] }}
                                     </el-tag>
-                                    <span v-else-if="scope.row.categoryId" style="color: #999; font-size: 12px;">未知分类</span>
                                     <span v-else style="color: #999; font-size: 12px;">-</span>
                                 </template>
                             </el-table-column>
                         </el-table>
-                    </div>
-                </div>
-
-                <!-- 知识库管理 -->
-                <div v-if="currentMenu === 'knowledge'">
-                    <div class="table-container">
-                        <div class="table-header">
-                            <div class="table-title">📚 知识库列表</div>
-                            <div style="display: flex; gap: 12px; align-items: center;">
-                                <el-select v-model="filterPublishStatus" placeholder="发布状态" clearable style="width: 120px;" @change="handleFilterChange">
-                                    <el-option label="全部" :value="null"></el-option>
-                                    <el-option label="已发布" :value="1"></el-option>
-                                    <el-option label="草稿" :value="0"></el-option>
-                                </el-select>
-                                <el-select v-model="filterIsTop" placeholder="是否置顶" clearable style="width: 120px;" @change="handleFilterChange">
-                                    <el-option label="全部" :value="null"></el-option>
-                                    <el-option label="已置顶" :value="1"></el-option>
-                                    <el-option label="未置顶" :value="0"></el-option>
-                                </el-select>
-                                <el-input
-                                    v-model="searchKeyword"
-                                    placeholder="搜索标题、问题、关键词"
-                                    style="width: 300px;"
-                                    clearable
-                                    @clear="loadKnowledgeList"
-                                    @keyup.enter="handleSearch"
-                                >
-                                    <template #append>
-                                        <el-button @click="handleSearch">
-                                            <el-icon><search /></el-icon> 搜索
-                                        </el-button>
-                                    </template>
-                                </el-input>
-                                <el-button type="primary" @click="showAddKnowledgeDialog">
-                                    <el-icon><plus /></el-icon> 新增知识
-                                </el-button>
-                            </div>
-                        </div>
-                        <el-table :data="knowledgeList" stripe style="width: 100%" v-loading="loading" :empty-text="searchKeyword && searchKeyword.trim() ? '' : undefined">
-                            <el-table-column prop="id" label="编号" width="80">
-                                <template #default="scope">
-                                    {{ scope.row.id }}
-                                </template>
-                            </el-table-column>
-                            <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip>
-                                <template #default="scope">
-                                    {{ scope.row.title }}
-                                </template>
-                            </el-table-column>
-                            <el-table-column prop="question" label="常见问题" min-width="200" show-overflow-tooltip>
-                                <template #default="scope">
-                                    {{ scope.row.question }}
-                                </template>
-                            </el-table-column>
-                            <el-table-column prop="keywords" label="关键词" min-width="150" show-overflow-tooltip>
-                                <template #default="scope">
-                                    {{ scope.row.keywords || '-' }}
-                                </template>
-                            </el-table-column>
-                            <el-table-column prop="publishStatus" label="状态" width="100">
-                                <template #default="scope">
-                                    <el-tag :type="scope.row.publishStatus === 1 ? 'success' : 'info'" size="small">
-                                        {{ scope.row.publishStatus === 1 ? '已发布' : '草稿' }}
-                                    </el-tag>
-                                </template>
-                            </el-table-column>
-                            <el-table-column prop="viewCount" label="浏览数" width="100" align="center">
-                                <template #default="scope">
-                                    <span style="color: #f56c6c; font-weight: bold;">{{ scope.row.viewCount || 0 }}</span>
-                                </template>
-                            </el-table-column>
-                            <el-table-column prop="isTop" label="是否置顶" width="100" align="center">
-                                <template #default="scope">
-                                    <el-tag :type="scope.row.isTop === 1 ? 'danger' : 'info'" size="small">
-                                        {{ scope.row.isTop === 1 ? '🔥 置顶' : '-' }}
-                                    </el-tag>
-                                </template>
-                            </el-table-column>
-                            <el-table-column label="操作" width="280" fixed="right">
-                                <template #default="scope">
-                                    <el-button size="small" type="info" @click="viewKnowledgeDetail(scope.row)">查看</el-button>
-                                    <el-button size="small" type="primary" @click="editKnowledge(scope.row)">编辑</el-button>
-                                    <el-button size="small" type="danger" @click="deleteKnowledge(scope.row.id)">删除</el-button>
-                                </template>
-                            </el-table-column>
-                        </el-table>
-                        <div style="margin-top: 16px; text-align: right; display: flex; justify-content: flex-end; align-items: center; gap: 16px;" v-if="knowledgePage.total > 0 || (!searchKeyword || !searchKeyword.trim())">
-                            <span style="color: #666; font-size: 14px;">共 {{ knowledgePage.total }} 条 (每页：{{ knowledgePage.size }} 条)</span>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <el-select v-model="knowledgePage.size" @change="handleSizeChange" size="small" style="width: 100px;">
-                                    <el-option label="10 条/页" :value="10"></el-option>
-                                    <el-option label="20 条/页" :value="20"></el-option>
-                                    <el-option label="50 条/页" :value="50"></el-option>
-                                    <el-option label="100 条/页" :value="100"></el-option>
-                                </el-select>
-                                <div style="display: flex; align-items: center; gap: 4px;">
-                                    <el-button size="small" :disabled="knowledgePage.current === 1" @click="handlePrevPage()">◀</el-button>
-                                    <span style="padding: 0 12px;">第 {{ knowledgePage.current }} 页</span>
-                                    <el-button size="small" :disabled="knowledgePage.current >= totalPages" @click="handleNextPage()">▶</el-button>
-                                </div>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="color: #666; font-size: 14px;">跳至</span>
-                                <el-input-number v-model="jumpPage" :min="1" :max="totalPages" size="small" style="width: 70px;" @change="handleJumpPage" @keyup.enter="handleJumpPage" />
-                                <span style="color: #666; font-size: 14px;">页</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 对话记录 -->
-                <div v-if="currentMenu === 'records'">
-                    <div class="table-container">
-                        <div class="table-header">
-                            <div class="table-title">💬 对话记录</div>
-                            <el-input
-                                v-model="searchQuestion"
-                                placeholder="搜索问题或回答内容"
-                                style="width: 350px;"
-                                clearable
-                                @clear="handleClearSearchRecords"
-                                @keyup.enter="handleSearchRecords"
-                            >
-                                <template #append>
-                                    <el-button @click="handleSearchRecords">
-                                        <el-icon><search /></el-icon> 搜索
-                                    </el-button>
-                                </template>
-                            </el-input>
-                        </div>
-                        <el-table :data="recordsList" stripe style="width: 100%" v-loading="loading" :empty-text="searchQuestion && searchQuestion.trim() ? '' : undefined">
-                            <el-table-column prop="id" label="编号" width="80" />
-                            
-                            <!-- 用户信息 -->
-                            <el-table-column label="用户信息" width="150">
-                                <template #default="scope">
-                                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                                        <span v-if="scope.row.userName" style="font-weight: 500;">{{ scope.row.userName }}</span>
-                                        <span v-else style="color: #999;">匿名用户</span>
-                                        <span v-if="scope.row.userPhone" style="font-size: 12px; color: #666;">📞 {{ scope.row.userPhone }}</span>
-                                    </div>
-                                </template>
-                            </el-table-column>
-                            
-                            <!-- 问题 -->
-                            <el-table-column prop="question" label="问题" min-width="200" show-overflow-tooltip>
-                                <template #default="scope">
-                                    <span style="color: #409eff;">{{ scope.row.question }}</span>
-                                </template>
-                            </el-table-column>
-                            
-                            <!-- 回答 -->
-                            <el-table-column prop="answer" label="回答" min-width="250" show-overflow-tooltip>
-                                <template #default="scope">
-                                    <span>{{ scope.row.answer }}</span>
-                                </template>
-                            </el-table-column>
-                            
-                            <!-- 匹配情况 -->
-                            <el-table-column label="匹配情况" width="120" align="center">
-                                <template #default="scope">
-                                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                                        <el-tag v-if="scope.row.matchedKnowledgeId" type="success" size="small" effect="plain">
-                                            已匹配
-                                        </el-tag>
-                                        <el-tag v-else type="info" size="small" effect="plain">
-                                            未匹配
-                                        </el-tag>
-                                        <span v-if="scope.row.matchScore" style="font-size: 12px; color: #666;">
-                                            匹配度：{{ (scope.row.matchScore * 100).toFixed(0) }}%
-                                        </span>
-                                    </div>
-                                </template>
-                            </el-table-column>
-                            
-                            <!-- 解决状态 -->
-                            <el-table-column prop="isSolved" label="解决状态" width="100" align="center">
-                                <template #default="scope">
-                                    <el-tag :type="scope.row.isSolved === 1 ? 'success' : 'warning'" size="small">
-                                        {{ scope.row.isSolved === 1 ? '已解决' : '未解决' }}
-                                    </el-tag>
-                                </template>
-                            </el-table-column>
-                            
-                            <!-- 满意度 -->
-                            <el-table-column label="满意度" width="120" align="center">
-                                <template #default="scope">
-                                    <div style="display: flex; justify-content: center; align-items: center;">
-                                        <el-rate 
-                                            v-if="scope.row.satisfaction" 
-                                            v-model="scope.row.satisfaction" 
-                                            disabled 
-                                            size="small"
-                                            style="font-size: 14px;"
-                                        />
-                                        <span v-else style="color: #999; font-size: 12px;">未评价</span>
-                                    </div>
-                                </template>
-                            </el-table-column>
-                            
-                            <!-- 设备类型 -->
-                            <el-table-column prop="deviceType" label="设备" width="100" align="center">
-                                <template #default="scope">
-                                    <el-tag size="small" :type="scope.row.deviceType === 'web' ? '' : 'warning'">
-                                        {{ scope.row.deviceType === 'web' ? '电脑' : '手机' }}
-                                    </el-tag>
-                                </template>
-                            </el-table-column>
-                            
-                            <!-- 时间 -->
-                            <el-table-column prop="createdTime" label="时间" width="180" />
-                            
-                            <!-- 操作 -->
-                            <el-table-column label="操作" width="150" fixed="right">
-                                <template #default="scope">
-                                    <el-button size="small" type="primary" @click="viewRecordDetail(scope.row)">
-                                        查看
-                                    </el-button>
-                                    <el-button size="small" type="danger" @click="deleteRecord(scope.row)">
-                                        删除
-                                    </el-button>
-                                </template>
-                            </el-table-column>
-                        </el-table>
-                        <div style="margin-top: 16px; text-align: right; display: flex; justify-content: flex-end; align-items: center; gap: 16px;" v-if="recordsPage.total > 0 || (!searchQuestion || !searchQuestion.trim())">
-                            <span style="color: #666; font-size: 14px;">共 {{ recordsPage.total }} 条 (每页：{{ recordsPage.size }} 条)</span>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <el-select v-model="recordsPage.size" @change="handleRecordsSizeChange" size="small" style="width: 100px;">
-                                    <el-option label="10 条/页" :value="10"></el-option>
-                                    <el-option label="20 条/页" :value="20"></el-option>
-                                    <el-option label="50 条/页" :value="50"></el-option>
-                                    <el-option label="100 条/页" :value="100"></el-option>
-                                </el-select>
-                                <div style="display: flex; align-items: center; gap: 4px;">
-                                    <el-button size="small" :disabled="recordsPage.current === 1" @click="handleRecordsPrevPage()">◀</el-button>
-                                    <span style="padding: 0 12px;">第 {{ recordsPage.current }} 页</span>
-                                    <el-button size="small" :disabled="recordsPage.current >= recordsTotalPages" @click="handleRecordsNextPage()">▶</el-button>
-                                </div>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="color: #666; font-size: 14px;">跳至</span>
-                                <el-input-number v-model="recordsJumpPage" :min="1" :max="recordsTotalPages" size="small" style="width: 70px;" @change="handleRecordsJumpPage" @keyup.enter="handleRecordsJumpPage" />
-                                <span style="color: #666; font-size: 14px;">页</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -417,81 +195,51 @@
                         </el-form>
                     </div>
                 </div>
+
+                <!-- 分类管理 (iframe) -->
+                <div v-if="currentMenu === 'categories'" style="height: 100%;">
+                    <iframe src="categories.html" frameborder="0" class="module-iframe"></iframe>
+                </div>
+
+                <!-- 知识库管理 (iframe) -->
+                <div v-if="currentMenu === 'knowledge'" style="height: 100%;">
+                    <iframe src="knowledge.html" frameborder="0" class="module-iframe"></iframe>
+                </div>
+
+                <!-- 对话记录 (iframe) -->
+                <div v-if="currentMenu === 'records'" style="height: 100%;">
+                    <iframe src="records.html" frameborder="0" class="module-iframe"></iframe>
+                </div>
             </div>
         </div>
-
-        <!-- 新增/编辑知识对话框 -->
-        <el-dialog
-            v-model="knowledgeDialogVisible"
-            :title="editingKnowledge.id ? '编辑知识' : '新增知识'"
-            width="800px"
-        >
-            <el-form :model="editingKnowledge" label-width="100px">
-                <el-form-item label="标题" required>
-                    <el-input v-model="editingKnowledge.title" placeholder="请输入标题" />
-                </el-form-item>
-                <el-form-item label="分类">
-                    <el-select v-model="editingKnowledge.categoryId" placeholder="请选择分类" clearable style="width: 100%;">
-                        <el-option
-                            v-for="cat in categoryList"
-                            :key="cat.id"
-                            :label="cat.categoryName"
-                            :value="cat.id"
-                        />
-                    </el-select>
-                </el-form-item>
-                <el-form-item label="常见问题" required>
-                    <el-input v-model="editingKnowledge.question" placeholder="用户可能问的问题" />
-                </el-form-item>
-                <el-form-item label="关键词">
-                    <el-input v-model="editingKnowledge.keywords" placeholder="多个关键词用逗号分隔" />
-                </el-form-item>
-                <el-form-item label="答案" required>
-                    <el-input v-model="editingKnowledge.answer" type="textarea" :rows="6" placeholder="请输入标准答案" />
-                </el-form-item>
-                <el-form-item label="是否置顶">
-                    <el-switch v-model="editingKnowledge.isTop" :active-value="1" :inactive-value="0" />
-                </el-form-item>
-                <el-form-item label="状态">
-                    <el-radio-group v-model="editingKnowledge.publishStatus">
-                        <el-radio :label="0">草稿</el-radio>
-                        <el-radio :label="1">已发布</el-radio>
-                    </el-radio-group>
-                </el-form-item>
-            </el-form>
-            <template #footer>
-                <el-button @click="knowledgeDialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="saveKnowledge">确定</el-button>
-            </template>
-        </el-dialog>
 
         <!-- 知识详情对话框 -->
         <el-dialog
             v-model="detailDialogVisible"
             :title="selectedKnowledge.title"
             width="800px"
+            class="knowledge-detail-dialog"
         >
             <el-descriptions :column="2" border>
                 <el-descriptions-item label="编号">
-                    {{ selectedKnowledge.id }}
+                    {{ selectedKnowledge.id || '-' }}
                 </el-descriptions-item>
                 <el-descriptions-item label="浏览次数">
                     <el-tag type="danger" effect="plain">{{ selectedKnowledge.viewCount }}</el-tag>
                 </el-descriptions-item>
-                <el-descriptions-item label="是否置顶">
+                <el-descriptions-item label="置顶">
                     <el-tag :type="selectedKnowledge.isTop === 1 ? 'danger' : 'info'" effect="plain">
-                        {{ selectedKnowledge.isTop === 1 ? '🔥 置顶' : '-' }}
+                        {{ selectedKnowledge.isTop === 1 ? '是' : '否' }}
                     </el-tag>
                 </el-descriptions-item>
                 <el-descriptions-item label="问题" :span="2">
                     <span style="font-size: 16px; color: #409eff;">{{ selectedKnowledge.question }}</span>
                 </el-descriptions-item>
                 <el-descriptions-item label="分类">
-                    <el-tag v-if="selectedKnowledge.categoryId && categoryMap[selectedKnowledge.categoryId]" type="info">
+                    <el-tag v-if="selectedKnowledge.categoryId && categoryMap[selectedKnowledge.categoryId]" type="info" size="small">
                         {{ categoryMap[selectedKnowledge.categoryId] }}
                     </el-tag>
-                    <span v-else-if="selectedKnowledge.categoryId">未知分类</span>
-                    <span v-else>-</span>
+                    <span v-else style="color: #999; font-size: 12px;">-</span>
                 </el-descriptions-item>
                 <el-descriptions-item label="关键词" :span="2">
                     {{ selectedKnowledge.keywords || '-' }}
@@ -503,103 +251,16 @@
                 </el-descriptions-item>
             </el-descriptions>
         </el-dialog>
-
-        <!-- 对话记录详情对话框 -->
-        <el-dialog
-            v-model="recordDetailDialogVisible"
-            title="对话记录详情"
-            width="900px"
-        >
-            <!-- 基本信息 -->
-            <el-descriptions :column="2" border style="margin-bottom: 20px;">
-                <el-descriptions-item label="会话 ID" :span="2">
-                    {{ selectedRecord.sessionId }}
-                </el-descriptions-item>
-                <el-descriptions-item label="用户信息" :span="2">
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <div>
-                            <span style="color: #666;">昵称：</span>
-                            <span v-if="selectedRecord.userName" style="font-weight: 500;">{{ selectedRecord.userName }}</span>
-                            <span v-else style="color: #999;">匿名用户</span>
-                        </div>
-                        <div v-if="selectedRecord.userPhone">
-                            <span style="color: #666;">电话：</span>
-                            <span>{{ selectedRecord.userPhone }}</span>
-                        </div>
-                        <div v-if="selectedRecord.userId">
-                            <span style="color: #666;">用户 ID：</span>
-                            <span>{{ selectedRecord.userId }}</span>
-                        </div>
-                    </div>
-                </el-descriptions-item>
-                <el-descriptions-item label="设备类型">
-                    <el-tag :type="selectedRecord.deviceType === 'web' ? '' : 'warning'">
-                        {{ selectedRecord.deviceType === 'web' ? '电脑' : '手机' }}
-                    </el-tag>
-                </el-descriptions-item>
-                <el-descriptions-item label="IP 地址" v-if="selectedRecord.ipAddress">
-                    {{ selectedRecord.ipAddress }}
-                </el-descriptions-item>
-            </el-descriptions>
-            
-            <!-- 对话历史 -->
-            <div style="border: 1px solid #e4e7ed; border-radius: 4px; padding: 20px; background: #f5f7fa;">
-                <div style="font-size: 16px; font-weight: 500; margin-bottom: 16px; color: #303133;">
-                    💬 对话历史（共 {{ selectedRecord.sessionHistory?.length || 0 }} 轮）
-                </div>
-                
-                <div v-for="(item, index) in selectedRecord.sessionHistory" :key="index" 
-                     style="margin-bottom: 16px;">
-                    <!-- 用户问题 -->
-                    <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
-                        <div style="max-width: 70%; background: #1890ff; color: white; padding: 12px 16px; border-radius: 8px 8px 0 8px;">
-                            <div style="font-size: 12px; opacity: 0.8; margin-bottom: 4px;">👤 用户</div>
-                            <div style="line-height: 1.6;">{{ item.question }}</div>
-                            <div style="font-size: 11px; opacity: 0.7; margin-top: 8px; text-align: right;">
-                                {{ formatTime(item.createdTime) }}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- AI 回答 -->
-                    <div style="display: flex; justify-content: flex-start; margin-bottom: 12px;">
-                        <div style="max-width: 70%; background: white; color: #303133; padding: 12px 16px; border-radius: 8px 8px 8px 0; border: 1px solid #e4e7ed;">
-                            <div style="font-size: 12px; color: #909399; margin-bottom: 4px;">🤖 AI 助手</div>
-                            <div style="line-height: 1.6;">{{ item.answer }}</div>
-                            <div style="display: flex; gap: 12px; margin-top: 8px; font-size: 12px;">
-                                <span v-if="item.matchedKnowledgeId" style="color: #67c23a;">
-                                    ✓ 已匹配
-                                </span>
-                                <span v-else style="color: #909399;">
-                                    ✗ 未匹配
-                                </span>
-                                <span v-if="item.matchScore" style="color: #67c23a;">
-                                    匹配度：{{ (item.matchScore * 100).toFixed(0) }}%
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div v-if="!selectedRecord.sessionHistory || selectedRecord.sessionHistory.length === 0" 
-                     style="text-align: center; padding: 40px; color: #909399;">
-                    暂无对话记录
-                </div>
-            </div>
-        </el-dialog>
     </div>
 
-    <!-- 引入 Vue 和 Element Plus -->
+    <!-- JavaScript 文件（按依赖顺序加载） -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/element-plus"></script>
     <script src="https://unpkg.com/@element-plus/icons-vue"></script>
     <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.min.js"></script>
     
-    <!-- 引入工具函数和业务模块 -->
-    <script src="js/utils.js?v=20260326_7"></script>
-    <script src="js/dashboard.js?v=20260326_7"></script>
-    <script src="js/knowledge.js?v=20260326_7"></script>
-    <script src="js/records.js?v=20260326_7"></script>
-    <script src="js/admin.js?v=20260326_7"></script>
+    <script src="js/utils.js"></script>     <!-- 工具函数库 -->
+    <script src="js/api.js"></script>       <!-- API 接口封装 -->
+    <script src="js/admin.js"></script>     <!-- 主应用入口 -->
 </body>
 </html>

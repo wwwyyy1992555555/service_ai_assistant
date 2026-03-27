@@ -1,0 +1,178 @@
+/* ===== 数据看板模块样式 ===== */
+
+/* 统计卡片 */
+.dashboard-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--theme-color) 0%, var(--theme-gradient-end) 100%);
+}
+
+.stat-title {
+    color: rgba(0,0,0,0.65);
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.stat-value {
+    color: #262626;
+    font-size: 32px;
+    font-weight: 700;
+    margin: 12px 0;
+}
+
+.stat-footer {
+    color: rgba(0,0,0,0.45);
+    font-size: 12px;
+}
+
+/* 热门问题表格特有样式 */
+.hot-questions-table .el-table {
+    font-size: 14px;
+}
+
+.hot-questions-table .el-table th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    padding: 14px 0;
+    font-size: 14px;
+}
+
+.hot-questions-table .el-table__row:hover {
+    background-color: #f5f7fa;
+    transform: translateX(4px);
+    transition: all 0.2s ease;
+}
+
+.hot-questions-table .el-table__cell {
+    padding: 12px 0;
+}
+
+/* 排名样式优化 */
+.hot-questions-table .ranking-cell {
+    font-weight: bold;
+    font-size: 16px;
+    color: #909399;
+}
+
+.hot-questions-table .ranking-cell.top-3 {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* 问题样式优化 */
+.hot-questions-table .question-cell {
+    color: #409eff;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.hot-questions-table .question-cell:hover {
+    color: #67c23a;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* 浏览次数样式优化 */
+.hot-questions-table .view-count-cell {
+    font-weight: bold;
+    color: #f56c6c;
+    font-size: 15px;
+}
+
+/* 置顶标签优化 */
+.hot-questions-table .is-top-cell .el-tag {
+    padding: 4px 12px;
+    font-size: 12px;
+    border-radius: 12px;
+}
+
+/* 分类标签优化 */
+.hot-questions-table .category-cell .el-tag {
+    padding: 4px 10px;
+    font-size: 12px;
+    border-radius: 8px;
+    background: #ecf5ff;
+    color: #409eff;
+    border: 1px solid #d9ecff;
+}
+
+/* ===== 移动端适配 ===== */
+@media screen and (max-width: 768px) {
+    /* 统计卡片改为双列布局 */
+    .dashboard-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 15px;
+    }
+    
+    .stat-card {
+        padding: 15px;
+    }
+    
+    .stat-title {
+        font-size: 12px;
+    }
+    
+    .stat-value {
+        font-size: 24px;
+    }
+    
+    .stat-footer {
+        font-size: 11px;
+    }
+    
+    /* 表格字体调小 */
+    .hot-questions-table .el-table {
+        font-size: 12px;
+    }
+    
+    .hot-questions-table .el-table th {
+        font-size: 12px;
+        padding: 10px 0;
+    }
+    
+    .hot-questions-table .el-table__cell {
+        padding: 8px 0;
+    }
+    
+    /* 排名字体调小 */
+    .hot-questions-table .ranking-cell {
+        font-size: 14px;
+    }
+    
+    /* 问题单元格允许换行 */
+    .hot-questions-table .question-cell {
+        white-space: normal;
+        line-height: 1.4;
+    }
+}

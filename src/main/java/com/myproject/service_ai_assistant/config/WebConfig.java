@@ -22,11 +22,13 @@ public class WebConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // 映射静态资源 (支持两种路径)
         registry.addResourceHandler("/static/**")
-                .addResourceLocations("classpath:/static/");
+                .addResourceLocations("classpath:/static/")
+                .setCachePeriod(0); // 开发环境：禁用缓存，每次请求最新资源
         
         // 根路径直接访问静态资源
         registry.addResourceHandler("/**")
-                .addResourceLocations("classpath:/static/");
+                .addResourceLocations("classpath:/static/")
+                .setCachePeriod(0); // 开发环境：禁用缓存
     }
 
     @Override

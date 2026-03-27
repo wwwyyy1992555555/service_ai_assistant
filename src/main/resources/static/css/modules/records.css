@@ -1,0 +1,220 @@
+/* ===== 对话记录模块样式 ===== */
+
+/* 解决 iframe/模块页表格正文被压扁的问题 */
+.module-page .app-container {
+    display: block;
+    min-height: 100vh;
+}
+
+.module-page .table-container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 40px); /* 适配 body padding:20px */
+    overflow: hidden; /* 由表格 body 自己滚动 */
+}
+
+.module-page .el-table {
+    flex: 1;
+    min-height: 0;
+}
+
+.module-page .el-table__inner-wrapper {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.module-page .el-table__body-wrapper {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+.module-page .el-table__body-wrapper .el-scrollbar__wrap {
+    overflow: auto;
+}
+
+/* 对话记录标签 */
+.status-tag {
+    margin-right: 4px;
+}
+
+/* 用户信息展示 */
+.user-info-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.user-info-cell .user-name {
+    font-weight: 500;
+    color: #262626;
+}
+
+.user-info-cell .user-phone {
+    font-size: 12px;
+    color: #666;
+}
+
+/* 满意度评分 */
+.satisfaction-rate {
+    font-size: 14px;
+}
+
+/* 匹配度标签 */
+.match-score {
+    font-size: 12px;
+    color: #666;
+}
+
+/* 会话详情对话框 */
+.record-detail-dialog .el-descriptions__label {
+    font-weight: 600;
+    width: 100px;
+}
+
+/* 时间格式化显示 */
+.time-cell {
+    color: #606266;
+    font-size: 13px;
+}
+
+/* 表格列样式 */
+.records-table .el-table {
+    font-size: 14px;
+    border-radius: 0;
+}
+
+.records-table .el-table th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    padding: 14px 0;
+    font-size: 14px;
+    border: none;
+}
+
+.records-table .el-table__cell {
+    padding: 16px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+/* 斑马纹优化 */
+.records-table .el-table--striped .el-table__body tr.el-table__row--striped td {
+    background: #fafafa;
+}
+
+/* 悬停效果 */
+.records-table .el-table__body tr:hover > td {
+    background: #f5f7fa !important;
+}
+
+/* 问题单元格 */
+.records-table .question-cell {
+    color: #409eff;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.records-table .question-cell:hover {
+    color: #67c23a;
+    cursor: pointer;
+}
+
+/* 回答单元格 */
+.records-table .answer-cell {
+    color: #606266;
+    line-height: 1.8;
+    max-height: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
+/* 满意度单元格 */
+.records-table .satisfaction-cell {
+    padding: 8px 0;
+}
+
+/* 设备标签 */
+.records-table .device-cell .el-tag {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 12px;
+    border: none;
+}
+
+/* 解决状态标签 */
+.records-table .solved-cell .el-tag {
+    padding: 4px 12px;
+    font-size: 12px;
+    border-radius: 12px;
+}
+
+/* 搜索框 */
+.records-search-input {
+    width: 400px;
+}
+
+/* 分页器 */
+.records-pagination {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 16px;
+}
+
+/* 空状态 */
+.records-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #909399;
+}
+
+/* ===== 移动端适配 ===== */
+@media screen and (max-width: 768px) {
+    /* 表格字体调小 */
+    .records-table .el-table {
+        font-size: 12px;
+    }
+    
+    .records-table .el-table th {
+        font-size: 12px;
+        padding: 12px 0;
+    }
+    
+    .records-table .el-table__cell {
+        padding: 12px 0;
+    }
+    
+    /* 用户信息单元格调整 */
+    .user-info-cell {
+        font-size: 11px;
+    }
+    
+    /* 问题单元格允许换行 */
+    .records-table .question-cell {
+        white-space: normal;
+        line-height: 1.4;
+    }
+    
+    /* 回答单元格移动端显示 2 行 */
+    .records-table .answer-cell {
+        -webkit-line-clamp: 2;
+        max-height: 60px;
+    }
+    
+    /* 工具栏调整 */
+    .table-header .toolbar {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .records-search-input {
+        width: 100%;
+    }
+}

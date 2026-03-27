@@ -15,7 +15,7 @@ import java.util.Map;
  * 咨询反馈控制器
  */
 @RestController
-@RequestMapping("/consult/feedback")
+@RequestMapping("/api/consult/feedback")
 @Tag(name = "咨询反馈管理")
 @CrossOrigin(origins = "*")
 public class FeedbackController {

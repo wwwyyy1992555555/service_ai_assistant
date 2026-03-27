@@ -21,13 +21,15 @@ public interface ConsultationRecordService extends IService<ConsultationRecord> 
     Page<ConsultationRecord> queryRecords(Long tenantId, Page<ConsultationRecord> page);
 
     /**
-     * 按问题搜索对话记录
+     * 按问题搜索对话记录（支持用户信息）
      * @param tenantId 租户 ID
      * @param keyword 关键词
+     * @param userName 用户姓名（可选）
+     * @param userPhone 用户手机号（可选）
      * @param page 分页参数
      * @return 分页结果
      */
-    Page<ConsultationRecord> searchRecords(Long tenantId, String keyword, Page<ConsultationRecord> page);
+    Page<ConsultationRecord> searchRecords(Long tenantId, String keyword, String userName, String userPhone, Page<ConsultationRecord> page);
 
     /**
      * 统计今日咨询量
