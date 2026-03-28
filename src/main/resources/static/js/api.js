@@ -32,14 +32,12 @@ async function request(url, options = {}) {
         const data = await response.json();
 
         if (data.code !== 200 && data.code !== 0) {
-            console.error('【API 错误】', data.message || '请求失败');
             throw new Error(data.message || '请求失败');
         }
 
         // 直接返回完整的响应数据，让调用方自己处理
         return data;
     } catch (error) {
-        console.error('【请求异常】', error);
         throw error;
     }
 }

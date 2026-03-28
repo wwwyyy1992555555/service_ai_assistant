@@ -1,0 +1,38 @@
+/* ===== 意见反馈模块样式 ===== */
+
+/* 解决 iframe/模块页表格正文被压扁的问题 */
+.module-page .app-container {
+    display: block;
+    min-height: 100vh;
+}
+
+.module-page .table-container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 40px);
+    overflow: hidden;
+}
+
+.module-page .el-table {
+    flex: 1;
+    min-height: 0;
+}
+
+.module-page .el-table__inner-wrapper {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.module-page .el-table__body-wrapper {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+.module-page .el-table__body-wrapper .el-scrollbar__wrap {
+    overflow: auto;
+}
+
+

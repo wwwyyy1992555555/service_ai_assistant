@@ -71,15 +71,12 @@ if (typeof Vue === 'undefined') {
                     filterIsTop.value ?? null,
                     categoryIdParam
                 );
-                console.log('【知识库】loadKnowledgeList 返回:', result);
                 knowledgeList.value = result.records || [];
                 page.total = result.total || 0;
-                console.log('【知识库】数据绑定:', knowledgeList.value.length, '条，总数:', page.total);
                 if ((result.total ?? 0) > 0 && knowledgeList.value.length === 0) {
                     ElementPlus.ElMessage.warning('后端返回 total>0 但 records 为空，请检查分页字段映射（records/total/current/size）');
                 }
             } catch (error) {
-                console.error('加载知识列表失败', error);
                 ElementPlus.ElMessage.error(error?.message ? `加载失败：${error.message}` : '加载失败，请检查后端服务是否正常');
                 knowledgeList.value = [];
                 page.total = 0;
@@ -91,9 +88,7 @@ if (typeof Vue === 'undefined') {
         // 加载分类
         const loadCategories = async () => {
             try {
-                console.log('【分类加载】开始调用后端 API...');
                 const categories = await window.loadCategories();
-                console.log('【分类加载】后端返回:', categories);
                 categoryList.value = categories || [];
                 // 构建分类字典，用于显示
                 const map = {};
@@ -101,9 +96,7 @@ if (typeof Vue === 'undefined') {
                     map[cat.id] = cat.categoryName;
                 });
                 categoryMap.value = map;
-                console.log('【分类加载】分类字典:', categoryMap.value);
             } catch (error) {
-                console.error('【分类加载】失败:', error);
                 categoryList.value = [];
                 categoryMap.value = {};
             }

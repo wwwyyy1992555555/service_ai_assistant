@@ -52,6 +52,17 @@ public class FeedbackController {
         return Result.success(feedbackService.getPendingFeedbacks(limit));
     }
 
+    @GetMapping("/list")
+    @Operation(summary = "获取所有反馈列表", description = "获取所有反馈记录，用于后台管理")
+    public Result<Map<String, Object>> getAllFeedbacks(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Integer satisfaction,
+            @RequestParam(required = false) String keyword) {
+        return Result.success(feedbackService.getAllFeedbacks(page, size, status, satisfaction, keyword));
+    }
+
     @PostMapping("/process/{id}")
     @Operation(summary = "处理反馈", description = "管理员处理用户反馈，填写处理备注并标记为已处理")
     public Result<Void> processFeedback(
@@ -60,6 +71,24 @@ public class FeedbackController {
             @RequestParam(required = false) String processor) {
         
         feedbackService.processFeedback(id, remark, processor);
+        return Result.success();
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除反馈", description = "删除指定的反馈记录")
+    public Result<Void> deleteFeedback(@PathVariable Long id) {
+        feedbackService.removeById(id);
+        return Result.success();
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "更新反馈", description = "更新反馈记录信息")
+    public Result<Void> updateFeedback(
+            @PathVariable Long id,
+            @RequestBody ConsultationFeedback feedback) {
+        
+        feedback.setId(id);
+        feedbackService.updateById(feedback);
         return Result.success();
     }
 }

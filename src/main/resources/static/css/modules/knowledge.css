@@ -74,15 +74,17 @@
 }
 
 .knowledge-table .el-table th {
-    background: #fafafa;
-    color: #262626;
+    background: #fff;
+    color: #606266;
     font-weight: 600;
     padding: 14px 0;
     font-size: 14px;
+    border: none;
 }
 
 .knowledge-table .el-table__cell {
-    padding: 12px 0;
+    padding: 16px 0;
+    border-bottom: 1px solid #f0f0f0;
 }
 
 /* 标题单元格 */
@@ -127,42 +129,6 @@
     gap: 20px;
 }
 
-/* ===== 移动端适配 ===== */
-@media screen and (max-width: 768px) {
-    /* 表格字体调小 */
-    .knowledge-table .el-table {
-        font-size: 12px;
-    }
-    
-    .knowledge-table .el-table th {
-        font-size: 12px;
-        padding: 10px 0;
-    }
-    
-    .knowledge-table .el-table__cell {
-        padding: 8px 0;
-    }
-    
-    /* 标题单元格允许换行 */
-    .knowledge-table .title-cell {
-        white-space: normal;
-        line-height: 1.4;
-    }
-    
-    /* 工具栏调整 */
-    .table-header .toolbar {
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-    
-    .knowledge-search-input {
-        width: 100%;
-    }
-    
-    .filter-select {
-        width: 100px;
-    }
-}
 
 /* 知识详情对话框 - 优化标签列排版 */
 .knowledge-detail-dialog .el-descriptions__label {

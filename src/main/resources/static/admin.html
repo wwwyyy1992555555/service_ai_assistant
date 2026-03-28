@@ -61,6 +61,10 @@
                 <span class="menu-icon">💬</span>
                 <span>对话记录</span>
             </div>
+            <div class="menu-item" :class="{ active: currentMenu === 'feedback' }" @click="switchMenu('feedback')">
+                <span class="menu-icon">📝</span>
+                <span>意见反馈</span>
+            </div>
             <div class="menu-item" :class="{ active: currentMenu === 'settings' }" @click="switchMenu('settings')">
                 <span class="menu-icon">⚙️</span>
                 <span>系统设置</span>
@@ -209,6 +213,11 @@
                 <!-- 对话记录 (iframe) -->
                 <div v-if="currentMenu === 'records'" style="height: 100%;">
                     <iframe src="records.html" frameborder="0" class="module-iframe"></iframe>
+                </div>
+
+                <!-- 意见反馈 (iframe) -->
+                <div v-if="currentMenu === 'feedback'" style="height: 100%;">
+                    <iframe src="feedback.html" frameborder="0" class="module-iframe"></iframe>
                 </div>
             </div>
         </div>

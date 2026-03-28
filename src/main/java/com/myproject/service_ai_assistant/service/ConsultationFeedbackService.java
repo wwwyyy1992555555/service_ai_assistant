@@ -27,6 +27,11 @@ public interface ConsultationFeedbackService extends IService<ConsultationFeedba
     List<ConsultationFeedback> getPendingFeedbacks(Integer limit);
 
     /**
+     * 获取所有反馈列表（分页）
+     */
+    Map<String, Object> getAllFeedbacks(Integer page, Integer size, Integer status, Integer satisfaction, String keyword);
+
+    /**
      * 处理反馈
      */
     void processFeedback(Long id, String remark, String processor);

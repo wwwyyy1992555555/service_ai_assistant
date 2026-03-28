@@ -31,3 +31,14 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Logs ###
+logs/
+*.log
+
+### Configuration Files ###
+**/dev.yaml
+**/dev.yml
+**/application-dev.yml
+**/application-prod.yml
+**/application-test.yml

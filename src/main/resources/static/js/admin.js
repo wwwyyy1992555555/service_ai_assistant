@@ -100,9 +100,7 @@ const app = createApp({
             try {
                 const data = await window.loadHotQuestions(10);
                 hotQuestions.value = Array.isArray(data) ? data : [];
-                console.log('【热门问题】加载成功:', hotQuestions.value.length, '条');
             } catch (error) {
-                console.error('【热门问题】加载失败:', error);
                 hotQuestions.value = [];
             }
         };
@@ -168,7 +166,6 @@ const app = createApp({
                     ElementPlus.ElMessage.error('保存失败');
                 }
             } catch (error) {
-                console.error('保存设置失败', error);
                 ElementPlus.ElMessage.error('保存失败：' + (error.message || '未知错误'));
             }
         };
@@ -263,7 +260,7 @@ const app = createApp({
                 knowledgeList.value = result.records || [];
                 knowledgePage.total = result.total || 0;
             } catch (error) {
-                console.error('加载知识列表失败', error);
+                // 静默失败
             }
         };
         
@@ -278,7 +275,6 @@ const app = createApp({
                 });
                 categoryMap.value = map;
             } catch (error) {
-                console.error('加载分类失败', error);
                 categoryList.value = [];
                 categoryMap.value = {};
             }
@@ -417,7 +413,7 @@ const app = createApp({
                 recordsList.value = result.records || [];
                 recordsPage.total = result.total || 0;
             } catch (error) {
-                console.error('加载记录失败', error);
+                // 静默失败
             } finally {
                 loading.value = false;
             }

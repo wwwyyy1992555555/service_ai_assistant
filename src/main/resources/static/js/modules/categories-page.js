@@ -110,7 +110,6 @@ if (typeof Vue === 'undefined') {
                 localStorage.setItem('category_update', Date.now().toString());
                 localStorage.removeItem('category_update');
             } catch (error) {
-                console.error('保存失败', error);
                 ElementPlus.ElMessage.error('保存失败');
             }
         };
