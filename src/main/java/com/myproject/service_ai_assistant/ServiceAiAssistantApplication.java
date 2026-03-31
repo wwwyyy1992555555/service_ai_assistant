@@ -4,6 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
@@ -13,7 +15,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @MapperScan("com.myproject.service_ai_assistant.mapper")
 @EnableScheduling  // 启用定时任务支持
-public class ServiceAiAssistantApplication {
+public class ServiceAiAssistantApplication extends SpringBootServletInitializer {
 
     public static void main(String[] args) {
         SpringApplication.run(ServiceAiAssistantApplication.class, args);
@@ -24,6 +26,11 @@ public class ServiceAiAssistantApplication {
         log.info("聊天页面：http://localhost:8080/chat.html");
         log.info("后台登陆：http://localhost:8080/login.html");
         log.info("====================================");
+    }
+
+    @Override
+    protected SpringApplicationBuilder configure(SpringApplicationBuilder builder) {
+        return builder.sources(ServiceAiAssistantApplication.class);
     }
 
 }

@@ -138,6 +138,9 @@
         </dependencies>
     </dependencyManagement>
 
+    <!-- 打包为 WAR 包，部署到 Tomcat -->
+    <packaging>war</packaging>
+
     <build>
         <plugins>
             <plugin>
@@ -159,14 +162,15 @@
                     <skip>true</skip>
                     <jvmArguments>-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8</jvmArguments>
                 </configuration>
-                <executions>
-                    <execution>
-                        <id>repackage</id>
-                        <goals>
-                            <goal>repackage</goal>
-                        </goals>
-                    </execution>
-                </executions>
+            </plugin>
+            <!-- WAR 打包插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>3.3.2</version>
+                <configuration>
+                    <failOnMissingWebXml>false</failOnMissingWebXml>
+                </configuration>
             </plugin>
         </plugins>
     </build>
