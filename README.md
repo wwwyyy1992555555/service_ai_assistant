@@ -53,7 +53,7 @@ mvn spring-boot:run
 
 - **管理后台**: http://localhost:8080/static/admin.html
 - **用户聊天界面**: http://localhost:8080/static/chat.html
-- **API 文档**: http://localhost:8080/api/doc.html
+- **API 文档**: API 文档地址：http://localhost:8080/swagger-ui.html"
 
 ### 5. 测试接口
 
