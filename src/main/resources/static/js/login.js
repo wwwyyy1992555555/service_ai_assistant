@@ -61,26 +61,30 @@ const app = createApp({
                     loading.value = true;
 
                     try {
-                        // 调用登录 API
-                        const response = await fetch('/api/auth/login', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                username: loginForm.username,
-                                password: loginForm.password,
-                                tenantId: 1 // 默认租户 ID
-                            })
-                        });
-
-                        const result = await response.json();
+                        // 调用封装好的登录 API（已优化返回完整租户配置）
+                        const result = await window.login(
+                            loginForm.username,
+                            loginForm.password,
+                            1, // 默认租户 ID
+                            'tenant' // 租户登录
+                        );
 
                         if (result.code === 200 && result.data) {
-                            // 登录成功，保存用户信息
                             const userData = result.data;
+                            
+                            // 保存用户信息和 Token
                             localStorage.setItem('user', JSON.stringify(userData));
                             localStorage.setItem('token', userData.token);
+                            
+                            // 【新增】如果返回了租户配置信息，也保存起来
+                            if (userData.tenantThemeColor || userData.tenantLogoUrl || userData.tenantWelcomeMessage) {
+                                const tenantConfig = {
+                                    themeColor: userData.tenantThemeColor || '#1890ff',
+                                    logoUrl: userData.tenantLogoUrl || '',
+                                    welcomeMessage: userData.tenantWelcomeMessage || '您好，请问有什么可以帮您？'
+                                };
+                                localStorage.setItem('tenantConfig', JSON.stringify(tenantConfig));
+                            }
 
                             ElementPlus.ElMessage.success('登录成功！');
 
@@ -93,7 +97,7 @@ const app = createApp({
                         }
                     } catch (error) {
                         console.error('登录失败:', error);
-                        ElementPlus.ElMessage.error('网络错误，请稍后重试');
+                        ElementPlus.ElMessage.error(error.message || '网络错误，请稍后重试');
                     } finally {
                         loading.value = false;
                     }

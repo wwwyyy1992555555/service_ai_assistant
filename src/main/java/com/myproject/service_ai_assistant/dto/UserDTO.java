@@ -52,4 +52,29 @@ public class UserDTO {
      * 密码（仅用于传输，不存储）
      */
     private transient String password;
+
+    /**
+     * 租户 ID
+     */
+    private Long tenantId;
+
+    /**
+     * 租户名称
+     */
+    private String tenantName;
+
+    /**
+     * 租户 Logo URL
+     */
+    private String tenantLogoUrl;
+
+    /**
+     * 租户主题色
+     */
+    private String tenantThemeColor;
+
+    /**
+     * 租户欢迎语
+     */
+    private String tenantWelcomeMessage;
 }

@@ -20,20 +20,24 @@
         <result column="deleted" property="deleted"/>
     </resultMap>
 
-    <!-- 根据用户名查询 -->
+    <!-- 根据用户名查询（tenantId 为 null 时查询所有租户，用于超级管理员登录） -->
     <select id="selectByUsername" resultMap="BaseResultMap">
-        SELECT * FROM employee_info
-        WHERE tenant_id = #{tenantId}
-          AND username = #{username}
+        SELECT * FROM user_info
+        WHERE username = #{username}
           AND deleted = 0
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
     </select>
 
-    <!-- 根据手机号查询 -->
+    <!-- 根据手机号查询（tenantId 为 null 时查询所有租户） -->
     <select id="selectByPhone" resultMap="BaseResultMap">
-        SELECT * FROM employee_info
-        WHERE tenant_id = #{tenantId}
-          AND phone = #{phone}
+        SELECT * FROM user_info
+        WHERE phone = #{phone}
           AND deleted = 0
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
     </select>
 
 </mapper>

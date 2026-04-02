@@ -31,6 +31,22 @@ async function request(url, options = {}) {
         const response = await fetch(url, config);
         const data = await response.json();
 
+        // 401 未授权，跳转登录页
+        if (response.status === 401 || data.code === 401) {
+            // 清除本地存储的 token 和用户信息
+            localStorage.removeItem('token');
+            localStorage.removeItem('userInfo');
+            
+            // 显示提示信息
+            alert('登录已过期，请重新登录');
+            
+            // 跳转到登录页
+            window.location.href = '/login.html';
+            
+            // 抛出错误，阻止后续处理
+            throw new Error('未授权访问');
+        }
+
         if (data.code !== 200 && data.code !== 0) {
             throw new Error(data.message || '请求失败');
         }
@@ -294,21 +310,41 @@ async function deleteSession(sessionId) {
     return true;
 }
 
+// ==================== 认证接口 ====================
+
+/**
+ * 用户登录
+ * @param {string} username - 用户名
+ * @param {string} password - 密码
+ * @param {number} tenantId - 租户 ID（超级管理员登录时传 0）
+ * @param {string} loginType - 登录类型：tenant-租户登录/super-超级管理员登录
+ * @returns {Promise<Object>} - 登录结果（包含 token 和完整的租户配置信息）
+ */
+async function login(username, password, tenantId, loginType = 'tenant') {
+    const result = await post(`${API_BASE}/auth/login`, {
+        username,
+        password,
+        tenantId,
+        loginType
+    });
+    return result;
+}
+
 // ==================== 系统设置接口 ====================
 
 /**
- * 获取系统配置
+ * 获取租户配置
  */
-async function loadSystemConfig(tenantId) {
+async function loadTenantConfig(tenantId) {
     // 后端接口是 /api/settings/get
     const result = await get(`${API_BASE}/settings/get`, { tenantId });
     return result.data || {};
 }
 
 /**
- * 保存系统配置
+ * 保存租户配置
  */
-async function saveSystemConfig(tenantId, config) {
+async function saveTenantConfig(tenantId, config) {
     // tenantId 需要作为 URL 参数传递，而不是放在 body 中
     const result = await post(`${API_BASE}/settings/save?tenantId=${tenantId}`, config);
     return result.data;
@@ -330,5 +366,5 @@ window.loadRecordsList = loadRecordsList;
 window.searchRecords = searchRecords;
 window.getSessionDetail = getSessionDetail;
 window.deleteSession = deleteSession;
-window.loadSystemConfig = loadSystemConfig;
-window.saveSystemConfig = saveSystemConfig;
+window.loadSystemConfig = loadTenantConfig;
+window.saveSystemConfig = saveTenantConfig;

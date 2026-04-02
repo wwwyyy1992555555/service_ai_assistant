@@ -3,10 +3,15 @@ package com.myproject.service_ai_assistant.dto;
 import lombok.Data;
 
 /**
- * 系统配置 DTO
+ * 租户配置 DTO
  */
 @Data
-public class SystemConfigDTO {
+public class TenantConfigDTO {
+
+    /**
+     * 企业 Logo
+     */
+    private String logoUrl;
 
     /**
      * 企业名称
@@ -26,12 +31,12 @@ public class SystemConfigDTO {
     /**
      * 客服邮箱
      */
-    private String email;
+    private String serviceEmail;
 
     /**
      * 客服电话
      */
-    private String phone;
+    private String servicePhone;
 
     /**
      * 工作时间描述

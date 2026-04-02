@@ -165,12 +165,15 @@
     <script src="https://unpkg.com/@element-plus/icons-vue"></script>
     <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.min.js"></script>
 
+    <!-- 引入聊天页面业务逻辑 -->
+    <script src="js/chat.js?v=20260402"></script>
+
     <script>
         console.log('=== 开始加载 Vue ===');
         console.log('Vue 对象:', typeof Vue);
         
         const { createApp, ref, reactive, nextTick, onMounted } = Vue;
-        const API_BASE_URL = 'http://localhost:8080/api';
+        // API_BASE_URL 已在 chat.js 中定义，直接使用
 
         console.log('=== 创建 Vue 应用 ===');
 
@@ -237,19 +240,26 @@
                 const sessionId = ref('session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
                 const messagesContainer = ref(null);
 
+                // 使用 chat.js 中定义的全局变量
                 const config = reactive({
-                    tenantId: 1,
+                    tenantId: window.CURRENT_TENANT_ID || 1, // 使用动态租户 ID
                     companyName: '',
                     serviceTime: '',
                     welcomeMessage: '',
                     themeColor: '#1890ff'
                 });
 
-                // 加载系统配置
-                async function loadSystemConfig() {
+                // 加载租户配置
+                async function loadTenantConfig() {
+                    console.log('开始加载租户配置，tenantId:', config.tenantId);
+                    console.log('API_BASE_URL:', window.API_BASE_URL);
                     try {
-                        const response = await fetch(`${API_BASE_URL}/settings/get?tenantId=${config.tenantId}`);
+                        const url = `${window.API_BASE_URL}/settings/get?tenantId=${config.tenantId}`;
+                        console.log('请求 URL:', url);
+                        const response = await fetch(url);
+                        console.log('响应状态:', response.status);
                         const result = await response.json();
+                        console.log('响应结果:', result);
                         
                         if (result.code === 200 && result.data) {
                             config.companyName = result.data.companyName || 'XX 市政务服务中心';
@@ -348,7 +358,7 @@
                             body: JSON.stringify({
                                 text: text,
                                 sessionId: sessionId.value,
-                                tenantId: 1
+                                tenantId: CURRENT_TENANT_ID // 使用动态租户 ID
                             })
                         });
                         
@@ -854,7 +864,7 @@
                 }
 
                 onMounted(() => {
-                    loadSystemConfig();
+                    loadTenantConfig();
                     loadHotQuestions();
                 });
 

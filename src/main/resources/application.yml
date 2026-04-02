@@ -7,6 +7,19 @@ spring:
     name: ai-think-tank
   profiles:
     active: dev
+  # Redis 配置（Spring Boot 3.x 推荐格式）
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 
+      database: 0
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
 
 # 通用配置
 app:
@@ -24,7 +37,7 @@ app:
   jwt:
     secret: your-secret-key-here-ai-think-tank-2024
     expire-time: 86400000  # 24 小时
-    
+
   # 文件存储路径
   upload:
     path: /data/uploads/ai-think-tank
@@ -46,21 +59,6 @@ app:
     timeout: 30
     # 是否使用知识库增强（true=基于知识库回答，false=自由回答）
     knowledge-enhanced: true
-  
-  # Redis 配置（可选）
-  redis:
-    # 是否启用 Redis（true=启用，false=禁用）
-    enabled: false
-    # Redis 主机地址
-    host: localhost
-    # Redis 端口
-    port: 6379
-    # Redis 密码（如果没有密码，留空）
-    password: 
-    # 数据库索引
-    database: 0
-    # 连接超时时间（毫秒）
-    timeout: 5000
 
 # 数据清理任务配置
 data:

@@ -12,7 +12,7 @@ import com.myproject.service_ai_assistant.entity.KnowledgeItem;
 import com.myproject.service_ai_assistant.service.ConsultationRecordService;
 import com.myproject.service_ai_assistant.service.KnowledgeItemService;
 import com.myproject.service_ai_assistant.service.LlmService;
-import com.myproject.service_ai_assistant.service.SystemConfigService;
+import com.myproject.service_ai_assistant.service.TenantConfigService;
 import com.myproject.service_ai_assistant.service.UserInfoParserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -51,7 +51,7 @@ public class ConsultController {
     private UserInfoParserService userInfoParser;
     
     @Autowired
-    private SystemConfigService systemConfigService;
+    private TenantConfigService tenantConfigService;
 
     @PostMapping("/ask")
     @Operation(summary = "智能问答 - 用户提问", description = "用户提出问题，系统从知识库中匹配答案并返回")
@@ -323,13 +323,13 @@ public class ConsultController {
         String serviceTime = "工作时间：周一至周日 9:00-17:00";
         
         try {
-            var config = systemConfigService.getConfig(1L);
+            var config = tenantConfigService.getConfig(1L);
             if (config != null) {
-                servicePhone = config.getPhone() != null && !config.getPhone().isEmpty() ? config.getPhone() : "12345";
+                servicePhone = config.getServicePhone() != null && !config.getServicePhone().isEmpty() ? config.getServicePhone() : "12345";
                 serviceTime = config.getServiceTime() != null && !config.getServiceTime().isEmpty() ? config.getServiceTime() : "工作时间：周一至周日 9:00-17:00";
             }
         } catch (Exception e) {
-            log.warn("【获取系统配置失败】使用默认值，error={}", e.getMessage());
+            log.warn("【获取租户配置失败】使用默认值，error={}", e.getMessage());
         }
         
         StringBuilder sb = new StringBuilder();

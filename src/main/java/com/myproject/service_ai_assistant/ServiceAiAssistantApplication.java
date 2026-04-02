@@ -12,7 +12,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * AI 智库企业咨询平台 - 启动类
  */
 @Slf4j
-@SpringBootApplication
+@SpringBootApplication(excludeName = {
+    "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration",
+    "org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration"
+})
 @MapperScan("com.myproject.service_ai_assistant.mapper")
 @EnableScheduling  // 启用定时任务支持
 public class ServiceAiAssistantApplication extends SpringBootServletInitializer {
@@ -23,7 +26,7 @@ public class ServiceAiAssistantApplication extends SpringBootServletInitializer 
         log.info("AI 智库企业咨询平台启动成功！");
         log.info("API 文档地址：http://localhost:8080/swagger-ui.html");
         log.info("管理后台：http://localhost:8080/admin.html");
-        log.info("聊天页面：http://localhost:8080/chat.html");
+        log.info("聊天页面：http://localhost:8080/chat.html?tenantId=1");
         log.info("后台登陆：http://localhost:8080/login.html");
         log.info("====================================");
     }

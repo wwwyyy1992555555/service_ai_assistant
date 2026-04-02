@@ -21,12 +21,14 @@
 
 const token = localStorage.getItem('token');
 const userStr = localStorage.getItem('user');
+const tenantConfigStr = localStorage.getItem('tenantConfig'); // 新增：从登录时获取的配置
 
 if (!token || !userStr) {
     window.location.href = '/login.html';
 }
 
 const user = userStr ? JSON.parse(userStr) : null;
+const tenantConfig = tenantConfigStr ? JSON.parse(tenantConfigStr) : null; // 解析租户配置
 
 // 使用 window.Vue（由 HTML 中的 module 提供）
 const { createApp, ref, reactive, computed, onMounted, watch, nextTick } = window.Vue;
@@ -156,7 +158,7 @@ const app = createApp({
                     serviceTime: settings.serviceTime
                 };
                 
-                const ok = await window.saveSystemConfig(1, configData);
+                const ok = await window.saveTenantConfig(1, configData);
                 if (ok) {
                     ElementPlus.ElMessage.success('设置已保存');
                     nextTick(() => {
@@ -172,15 +174,25 @@ const app = createApp({
         
         const loadSystemSettings = async () => {
             try {
-                const config = await window.loadSystemConfig(1);
-                if (config) {
-                    Object.assign(settings, config);
-                    if (config.themeColor) {
-                        applyThemeColor(config.themeColor);
+                // 【优化】优先使用登录时返回的配置，如果没有再调用接口
+                if (tenantConfig && tenantConfig.themeColor) {
+                    Object.assign(settings, tenantConfig);
+                    applyThemeColor(tenantConfig.themeColor);
+                    console.log('✅ 使用登录时返回的租户配置');
+                } else {
+                    // 如果登录时没有返回配置，再调用接口
+                    const config = await window.loadTenantConfig(1);
+                    if (config) {
+                        Object.assign(settings, config);
+                        if (config.themeColor) {
+                            applyThemeColor(config.themeColor);
+                        }
                     }
+                    console.log('✅ 使用单独接口加载的租户配置');
                 }
             } catch (error) {
                 // 静默失败
+                console.warn('⚠️ 加载租户配置失败', error);
             }
         };
         

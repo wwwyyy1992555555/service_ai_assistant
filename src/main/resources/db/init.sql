@@ -106,29 +106,32 @@ CREATE TABLE `consultation_record` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='咨询对话记录表';
 
 -- ========================================
--- 5. 系统配置表
+-- 5. 租户配置表
 -- ========================================
-DROP TABLE IF EXISTS `system_config`;
-CREATE TABLE `system_config` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
+DROP TABLE IF EXISTS `tenant_config`;
+CREATE TABLE `tenant_config` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT 'ID',
   `tenant_id` BIGINT NOT NULL COMMENT '租户 ID',
-  `config_key` VARCHAR(100) NOT NULL COMMENT '配置键',
-  `config_value` TEXT COMMENT '配置值',
-  `config_type` VARCHAR(50) DEFAULT 'string' COMMENT '配置类型：string/text/color/number',
-  `remark` VARCHAR(500) DEFAULT NULL COMMENT '备注说明',
-  `created_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  `updated_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `deleted` TINYINT DEFAULT 0,
+  `logo_url` VARCHAR(500) DEFAULT NULL COMMENT '企业 Logo',
+  `theme_color` VARCHAR(20) DEFAULT '#1890ff' COMMENT '主题颜色',
+  `welcome_message` VARCHAR(500) DEFAULT '您好，请问有什么可以帮您？' COMMENT '欢迎语',
+  `company_name` VARCHAR(100) DEFAULT NULL COMMENT '企业名称',
+  `service_email` VARCHAR(100) DEFAULT NULL COMMENT '客服邮箱',
+  `service_phone` VARCHAR(20) DEFAULT NULL COMMENT '客服电话',
+  `service_time` VARCHAR(200) DEFAULT NULL COMMENT '工作时间',
+  `created_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除:0-未删除 1-已删除',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_tenant_key` (`tenant_id`, `config_key`),
+  UNIQUE KEY `uk_tenant_id` (`tenant_id`),
   KEY `idx_tenant_id` (`tenant_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统配置表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='租户系统配置表';
 
 -- ========================================
--- 6. 员工信息表
+-- 6. 用户信息表
 -- ========================================
-DROP TABLE IF EXISTS `employee_info`;
-CREATE TABLE `employee_info` (
+DROP TABLE IF EXISTS `user_info`;
+CREATE TABLE `user_info` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `tenant_id` BIGINT NOT NULL COMMENT '租户 ID',
   `username` VARCHAR(50) NOT NULL COMMENT '用户名（登录账号）',
@@ -148,7 +151,7 @@ CREATE TABLE `employee_info` (
   UNIQUE KEY `uk_tenant_username` (`tenant_id`, `username`),
   KEY `idx_tenant_id` (`tenant_id`),
   KEY `idx_phone` (`phone`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='员工信息表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户信息表';
 
 -- ========================================
 -- 7. 咨询反馈表
@@ -236,16 +239,24 @@ INSERT INTO `consultation_record` (`tenant_id`, `session_id`, `user_name`, `ques
 (1, 'session_019', '宋女士', '周末上班吗？', '我中心周末正常上班，服务时间为 9:00-17:00,欢迎您前来办理业务。', NULL, 0.0, 1, 5, 'mobile'),
 (1, 'session_020', '韩先生', '停车方便吗？', '市民之家地下停车场免费对外开放，车位充足。也可乘坐公共交通工具前往，地铁 1 号线市民之家站直达。', NULL, 0.0, 1, 5, 'web');
 
--- 系统配置初始化数据
-INSERT INTO `system_config` (`tenant_id`, `config_key`, `config_value`, `config_type`, `remark`) VALUES
-(1, 'company_name', 'XX 市政务服务中心', 'string', '企业名称'),
-(1, 'welcome_message', '您好，XX 市政务服务中心很高兴为您服务！', 'text', '欢迎语'),
-(1, 'theme_color', '#1890ff', 'color', '主题颜色'),
-(1, 'service_email', 'service@gov.cn', 'string', '客服邮箱'),
-(1, 'service_phone', '12345', 'string', '客服电话');
+-- 租户配置初始化数据
+INSERT INTO `tenant_config` (`tenant_id`, `logo_url`, `theme_color`, `welcome_message`, `company_name`, `service_email`, `service_phone`, `service_time`, `deleted`) VALUES
+(1, '', '#1890ff', '您好，XX 市政务服务中心很高兴为您服务！', 'XX 市政务服务中心', 'service@gov.cn', '12345', '工作时间：周一至周日 9:00-17:00', 0)
+ON DUPLICATE KEY UPDATE 
+    `logo_url` = VALUES(`logo_url`),
+    `theme_color` = VALUES(`theme_color`),
+    `welcome_message` = VALUES(`welcome_message`),
+    `company_name` = VALUES(`company_name`),
+    `service_email` = VALUES(`service_email`),
+    `service_phone` = VALUES(`service_phone`),
+    `service_time` = VALUES(`service_time`);
 
--- 员工初始化数据（密码为 123456，使用 Hutool BCrypt 加密）
--- 生成方式：BCrypt.hashpw("123456", BCrypt.gensalt())
-INSERT INTO `employee_info` (`tenant_id`, `username`, `password`, `real_name`, `phone`, `email`, `role`, `status`) VALUES
+-- 用户初始化数据（密码为 123456，使用 BCrypt 加密存储）
+-- 加密方式：BCrypt.hashpw("123456", BCrypt.gensalt())
+-- 注意：tenant_id=0 表示超级管理员，不属于任何租户，通过用户名区分不同的超级管理员
+-- 安全说明：生产环境请修改默认密码，并启用密码强度校验
+INSERT INTO `user_info` (`tenant_id`, `username`, `password`, `real_name`, `phone`, `email`, `role`, `status`) VALUES
+(0, 'admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '超级管理员', '13900139000', 'admin@platform.com', 'super_admin', 1),
+(0, 'superadmin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '平台管理员', '13900139001', 'superadmin@platform.com', 'super_admin', 1),
 (1, 'admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '管理员', '13800138000', 'admin@gov.cn', 'admin', 1),
 (1, 'operator', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '操作员', '13800138001', 'operator@gov.cn', 'operator', 1);
