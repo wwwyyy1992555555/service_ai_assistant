@@ -23,9 +23,9 @@ public class LoginRequest {
     private String password;
 
     /**
-     * 租户 ID
+     * 租户编码（登录时填写）
      */
-    private Long tenantId;
+    private String tenantCode;
 
     /**
      * 登录类型：tenant-租户登录/super-超级管理员登录

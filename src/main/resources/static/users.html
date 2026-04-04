@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理 - AI 智库</title>
+    
+    <!-- 样式文件 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/users.css">
+    
+    <!-- 关键：v-cloak 必须内联且优先加载，防止页面闪烁 -->
+    <style>
+        [v-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="module-page">
+    <div id="app" class="app-container" v-cloak>
+        <div class="table-container">
+            <div class="table-header" style="padding: 16px 24px; border-bottom: 2px solid #f0f0f0; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+                <div class="table-title" style="color: #262626; font-size: 16px; font-weight: 600;">👥 用户管理</div>
+                <div class="toolbar" style="display: flex; gap: 12px; align-items: center;">
+                    <el-input
+                            v-model="searchKeyword"
+                            placeholder="搜索租户名、用户名"
+                            style="width: 300px;"
+                            clearable
+                            @clear="handleClearSearch"
+                            @keyup.enter="handleSearch"
+                    >
+                        <template #append>
+                            <el-button type="primary" @click="handleSearch">
+                                <el-icon><search /></el-icon> 搜索
+                            </el-button>
+                        </template>
+                    </el-input>
+                    <el-button type="primary" @click="handleCreateUser">
+                        <el-icon><plus /></el-icon> 新增用户
+                    </el-button>
+                </div>
+            </div>
+            
+            <el-table 
+                :data="usersList" 
+                stripe 
+                style="width: 100%" 
+                class="users-table" 
+                v-loading="loading"
+                :row-style="{ cursor: 'pointer' }">
+                <el-table-column prop="tenantName" label="租户名" min-width="180">
+                    <template #default="scope">
+                        <span style="font-weight: 500; color: #262626;">{{ scope.row.tenantName || '-' }}</span>
+                    </template>
+                </el-table-column>
+                
+                <!-- 超级管理员显示租户编码 -->
+                <el-table-column v-if="isSuperAdmin" :key="'tenantCode-' + renderKey" prop="tenantCode" label="租户编码" width="150" fixed>
+                    <template #default="scope">
+                        <span style="color: #606266;">{{ scope.row.tenantCode || '-' }}</span>
+                    </template>
+                </el-table-column>
+                
+                <el-table-column prop="username" label="用户名" min-width="120">
+                    <template #default="scope">
+                        <span style="font-weight: 500; color: #262626;">{{ scope.row.username }}</span>
+                    </template>
+                </el-table-column>
+                
+                <el-table-column prop="roleLevel" label="等级" width="120" align="center">
+                    <template #default="scope">
+                        <el-tag 
+                            :type="scope.row.roleLevel === 0 ? 'danger' : (scope.row.roleLevel === 1 ? 'warning' : 'success')" 
+                            size="small">
+                            {{ scope.row.roleLevel === 0 ? '特级' : (scope.row.roleLevel === 1 ? '一级' : '二级') }}
+                        </el-tag>
+                    </template>
+                </el-table-column>
+                
+                <el-table-column prop="createdTime" label="创建时间" min-width="160">
+                    <template #default="scope">
+                        <span>{{ formatDate(scope.row.createdTime) }}</span>
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="操作" width="280" align="left">
+
+
+                    <template #default="scope">
+                        <div style="display: flex; flex-direction: row; gap: 8px; align-items: center;">
+                            <!-- 【保留】编辑功能待后续实现，请勿删除 -->
+                            <!-- <el-button type="primary" size="small" @click.stop="handleEdit(scope.row)">编辑</el-button> -->
+                            <el-button 
+                                type="danger" 
+                                size="small" 
+                                @click.stop="handleDelete(scope.row)"
+                                :disabled="!canDeleteUser(scope.row)"
+                                :title="!canDeleteUser(scope.row) ? getDeleteDisabledReason(scope.row) : ''">
+                                删除
+                            </el-button>
+                            <el-button 
+                                size="small" 
+                                @click.stop="handleResetPassword(scope.row)"
+                                :disabled="!canResetPassword(scope.row)"
+                                :title="!canResetPassword(scope.row) ? getResetPasswordDisabledReason(scope.row) : ''">
+                                重置密码
+                            </el-button>
+                        </div>
+                    </template>
+                </el-table-column>
+            </el-table>
+            
+            <div style="padding: 16px; display: flex; justify-content: flex-end; align-items: center; gap: 16px;">
+                <el-pagination
+                    v-model:current-page="page.current"
+                    v-model:page-size="page.size"
+                    :page-sizes="[10, 20, 50, 100]"
+                    :total="page.total"
+                    layout="total, sizes, prev, pager, next, jumper"
+                    @size-change="handleSizeChange"
+                    @current-change="handleCurrentChange"
+                />
+            </div>
+        </div>
+
+        <!-- 【保留】查看/编辑功能待后续实现，请勿删除 -->
+        <!-- 查看用户详情对话框 -->
+        <!-- <el-dialog
+            v-model="viewDialogVisible"
+            title="用户详情"
+            width="600px"
+        >
+        <el-descriptions :column="2" border v-if="viewUser">
+            <el-descriptions-item label="用户名">{{ viewUser.username }}</el-descriptions-item>
+            <el-descriptions-item label="真实姓名">{{ viewUser.realName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="租户名">{{ viewUser.tenantName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="角色">
+                <el-tag 
+                    :type="viewUser.roleLevel === 0 ? 'danger' : (viewUser.roleLevel === 1 ? 'warning' : 'success')" 
+                    size="small">
+                    {{ viewUser.roleLevel === 0 ? '特级' : (viewUser.roleLevel === 1 ? '一级' : '二级') }}
+                </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="状态">
+                <el-tag :type="viewUser.status === 1 ? 'success' : 'danger'" size="small">
+                    {{ viewUser.status === 1 ? '启用' : '禁用' }}
+                </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="邮箱">{{ viewUser.email || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="手机号">{{ viewUser.phone || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="创建时间" :span="2">{{ formatDate(viewUser.createdTime) }}</el-descriptions-item>
+            <el-descriptions-item label="最后登录时间" :span="2">{{ formatDate(viewUser.lastLoginTime) }}</el-descriptions-item>
+            <el-descriptions-item label="最后登录 IP" :span="2">{{ viewUser.lastLoginIp || '-' }}</el-descriptions-item>
+        </el-descriptions>
+        
+        <template #footer>
+            <el-button @click="viewDialogVisible = false">关闭</el-button>
+        </template>
+    </el-dialog> -->
+
+    <!-- 新建用户对话框 -->
+    <el-dialog
+        v-model="dialogVisible"
+        title="新建用户"
+        width="500px"
+    >
+        <el-form :model="formData" :rules="formRules" ref="formRef" label-width="80px">
+            <el-form-item label="用户名" prop="username">
+                <el-input v-model="formData.username" placeholder="请输入用户名" />
+            </el-form-item>
+            
+            <!-- 超级管理员显示租户选择 -->
+            <el-form-item v-if="isSuperAdmin" label="选择租户" prop="tenantId">
+                <el-select 
+                    v-model="formData.tenantId" 
+                    filterable
+                    remote
+                    reserve-keyword
+                    placeholder="请输入租户编码或名称搜索"
+                    :remote-method="searchTenants"
+                    :loading="tenantSearchLoading"
+                    style="width: 100%">
+                    <el-option
+                        v-for="item in tenantOptions"
+                        :key="item.id"
+                        :label="`${item.tenantName} (${item.tenantCode})`"
+                        :value="item.id">
+                    </el-option>
+                </el-select>
+            </el-form-item>
+            
+            <el-form-item label="密码" prop="password">
+                <el-input 
+                    v-model="formData.password" 
+                    type="password" 
+                    placeholder="请输入密码" 
+                    show-password
+                />
+            </el-form-item>
+            
+            <el-form-item label="等级" prop="roleLevel">
+                <el-select v-model="formData.roleLevel" placeholder="请选择等级">
+                    <el-option v-if="currentUserRoleLevel === 0" :value="1" label="普通管理员"></el-option>
+                    <el-option :value="2" label="操作员"></el-option>
+                </el-select>
+            </el-form-item>
+        </el-form>
+        
+        <template #footer>
+            <el-button @click="dialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="handleSubmit" :loading="submitting">
+                创建
+            </el-button>
+        </template>
+    </el-dialog>
+
+    <!-- 重置密码对话框 -->
+    <el-dialog
+        v-model="resetPasswordDialogVisible"
+        title="重置密码"
+        width="400px"
+    >
+        <el-form :model="resetPasswordForm" :rules="resetPasswordRules" ref="resetPasswordFormRef" label-width="80px">
+            <el-form-item label="新密码" prop="newPassword">
+                <el-input 
+                    v-model="resetPasswordForm.newPassword" 
+                    type="password" 
+                    placeholder="请输入新密码" 
+                    show-password
+                />
+            </el-form-item>
+            
+            <el-form-item label="确认密码" prop="confirmPassword">
+                <el-input 
+                    v-model="resetPasswordForm.confirmPassword" 
+                    type="password" 
+                    placeholder="请确认新密码" 
+                    show-password
+                />
+            </el-form-item>
+        </el-form>
+        
+        <template #footer>
+            <el-button @click="resetPasswordDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="handleResetPasswordSubmit" :loading="resettingPassword">
+                确认重置
+            </el-button>
+        </template>
+    </el-dialog>
+    </div>
+
+    <!-- 引入 Vue 和 Element Plus -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/@element-plus/icons-vue"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.min.js"></script>
+    
+    <!-- 引入 API 封装 -->
+    <script src="js/api.js"></script>
+    
+    <!-- 引入用户管理逻辑 -->
+    <script src="js/modules/users.js"></script>
+</body>
+</html>

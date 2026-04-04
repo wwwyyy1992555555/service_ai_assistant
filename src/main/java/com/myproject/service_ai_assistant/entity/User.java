@@ -52,9 +52,9 @@ public class User implements Serializable {
     private String email;
 
     /**
-     * 角色：admin-管理员/operator-操作员
+     * 角色级别：0-超级管理员/1-普通管理员/2-操作员
      */
-    private String role;
+    private Integer roleLevel;
 
     /**
      * 状态：0-禁用 1-启用

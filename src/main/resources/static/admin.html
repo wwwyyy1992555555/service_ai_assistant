@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -45,27 +45,47 @@
             <div class="logo">
                 <h1>🤖 AI 智库管理平台</h1>
             </div>
-            <div class="menu-item" :class="{ active: currentMenu === 'dashboard' }" @click="switchMenu('dashboard')">
-                <span class="menu-icon">📊</span>
-                <span>数据看板</span>
+            
+            <!-- 普通用户菜单（tenantId > 0） -->
+            <template v-if="!isSuperAdmin">
+                <div class="menu-item" :class="{ active: currentMenu === 'dashboard' }" @click="switchMenu('dashboard')">
+                    <span class="menu-icon">📊</span>
+                    <span>数据看板</span>
+                </div>
+                <div class="menu-item" :class="{ active: currentMenu === 'categories' }" @click="switchMenu('categories')">
+                    <span class="menu-icon">📂</span>
+                    <span>分类管理</span>
+                </div>
+                <div class="menu-item" :class="{ active: currentMenu === 'knowledge' }" @click="switchMenu('knowledge')">
+                    <span class="menu-icon">📚</span>
+                    <span>知识库管理</span>
+                </div>
+                <div class="menu-item" :class="{ active: currentMenu === 'records' }" @click="switchMenu('records')">
+                    <span class="menu-icon">💬</span>
+                    <span>对话记录</span>
+                </div>
+                <div class="menu-item" :class="{ active: currentMenu === 'feedback' }" @click="switchMenu('feedback')">
+                    <span class="menu-icon">📝</span>
+                    <span>意见反馈</span>
+                </div>
+            </template>
+            
+            <!-- 用户管理菜单（管理员可见） -->
+            <div v-if="hasAdminPermission" class="menu-item" :class="{ active: currentMenu === 'users' }" @click="switchMenu('users')">
+                <span class="menu-icon">👥</span>
+                <span>用户管理</span>
             </div>
-            <div class="menu-item" :class="{ active: currentMenu === 'categories' }" @click="switchMenu('categories')">
-                <span class="menu-icon">📂</span>
-                <span>分类管理</span>
-            </div>
-            <div class="menu-item" :class="{ active: currentMenu === 'knowledge' }" @click="switchMenu('knowledge')">
-                <span class="menu-icon">📚</span>
-                <span>知识库管理</span>
-            </div>
-            <div class="menu-item" :class="{ active: currentMenu === 'records' }" @click="switchMenu('records')">
-                <span class="menu-icon">💬</span>
-                <span>对话记录</span>
-            </div>
-            <div class="menu-item" :class="{ active: currentMenu === 'feedback' }" @click="switchMenu('feedback')">
-                <span class="menu-icon">📝</span>
-                <span>意见反馈</span>
-            </div>
-            <div class="menu-item" :class="{ active: currentMenu === 'settings' }" @click="switchMenu('settings')">
+            
+            <!-- 超级管理员专属菜单 -->
+            <template v-if="isSuperAdmin">
+                <div class="menu-item" :class="{ active: currentMenu === 'tenants' }" @click="switchMenu('tenants')">
+                    <span class="menu-icon">🏢</span>
+                    <span>租户管理</span>
+                </div>
+            </template>
+            
+            <!-- 所有用户都显示系统设置 -->
+            <div v-if="!isSuperAdmin" class="menu-item" :class="{ active: currentMenu === 'settings' }" @click="switchMenu('settings')">
                 <span class="menu-icon">⚙️</span>
                 <span>系统设置</span>
             </div>
@@ -88,7 +108,6 @@
                         </span>
                         <template #dropdown>
                             <el-dropdown-menu>
-                                <el-dropdown-item command="profile">个人设置</el-dropdown-item>
                                 <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
                             </el-dropdown-menu>
                         </template>
@@ -175,8 +194,9 @@
                     <div class="table-container">
                         <div class="table-title" style="margin-bottom: 24px;">⚙️ 系统设置</div>
                         <el-form :model="settings" label-width="120px">
-                            <el-form-item label="企业名称">
-                                <el-input v-model="settings.companyName" placeholder="请输入企业名称" />
+                            <el-form-item label="租户名称">
+                                <el-input v-model="settings.tenantName" placeholder="请输入租户名称" disabled />
+                                <div style="color: #999; font-size: 12px; margin-top: 5px;">注：租户名称请在“租户管理”中修改</div>
                             </el-form-item>
                             <el-form-item label="欢迎语">
                                 <el-input v-model="settings.welcomeMessage" type="textarea" :rows="3" placeholder="请输入欢迎语" />
@@ -218,6 +238,16 @@
                 <!-- 意见反馈 (iframe) -->
                 <div v-if="currentMenu === 'feedback'" style="height: 100%;">
                     <iframe src="feedback.html" frameborder="0" class="module-iframe"></iframe>
+                </div>
+
+                <!-- 用户管理 (iframe) -->
+                <div v-if="currentMenu === 'users' && hasAdminPermission" style="height: 100%;">
+                    <iframe src="users.html" frameborder="0" class="module-iframe"></iframe>
+                </div>
+                
+                <!-- 租户管理 (iframe) -->
+                <div v-if="currentMenu === 'tenants' && isSuperAdmin" style="height: 100%;">
+                    <iframe src="tenants.html" frameborder="0" class="module-iframe"></iframe>
                 </div>
             </div>
         </div>

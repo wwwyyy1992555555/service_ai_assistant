@@ -14,9 +14,9 @@ public class TenantConfigDTO {
     private String logoUrl;
 
     /**
-     * 企业名称
+     * 租户名称（来自 tenant_info）
      */
-    private String companyName;
+    private String tenantName;
 
     /**
      * 欢迎语

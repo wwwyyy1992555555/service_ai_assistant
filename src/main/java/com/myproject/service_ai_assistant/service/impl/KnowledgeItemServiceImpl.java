@@ -30,13 +30,14 @@ public class KnowledgeItemServiceImpl extends ServiceImpl<KnowledgeItemMapper, K
 
         log.info("【知识搜索】keyword={}", keyword);
 
-        // 1. 先进行数据库模糊查询，获取候选集（缩小范围）
+        // 1. 先进行数据库模糊查询，获取候选集（限制数量避免内存溢出）
         LambdaQueryWrapper<KnowledgeItem> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(KnowledgeItem::getTenantId, tenantId)
                 .eq(KnowledgeItem::getPublishStatus, 1)  // 只查询已发布的知识
                 .and(w -> w.like(KnowledgeItem::getQuestion, keyword)
                         .or()
-                        .like(KnowledgeItem::getKeywords, keyword));
+                        .like(KnowledgeItem::getKeywords, keyword))
+                .last("LIMIT 100");  // 限制最大返回数量
 
         List<KnowledgeItem> candidates = this.list(wrapper);
         log.debug("【知识搜索】初步候选集数量：{}", candidates.size());
@@ -48,7 +49,8 @@ public class KnowledgeItemServiceImpl extends ServiceImpl<KnowledgeItemMapper, K
                     .eq(KnowledgeItem::getPublishStatus, 1)
                     .and(w -> w.like(KnowledgeItem::getQuestion, keyword)
                             .or()
-                            .like(KnowledgeItem::getTitle, keyword));
+                            .like(KnowledgeItem::getTitle, keyword))
+                    .last("LIMIT 100");  // 限制最大返回数量
             candidates = this.list(wrapper);
             log.debug("【知识搜索】扩大搜索后数量：{}", candidates.size());
         }

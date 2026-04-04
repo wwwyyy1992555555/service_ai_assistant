@@ -10,75 +10,6 @@
     <style>
         [v-cloak] { display: none !important; }
     </style>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        .login-tips {
-            margin-top: 15px;
-            padding: 10px;
-            background-color: #f0f9eb;
-            border-radius: 4px;
-            font-size: 13px;
-            color: #67c23a;
-        }
-        .login-tips span {
-            margin-right: 15px;
-        }
-        /* 完全自定义表单样式 */
-        .login-form {
-            width: 360px;
-            margin: 0 auto;
-        }
-        .form-item {
-            width: 360px;
-            margin-bottom: 24px;
-            position: relative;
-        }
-        /* 强制输入框固定宽度 */
-        .form-item .el-input {
-            width: 360px !important;
-        }
-        .form-item .el-input__wrapper {
-            width: 360px !important;
-            padding: 12px 16px;
-            border-radius: 8px;
-            box-shadow: 0 0 0 1px #dcdfe6 inset;
-            transition: box-shadow 0.2s;
-        }
-        .form-item .el-input__wrapper:hover {
-            box-shadow: 0 0 0 1px #c0c4cc inset;
-        }
-        .form-item .el-input__wrapper.is-focus {
-            box-shadow: 0 0 0 1px #409eff inset;
-        }
-        .form-item .el-input__inner {
-            width: 100%;
-        }
-        /* 错误状态 */
-        .form-item.input-error .el-input__wrapper {
-            box-shadow: 0 0 0 1px #f56c6c inset;
-        }
-        /* 错误信息 */
-        .error-text {
-            color: #f56c6c;
-            font-size: 12px;
-            margin-top: 4px;
-            position: absolute;
-            top: 100%;
-            left: 0;
-        }
-        /* 登录按钮 */
-        .login-button {
-            width: 360px;
-            height: 44px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 500;
-        }
-    </style>
 </head>
 <body>
     <div id="app" v-cloak>
@@ -92,6 +23,27 @@
 
                 <div class="login-form">
                     <div class="form-item">
+                        <el-select
+                            v-model="loginForm.loginType"
+                            placeholder="请选择登录类型"
+                            size="large"
+                            style="width: 100%;"
+                        >
+                            <el-option label="租户登录" value="tenant"></el-option>
+                            <el-option label="超级管理员" value="super"></el-option>
+                        </el-select>
+                    </div>
+
+                    <div class="form-item" v-if="loginForm.loginType === 'tenant'">
+                        <el-input
+                            v-model="loginForm.tenantCode"
+                            placeholder="请输入租户编码"
+                            size="large"
+                            clearable
+                        ></el-input>
+                    </div>
+
+                    <div class="form-item">
                         <el-input
                             v-model="loginForm.username"
                             placeholder="请输入用户名"
@@ -99,6 +51,7 @@
                             size="large"
                             clearable
                             :class="{ 'input-error': errors.username }"
+                            @input="clearError('username')"
                         ></el-input>
                         <div class="error-text" v-if="errors.username">{{ errors.username }}</div>
                     </div>
@@ -113,6 +66,7 @@
                             show-password
                             @keyup.enter="handleLogin"
                             :class="{ 'input-error': errors.password }"
+                            @input="clearError('password')"
                         ></el-input>
                         <div class="error-text" v-if="errors.password">{{ errors.password }}</div>
                     </div>
@@ -158,6 +112,8 @@
         const app = createApp({
             setup() {
                 const loginForm = Vue.reactive({
+                    loginType: 'tenant',
+                    tenantCode: '',
                     username: '',
                     password: ''
                 });
@@ -168,8 +124,13 @@
                 });
 
                 const loading = Vue.ref(false);
-                const loginFormRef = Vue.ref(null);
 
+                // 清除错误信息
+                const clearError = (field) => {
+                    errors[field] = '';
+                };
+
+                // 处理登录
                 const handleLogin = async () => {
                     // 清空错误
                     errors.username = '';
@@ -192,12 +153,12 @@
                     loading.value = true;
 
                     try {
-                        // 【优化】使用封装好的 login API，自动获取完整租户配置
+                        // 方案一：(tenant_id, username) 联合唯一，必须传 tenantId
                         const result = await window.login(
                             loginForm.username,
                             loginForm.password,
-                            1, // 默认租户 ID
-                            'tenant' // 租户登录
+                            loginForm.tenantCode || '',
+                            loginForm.loginType
                         );
 
                         if (result.code === 200 && result.data) {
@@ -237,7 +198,8 @@
                     loginForm,
                     errors,
                     loading,
-                    handleLogin
+                    handleLogin,
+                    clearError
                 };
             }
         });

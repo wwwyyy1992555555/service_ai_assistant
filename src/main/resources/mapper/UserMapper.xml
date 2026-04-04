@@ -10,7 +10,7 @@
         <result column="real_name" property="realName"/>
         <result column="phone" property="phone"/>
         <result column="email" property="email"/>
-        <result column="role" property="role"/>
+        <result column="role_level" property="roleLevel"/>
         <result column="status" property="status"/>
         <result column="avatar_url" property="avatarUrl"/>
         <result column="last_login_time" property="lastLoginTime"/>
@@ -39,5 +39,62 @@
             AND tenant_id = #{tenantId}
         </if>
     </select>
+
+    <!-- 根据租户 ID 查询用户列表 -->
+    <select id="selectByTenantId" resultMap="BaseResultMap">
+        SELECT * FROM user_info
+        WHERE tenant_id = #{tenantId}
+          AND deleted = 0
+        ORDER BY created_time DESC
+    </select>
+    
+    <!-- 根据租户 ID 搜索用户（支持关键词搜索租户名、用户名、邮箱） -->
+    <select id="searchByTenantId" resultMap="BaseResultMap">
+        SELECT u.* FROM user_info u
+        LEFT JOIN tenant_config tc ON u.tenant_id = tc.tenant_id AND tc.deleted = 0
+        WHERE u.deleted = 0
+        <if test="tenantId != null and tenantId > 0">
+            AND u.tenant_id = #{tenantId}
+        </if>
+        AND (
+              u.username LIKE CONCAT('%', #{keyword}, '%')
+              OR u.email LIKE CONCAT('%', #{keyword}, '%')
+              OR tc.company_name LIKE CONCAT('%', #{keyword}, '%')
+        )
+        ORDER BY u.created_time DESC
+    </select>
+    
+    <!-- 登录时联合查询用户和租户配置 -->
+    <select id="selectUserWithConfig" resultType="java.util.HashMap">
+        SELECT 
+            u.id,
+            u.tenant_id,
+            u.username,
+            u.password,
+            u.real_name,
+            u.phone,
+            u.email,
+            u.role_level,
+            u.status,
+            u.avatar_url,
+            u.last_login_time,
+            u.last_login_ip,
+            u.created_time,
+            u.updated_time,
+            tc.logo_url AS tenant_logo_url,
+            tc.theme_color AS tenant_theme_color,
+            tc.welcome_message AS tenant_welcome_message,
+            tc.company_name AS tenant_company_name
+        FROM user_info u
+        LEFT JOIN tenant_config tc ON u.tenant_id = tc.tenant_id AND tc.deleted = 0
+        WHERE u.username = #{username}
+          AND u.tenant_id = #{tenantId}
+          AND u.deleted = 0
+    </select>
+    
+    <!-- 物理删除用户（真正从数据库删除记录，绕过逻辑删除） -->
+    <delete id="physicallyDeleteById">
+        DELETE FROM user_info WHERE id = #{id}
+    </delete>
 
 </mapper>

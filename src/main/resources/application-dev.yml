@@ -32,8 +32,14 @@ spring:
     druid:
       initial-size: 5
       min-idle: 5
-      max-active: 20
-      max-wait: 60000 
+      max-active: 50
+      max-wait: 60000
+      # 连接超时和回收配置
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false 
   
   # Redis 配置（可选）
   data:
@@ -108,17 +114,6 @@ logging:
     com.myproject.service_ai_assistant: INFO
     org.springframework.web: WARN
     com.baomidou.mybatisplus: WARN
-  pattern:
-    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n'
-    file: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n'
-  charset:
-    console: UTF-8
-    file: UTF-8
-  file:
-    name: logs/ai-think-tank.log
-    max-size: 10MB
-    max-history: 30
-    total-size-cap: 100MB
 
 # 大模型配置（可选）
 app:
@@ -143,9 +138,9 @@ data:
   cleanup:
     # 是否启用定期清理（true=启用，false=禁用）
     # 开发环境建议先禁用，测试完成后再启用
-    enabled: false
+    enabled: true
     # 保留最近 N 个月的数据（默认 6 个月）
-    retention-months: 6
+    retention-months: 3
     # 定时任务执行时间（Cron 表达式）
     # 开发环境可设置为每小时执行一次进行测试
     # cron: 0 0 * * * ?

@@ -171,7 +171,7 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>com.myproject.service_ai_assistant.ServiceAiAssistantApplication</mainClass>
-                    <skip>true</skip>
+                    <skip>false</skip>
                     <jvmArguments>-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8</jvmArguments>
                 </configuration>
             </plugin>

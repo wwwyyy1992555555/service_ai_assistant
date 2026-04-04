@@ -139,7 +139,7 @@ CREATE TABLE `user_info` (
   `real_name` VARCHAR(50) DEFAULT NULL COMMENT '真实姓名',
   `phone` VARCHAR(20) DEFAULT NULL COMMENT '手机号',
   `email` VARCHAR(100) DEFAULT NULL COMMENT '邮箱',
-  `role` VARCHAR(50) DEFAULT 'admin' COMMENT '角色：admin-管理员/operator-操作员',
+  `role_level` INT DEFAULT 1 COMMENT '角色级别：0-超级管理员/1-普通管理员/2-操作员',
   `status` TINYINT DEFAULT 1 COMMENT '状态：0-禁用 1-启用',
   `avatar_url` VARCHAR(500) DEFAULT NULL COMMENT '头像 URL',
   `last_login_time` DATETIME DEFAULT NULL COMMENT '最后登录时间',
@@ -148,7 +148,7 @@ CREATE TABLE `user_info` (
   `updated_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `deleted` TINYINT DEFAULT 0,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_tenant_username` (`tenant_id`, `username`),
+  UNIQUE KEY `uk_tenant_username` (`tenant_id`, `username`, `deleted`),
   KEY `idx_tenant_id` (`tenant_id`),
   KEY `idx_phone` (`phone`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户信息表';
@@ -255,8 +255,8 @@ ON DUPLICATE KEY UPDATE
 -- 加密方式：BCrypt.hashpw("123456", BCrypt.gensalt())
 -- 注意：tenant_id=0 表示超级管理员，不属于任何租户，通过用户名区分不同的超级管理员
 -- 安全说明：生产环境请修改默认密码，并启用密码强度校验
-INSERT INTO `user_info` (`tenant_id`, `username`, `password`, `real_name`, `phone`, `email`, `role`, `status`) VALUES
-(0, 'admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '超级管理员', '13900139000', 'admin@platform.com', 'super_admin', 1),
-(0, 'superadmin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '平台管理员', '13900139001', 'superadmin@platform.com', 'super_admin', 1),
-(1, 'admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '管理员', '13800138000', 'admin@gov.cn', 'admin', 1),
-(1, 'operator', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '操作员', '13800138001', 'operator@gov.cn', 'operator', 1);
+INSERT INTO `user_info` (`tenant_id`, `username`, `password`, `real_name`, `phone`, `email`, `role_level`, `status`) VALUES
+(0, 'admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '超级管理员', '13900139000', 'admin@platform.com', 0, 1),
+(0, 'superadmin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '平台管理员', '13900139001', 'superadmin@platform.com', 0, 1),
+(1, 'admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '管理员', '13800138000', 'admin@gov.cn', 1, 1),
+(1, 'operator', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '操作员', '13800138001', 'operator@gov.cn', 2, 1);

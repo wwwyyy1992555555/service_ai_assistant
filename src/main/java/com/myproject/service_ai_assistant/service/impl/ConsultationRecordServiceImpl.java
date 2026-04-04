@@ -12,7 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 咨询对话记录服务实现类
@@ -98,26 +101,39 @@ public class ConsultationRecordServiceImpl extends ServiceImpl<ConsultationRecor
         // 执行分页查询
         Page<ConsultationRecord> result = this.page(page, wrapper);
         
-        // 为每个会话补充最新的用户信息
+        // 为每个会话补充最新的用户信息（优化：批量查询避免N+1问题）
         if (!result.getRecords().isEmpty()) {
-            List<ConsultationRecord> processedRecords = new ArrayList<>();
-            for (ConsultationRecord record : result.getRecords()) {
-                // 查询该会话的最新用户信息
+            List<String> sessionIds = result.getRecords().stream()
+                .map(ConsultationRecord::getSessionId)
+                .distinct()
+                .collect(Collectors.toList());
+            
+            // 批量查询每个会话的最新记录
+            Map<String, ConsultationRecord> latestRecordMap = new HashMap<>();
+            for (String sessionId : sessionIds) {
                 LambdaQueryWrapper<ConsultationRecord> userWrapper = new LambdaQueryWrapper<>();
-                userWrapper.eq(ConsultationRecord::getSessionId, record.getSessionId())
+                userWrapper.eq(ConsultationRecord::getSessionId, sessionId)
                         .eq(ConsultationRecord::getTenantId, tenantId)
                         .orderByDesc(ConsultationRecord::getCreatedTime)
                         .last("LIMIT 1");
                 
                 ConsultationRecord latestRecord = this.getOne(userWrapper);
                 if (latestRecord != null) {
-                    // 补充最新用户信息
+                    latestRecordMap.put(sessionId, latestRecord);
+                }
+            }
+            
+            // 填充用户信息
+            List<ConsultationRecord> processedRecords = result.getRecords().stream().map(record -> {
+                ConsultationRecord latestRecord = latestRecordMap.get(record.getSessionId());
+                if (latestRecord != null) {
                     record.setUserName(latestRecord.getUserName());
                     record.setUserPhone(latestRecord.getUserPhone());
                     record.setUserId(latestRecord.getUserId());
                 }
-                processedRecords.add(record);
-            }
+                return record;
+            }).collect(Collectors.toList());
+            
             result.setRecords(processedRecords);
         }
         

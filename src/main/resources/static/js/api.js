@@ -1,4 +1,4 @@
-/**
+6/**
  * API 接口封装
  * 所有与后端的交互都通过此文件管理
  */
@@ -92,8 +92,10 @@ function del(url) {
  * 获取统计数据
  */
 async function loadDashboard() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const tenantId = user.tenantId !== undefined ? user.tenantId : 1;
     const result = await get(`${API_BASE}/statistics/dashboard`, { 
-        tenantId: 1 
+        tenantId: tenantId
     });
     return result.data || {};
 }
@@ -105,8 +107,10 @@ async function loadDashboard() {
  */
 async function loadHotQuestions(limit = 10) {
     // 调用后端专门的热门问题接口：/api/statistics/hot-questions
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const tenantId = user.tenantId !== undefined ? user.tenantId : 1;
     const result = await get(`${API_BASE}/statistics/hot-questions`, { 
-        tenantId: 1, 
+        tenantId: tenantId, 
         limit: limit 
     });
     return result.data || [];
@@ -125,9 +129,11 @@ async function loadHotQuestions(limit = 10) {
  * @returns {Promise<{records: Array, total: number}>}
  */
 async function loadKnowledgeList(current, size, keyword, publishStatus, isTop, categoryId) {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const tenantId = user.tenantId !== undefined ? user.tenantId : 1;
     // 确保参数类型正确：publishStatus 和 isTop 必须是 Integer
     const params = {
-        tenantId: 1,
+        tenantId: tenantId,
         current: current || 1,
         size: size || 10,
     };
@@ -168,8 +174,10 @@ async function loadKnowledgeList(current, size, keyword, publishStatus, isTop, c
  * @returns {Promise<{records: Array, total: number}>}
  */
 async function searchKnowledge(keyword, current, size, publishStatus, isTop, categoryId) {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const tenantId = user.tenantId !== undefined ? user.tenantId : 1;
     const params = {
-        tenantId: 1,
+        tenantId: tenantId,
         keyword: keyword || '',
         current: current || 1,
         size: size || 10,
@@ -270,8 +278,10 @@ async function deleteKnowledge(id) {
  * @returns {Promise<{records: Array, total: number}>}
  */
 async function loadRecordsList(current, size) {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const tenantId = user.tenantId !== undefined ? user.tenantId : 1;
     const result = await get(`${API_BASE}/consult/list`, {
-        tenantId: 1,
+        tenantId: tenantId,
         current: current || 1,
         size: size || 10,
     });
@@ -283,8 +293,10 @@ async function loadRecordsList(current, size) {
  * @returns {Promise<{records: Array, total: number}>}
  */
 async function searchRecords(keyword, current, size) {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const tenantId = user.tenantId !== undefined ? user.tenantId : 1;
     const result = await get(`${API_BASE}/consult/search`, {
-        tenantId: 1,
+        tenantId: tenantId,
         keyword: keyword || '',
         current: current || 1,
         size: size || 10,
@@ -316,15 +328,15 @@ async function deleteSession(sessionId) {
  * 用户登录
  * @param {string} username - 用户名
  * @param {string} password - 密码
- * @param {number} tenantId - 租户 ID（超级管理员登录时传 0）
+ * @param {string} tenantCode - 租户编码（超级管理员登录时传空字符串）
  * @param {string} loginType - 登录类型：tenant-租户登录/super-超级管理员登录
  * @returns {Promise<Object>} - 登录结果（包含 token 和完整的租户配置信息）
  */
-async function login(username, password, tenantId, loginType = 'tenant') {
+async function login(username, password, tenantCode, loginType = 'tenant') {
     const result = await post(`${API_BASE}/auth/login`, {
         username,
         password,
-        tenantId,
+        tenantCode,
         loginType
     });
     return result;
@@ -350,6 +362,115 @@ async function saveTenantConfig(tenantId, config) {
     return result.data;
 }
 
+// ==================== 用户管理接口 ====================
+
+/**
+ * 用户管理 API
+ */
+const userApi = {
+    /**
+     * 获取用户列表
+     * @param {number} tenantId - 租户 ID
+     * @param {number} current - 当前页码
+     * @param {number} size - 每页大小
+     * @param {string} keyword - 搜索关键词
+     * @param {number} currentUserRoleLevel - 当前用户角色级别（用于权限过滤）
+     * @returns {Promise<{records: Array, total: number}>}
+     */
+    getList: async function(tenantId, current = 1, size = 10, keyword = '', currentUserRoleLevel = 2) {
+        const params = {
+            tenantId,
+            current: current || 1,
+            size: size || 10,
+            currentUserRoleLevel: currentUserRoleLevel !== undefined ? currentUserRoleLevel : 2
+        };
+        
+        if (keyword) {
+            params.keyword = keyword;
+        }
+        
+        const result = await get(`${API_BASE}/user/list`, params);
+        return result.data || { records: [], total: 0 };
+    },
+    
+    /**
+     * 创建用户
+     */
+    create: async function(data) {
+        const result = await post(`${API_BASE}/user/create`, data);
+        return result.data;
+    },
+    
+    /**
+     * 获取用户信息
+     */
+    getInfo: async function(userId) {
+        const result = await get(`${API_BASE}/user/info`, { userId });
+        return result.data;
+    },
+    
+    /**
+     * 重置密码
+     */
+    resetPassword: async function(userId, newPassword) {
+        const result = await request(`${API_BASE}/user/reset-password?userId=${userId}&newPassword=${encodeURIComponent(newPassword)}`, {
+            method: 'POST',
+        });
+        return result.data;
+    },
+    
+    /**
+     * 删除用户
+     */
+    delete: async function(userId) {
+        const result = await request(`${API_BASE}/user/delete?userId=${userId}`, {
+            method: 'POST',
+        });
+        return result.data;
+    },
+    
+    /**
+     * 更新用户状态
+     */
+    updateStatus: async function(userId, status) {
+        await post(`${API_BASE}/user/update-status`, { userId, status });
+        return true;
+    },
+    
+    /**
+     * 更新用户信息
+     */
+    update: async function(data) {
+        const result = await post(`${API_BASE}/user/update`, data);
+        return result.data;
+    },
+    
+    /**
+     * 检查用户名是否存在
+     * @param {number} tenantId - 租户 ID
+     * @param {string} username - 用户名
+     * @returns {Promise<boolean>} - true-已存在，false-不存在
+     */
+    checkUsername: async function(tenantId, username) {
+        const result = await get(`${API_BASE}/user/check-username`, { tenantId, username });
+        return result.data || false;
+    },
+
+    /**
+     * 搜索租户（用于新建用户时选择）
+     * @param {string} keyword - 搜索关键词
+     * @returns {Promise<Array>} - 租户列表
+     */
+    searchTenants: async function(keyword) {
+        const params = {};
+        if (keyword) {
+            params.keyword = keyword;
+        }
+        const result = await get(`${API_BASE}/user/search-tenants`, params);
+        return result.data || [];
+    }
+};
+
 // 将 API 函数挂载到 window 对象，保持与现有代码兼容
 window.loadDashboard = loadDashboard;
 window.loadHotQuestions = loadHotQuestions;
@@ -368,3 +489,6 @@ window.getSessionDetail = getSessionDetail;
 window.deleteSession = deleteSession;
 window.loadSystemConfig = loadTenantConfig;
 window.saveSystemConfig = saveTenantConfig;
+window.api = {
+    user: userApi
+};

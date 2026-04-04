@@ -20,7 +20,8 @@ const app = createApp({
         // 登录表单数据
         const loginForm = Vue.reactive({
             username: '',
-            password: ''
+            password: '',
+            tenantCode: ''
         });
 
         // 表单验证规则
@@ -61,12 +62,17 @@ const app = createApp({
                     loading.value = true;
 
                     try {
-                        // 调用封装好的登录 API（已优化返回完整租户配置）
+                        // 判断是否为超级管理员（admin 或 superadmin）
+                        const isSuperAdmin = ['admin', 'superadmin'].includes(loginForm.username.toLowerCase());
+                        const loginType = isSuperAdmin ? 'super' : 'tenant';
+                        const tenantCode = isSuperAdmin ? '' : loginForm.tenantCode; // 超级管理员不需要，普通用户使用输入的值
+                        
+                        // 调用封装好的登录 API
                         const result = await window.login(
                             loginForm.username,
                             loginForm.password,
-                            1, // 默认租户 ID
-                            'tenant' // 租户登录
+                            tenantCode,
+                            loginType
                         );
 
                         if (result.code === 200 && result.data) {

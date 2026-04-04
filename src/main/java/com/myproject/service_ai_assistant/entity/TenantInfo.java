@@ -2,6 +2,7 @@ package com.myproject.service_ai_assistant.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
+import lombok.Delegate;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
@@ -45,21 +46,6 @@ public class TenantInfo implements Serializable {
      * 联系电话
      */
     private String contactPhone;
-
-    /**
-     * 企业 Logo
-     */
-    private String logoUrl;
-
-    /**
-     * 主题色
-     */
-    private String themeColor;
-
-    /**
-     * 欢迎语
-     */
-    private String welcomeMessage;
 
     /**
      * 状态：0-禁用 1-启用

@@ -35,8 +35,16 @@ const { createApp, ref, reactive, computed, onMounted, watch, nextTick } = windo
 
 const app = createApp({
     setup() {
-        // 从 localStorage 获取用户信息
-        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        // 从 localStorage 获取用户信息（增加容错处理）
+        let currentUser = {};
+        try {
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                currentUser = JSON.parse(userStr);
+            }
+        } catch (e) {
+            console.error('解析用户信息失败', e);
+        }
         
         // 使用模块的状态和方法
         const userDisplayName = computed(() => {
@@ -44,8 +52,23 @@ const app = createApp({
             return name;
         });
         
+        // 管理员权限判断：tenantId=0 (超级管理员) 或 roleLevel <= 1 (一级/超级管理员)
+        const hasAdminPermission = computed(() => {
+            const result = currentUser.tenantId === 0 || (currentUser.roleLevel !== undefined && currentUser.roleLevel <= 1);
+            console.log('【权限调试】hasAdminPermission:', result, 'tenantId:', currentUser.tenantId, 'roleLevel:', currentUser.roleLevel);
+            return result;
+        });
+        
+        // 是否为超级管理员（tenantId=0）
+        const isSuperAdmin = computed(() => {
+            return currentUser.tenantId === 0;
+        });
+        
         // ==================== 状态定义 ====================
-        const currentMenu = ref('dashboard');
+        // 根据用户类型设置默认菜单
+        const defaultMenu = hasAdminPermission.value ? 'users' : 'dashboard';
+        console.log('【菜单调试】defaultMenu:', defaultMenu);
+        const currentMenu = ref(defaultMenu);
         const renderKey = ref(0);
         
         // 统计数据
@@ -80,9 +103,12 @@ const app = createApp({
                 'categories': '分类管理',
                 'knowledge': '知识库管理',
                 'records': '对话记录',
+                'feedback': '意见反馈',
+                'users': '用户管理',
+                'tenants': '租户管理',
                 'settings': '系统设置'
             };
-            return names[currentMenu.value];
+            return names[currentMenu.value] || '首页';
         };
         
         const switchMenu = (menu) => {
@@ -138,8 +164,8 @@ const app = createApp({
         
         // 系统设置
         const settings = reactive({
-            companyName: 'XX 市政务服务中心',
-            welcomeMessage: '您好，XX 市政务服务中心很高兴为您服务！',
+            tenantName: currentUser.tenantName || '未命名租户',
+            welcomeMessage: '您好，很高兴为您服务！',
             themeColor: '#1890ff',
             email: 'service@gov.cn',
             phone: '12345',
@@ -150,7 +176,6 @@ const app = createApp({
             try {
                 // 创建一个纯净的对象，避免 reactive 的响应式属性
                 const configData = {
-                    companyName: settings.companyName,
                     welcomeMessage: settings.welcomeMessage,
                     themeColor: settings.themeColor,
                     email: settings.email,
@@ -158,7 +183,7 @@ const app = createApp({
                     serviceTime: settings.serviceTime
                 };
                 
-                const ok = await window.saveTenantConfig(1, configData);
+                const ok = await window.saveTenantConfig(currentUser.tenantId || 1, configData);
                 if (ok) {
                     ElementPlus.ElMessage.success('设置已保存');
                     nextTick(() => {
@@ -181,7 +206,7 @@ const app = createApp({
                     console.log('✅ 使用登录时返回的租户配置');
                 } else {
                     // 如果登录时没有返回配置，再调用接口
-                    const config = await window.loadTenantConfig(1);
+                    const config = await window.loadTenantConfig(currentUser.tenantId || 1);
                     if (config) {
                         Object.assign(settings, config);
                         if (config.themeColor) {
@@ -359,12 +384,12 @@ const app = createApp({
         };
         
         const showAddKnowledgeDialog = () => {
-            editingKnowledge.value = { publishStatus: 1, tenantId: 1 };
+            editingKnowledge.value = { publishStatus: 1, tenantId: currentUser.tenantId || 1 };
             knowledgeDialogVisible.value = true;
         };
         
         const editKnowledge = (row) => {
-            editingKnowledge.value = { ...row, tenantId: 1 };
+            editingKnowledge.value = { ...row, tenantId: currentUser.tenantId || 1 };
             knowledgeDialogVisible.value = true;
         };
         
@@ -388,9 +413,9 @@ const app = createApp({
         const saveKnowledge = async () => {
             try {
                 if (editingKnowledge.value.id) {
-                    await window.updateKnowledge({ ...editingKnowledge.value, tenantId: 1 });
+                    await window.updateKnowledge({ ...editingKnowledge.value, tenantId: currentUser.tenantId || 1 });
                 } else {
-                    await window.addKnowledge({ ...editingKnowledge.value, tenantId: 1 });
+                    await window.addKnowledge({ ...editingKnowledge.value, tenantId: currentUser.tenantId || 1 });
                 }
                 ElementPlus.ElMessage.success('保存成功');
                 knowledgeDialogVisible.value = false;
@@ -501,6 +526,23 @@ const app = createApp({
         };
         
         onMounted(async () => {
+            // 超级管理员不需要加载普通用户的 CSS
+            if (isSuperAdmin.value) {
+                const unnecessaryCSS = [
+                    'css/modules/dashboard.css',
+                    'css/modules/categories.css',
+                    'css/modules/knowledge.css',
+                    'css/modules/records.css'
+                ];
+                
+                document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+                    if (unnecessaryCSS.some(css => link.href.includes(css))) {
+                        link.remove();
+                        console.log('✅ 已移除不必要的 CSS:', link.href);
+                    }
+                });
+            }
+            
             await Promise.all([
                 loadDashboard(),
                 loadHotQuestions(),
@@ -534,6 +576,8 @@ const app = createApp({
             settings,
             renderKey,
             userDisplayName,
+            hasAdminPermission, 
+            isSuperAdmin,
             categoryMap,
             selectedKnowledge,
             detailDialogVisible,
@@ -560,3 +604,10 @@ app.use(ElementPlus, {
 
 // 挂载应用
 app.mount('#app');
+
+// 挂载成功后隐藏调试信息
+const debugDiv = document.getElementById('debug-loading');
+if (debugDiv) {
+    debugDiv.style.display = 'none';
+}
+console.log('✅ Vue 应用已成功挂载');

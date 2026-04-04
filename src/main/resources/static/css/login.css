@@ -23,23 +23,52 @@ body {
 
 .login-box {
     background: white;
-    border-radius: 16px;
-    padding: 40px 32px;
+    border-radius: 20px; /* 增大圆角 */
+    padding: 48px 40px 64px; /* 上下左右内边距，底部增加到 64px */
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: 440px; /* 限制最大宽度 */
+    min-width: 320px;
+    box-sizing: border-box;
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .login-header {
     text-align: center;
-    margin-bottom: 40px;
+    margin-bottom: 32px; /* 增加底部间距 */
 }
 
 .logo {
-    font-size: 56px;
-    margin-bottom: 12px;
+    font-size: 42px; /* 减小 logo 大小 */
+    margin-bottom: 10px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 .login-header h1 {
-    font-size: 24px;
+    font-size: 22px; /* 调整标题大小 */
     color: #303133;
     margin-bottom: 6px;
     font-weight: 600;
@@ -47,14 +76,16 @@ body {
 
 .login-header p {
     color: #909399;
-    font-size: 13px;
+    font-size: 14px; /* 调整副标题大小 */
 }
 
 .login-form {
-    margin-top: 24px;
-    width: 320px;
+    margin-top: 20px; /* 调整顶部间距 */
+    width: 100%;
     margin-left: auto;
     margin-right: auto;
+    min-width: 280px;
+    box-sizing: border-box;
 }
 
 .el-form-item {
@@ -64,6 +95,16 @@ body {
 .el-input__wrapper {
     border-radius: 8px;
     padding: 12px 16px;
+    width: 100% !important;
+    box-sizing: border-box;
+}
+
+.el-input__inner {
+    width: 100% !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
 }
 
 .el-button {
@@ -90,7 +131,7 @@ body {
 
 .login-footer {
     text-align: center;
-    margin-top: 24px;
+    margin-top: 32px; /* 增加顶部间距 */
     color: rgba(255, 255, 255, 0.8);
     font-size: 14px;
 }
@@ -107,5 +148,302 @@ body {
 
     .logo {
         font-size: 48px;
+    }
+}
+
+/* 移动端适配 */
+@media (max-width: 480px) {
+    .login-container {
+        padding: 10px;
+    }
+    
+    .login-box {
+        padding: 24px 20px;
+        min-width: 280px;
+    }
+    
+    .login-header h1 {
+        font-size: 20px;
+    }
+    
+    .logo {
+        font-size: 40px;
+    }
+    
+    .login-header p {
+        font-size: 12px;
+    }
+    
+    .form-group input {
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+    
+    .form-actions .btn {
+        padding: 12px;
+        font-size: 14px;
+    }
+    
+    .login-link {
+        font-size: 13px;
+    }
+    
+    .el-input__wrapper {
+        padding: 10px 14px;
+    }
+    
+    .el-input__inner {
+        font-size: 13px;
+    }
+    
+    .el-button {
+        padding: 12px 20px;
+        font-size: 14px;
+    }
+}
+
+/* 注册页面表单样式 */
+.form-group {
+    margin-bottom: 20px;
+    position: relative;
+    width: 100%;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #606266;
+    font-weight: 500;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #dcdfe6;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #409eff;
+    box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+.form-actions {
+    margin-top: 30px;
+}
+
+.form-actions .btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.form-actions .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.form-actions .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.form-actions .btn-secondary {
+    background: #f5f7fa;
+    color: #606266;
+    margin-right: 10px;
+}
+
+.form-actions .btn-secondary:hover {
+    background: #e4e7ed;
+}
+
+.login-link {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 14px;
+    color: #606266;
+}
+
+.login-link a {
+    color: #409eff;
+    text-decoration: none;
+}
+
+.login-link a:hover {
+    color: #66b1ff;
+}
+
+.error-message {
+    color: #f56c6c;
+    font-size: 12px;
+    margin-top: 6px;
+    position: absolute;
+    top: 100%;
+    left: 0;
+}
+
+.password-strength {
+    margin-top: 8px;
+}
+
+.strength-bar {
+    height: 4px;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.strength-bar.weak {
+    background: #f56c6c;
+    width: 33%;
+}
+
+.strength-bar.medium {
+    background: #e6a23c;
+    width: 66%;
+}
+
+.strength-bar.strong {
+    background: #67c23a;
+    width: 100%;
+}
+
+.strength-text {
+    font-size: 12px;
+    color: #909399;
+    margin-top: 4px;
+}
+
+/* 登录页面特定样式 */
+.form-item {
+    width: 100%;
+    margin-bottom: 26px; /* 增加表单项间距 */
+    position: relative;
+}
+
+.form-item .el-input {
+    width: 100% !important;
+}
+
+.form-item .el-input__wrapper {
+    width: 100% !important;
+    padding: 14px 16px; /* 增加输入框高度 */
+    border-radius: 10px;
+    box-shadow: 0 0 0 1px #dcdfe6 inset;
+    transition: all 0.3s ease;
+    background: #fafafa;
+}
+
+.form-item .el-input__wrapper:hover {
+    box-shadow: 0 0 0 1px #c0c4cc inset;
+    background: #fff;
+}
+
+.form-item .el-input__wrapper.is-focus {
+    box-shadow: 0 0 0 2px #409eff inset;
+    background: #fff;
+}
+
+.form-item .el-input__inner {
+    width: 100%;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.form-item.input-error .el-input__wrapper {
+    box-shadow: 0 0 0 2px #f56c6c inset;
+}
+
+.error-text {
+    color: #f56c6c;
+    font-size: 12px;
+    margin-top: 6px;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-4px);
+    }
+    75% {
+        transform: translateX(4px);
+    }
+}
+
+.login-button {
+    width: 100%;
+    height: 54px; /* 继续增加按钮高度 */
+    border-radius: 12px; /* 增大圆角 */
+    font-size: 16px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    transition: all 0.3s ease;
+    margin-top: 8px; /* 增加顶部间距 */
+}
+
+.login-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.login-button:active {
+    transform: translateY(0);
+}
+
+.login-links {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.link-separator {
+    width: 1px;
+    height: 12px;
+    background-color: #dcdfe6;
+    margin: 0 4px;
+}
+
+@media (max-width: 480px) {
+    .login-links {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
     }
 }

@@ -24,21 +24,12 @@ public class UserInitializer implements CommandLineRunner {
             log.info("【用户初始化】开始检查默认用户...");
 
             // 检查 admin 用户是否存在
-            User adminUser = userMapper.selectByUsername(1L, "admin");
+            User adminUser = userMapper.selectByUsername(1L, "super_admin");
             if (adminUser == null) {
                 log.info("【用户初始化】创建默认管理员用户...");
-                createUser("admin", "管理员", "123456");
+                createSuperAdmin("super_admin", "超级管理员", "123456");
             } else {
                 log.info("【用户初始化】admin 用户已存在");
-            }
-
-            // 检查 operator 用户是否存在
-            User operatorUser = userMapper.selectByUsername(1L, "operator");
-            if (operatorUser == null) {
-                log.info("【用户初始化】创建默认操作员用户...");
-                createUser("operator", "操作员", "123456");
-            } else {
-                log.info("【用户初始化】operator 用户已存在");
             }
 
             log.info("【用户初始化】完成");
@@ -52,7 +43,7 @@ public class UserInitializer implements CommandLineRunner {
     /**
      * 创建用户
      */
-    private void createUser(String username, String realName, String password) {
+    private void createSuperAdmin(String username, String realName, String password) {
         User user = new User();
         user.setTenantId(1L);
         user.setUsername(username);
@@ -60,7 +51,7 @@ public class UserInitializer implements CommandLineRunner {
         user.setRealName(realName);
         user.setPhone("13800138000");
         user.setEmail(username + "@gov.cn");
-        user.setRole("admin");
+        user.setRoleLevel(0); // 超级管理员
         user.setStatus(1);
         userMapper.insert(user);
         log.info("【用户初始化】用户创建成功：username={}", username);

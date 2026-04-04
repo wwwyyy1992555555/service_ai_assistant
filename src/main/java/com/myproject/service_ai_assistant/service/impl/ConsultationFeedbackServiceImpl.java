@@ -103,23 +103,36 @@ public class ConsultationFeedbackServiceImpl extends ServiceImpl<ConsultationFee
         }
         stats.put("satisfactionDistribution", satisfactionDistribution);
         
-        // 反馈原因统计
-        List<ConsultationFeedback> allFeedbacks = this.list();
+        // 反馈原因统计（使用分页避免内存溢出）
+        int pageSize = 1000;
+        int currentPage = 1;
         Map<String, Long> reasonStats = new HashMap<>();
-        for (ConsultationFeedback feedback : allFeedbacks) {
-            if (feedback.getFeedbackReasons() != null) {
-                try {
-                    List<String> reasons = objectMapper.readValue(
-                        feedback.getFeedbackReasons(), 
-                        new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {}
-                    );
-                    for (String reason : reasons) {
-                        reasonStats.put(reason, reasonStats.getOrDefault(reason, 0L) + 1);
+        
+        while (true) {
+            Page<ConsultationFeedback> page = new Page<>(currentPage, pageSize);
+            Page<ConsultationFeedback> feedbackPage = this.page(page, new LambdaQueryWrapper<>());
+            List<ConsultationFeedback> feedbacks = feedbackPage.getRecords();
+            
+            if (feedbacks.isEmpty()) break;
+            
+            for (ConsultationFeedback feedback : feedbacks) {
+                if (feedback.getFeedbackReasons() != null) {
+                    try {
+                        List<String> reasons = objectMapper.readValue(
+                            feedback.getFeedbackReasons(), 
+                            new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {}
+                        );
+                        for (String reason : reasons) {
+                            reasonStats.put(reason, reasonStats.getOrDefault(reason, 0L) + 1);
+                        }
+                    } catch (Exception e) {
+                        // 忽略解析错误
                     }
-                } catch (Exception e) {
-                    // 忽略解析错误
                 }
             }
+            
+            if (currentPage >= feedbackPage.getPages()) break;
+            currentPage++;
         }
         
         // 按出现次数排序
@@ -131,7 +144,7 @@ public class ConsultationFeedbackServiceImpl extends ServiceImpl<ConsultationFee
         
         stats.put("topReasons", sortedReasons);
         
-        // 低满意度问题（1-2 星）
+        // 低满意度问题（1-2 星）- 已有限制
         List<ConsultationFeedback> lowSatisfaction = this.list(new LambdaQueryWrapper<ConsultationFeedback>()
                 .in(ConsultationFeedback::getSatisfaction, 1, 2)
                 .orderByDesc(ConsultationFeedback::getCreatedTime)
@@ -170,13 +183,15 @@ public class ConsultationFeedbackServiceImpl extends ServiceImpl<ConsultationFee
         if (StringUtils.hasText(keyword)) {
             String searchKeyword = keyword.trim();
             
-            // 先查询出所有匹配的 consultationId
+            // 先查询出匹配的 consultationId（限制数量避免内存溢出）
             LambdaQueryWrapper<ConsultationRecord> recordWrapper = new LambdaQueryWrapper<ConsultationRecord>()
                 .and(w -> w
                     .like(ConsultationRecord::getUserName, searchKeyword)
                     .or()
                     .like(ConsultationRecord::getUserPhone, searchKeyword)
-                );
+                )
+                .select(ConsultationRecord::getId)  // 只查询ID字段
+                .last("LIMIT 5000");  // 限制最大数量
             
             List<ConsultationRecord> matchingRecords = consultationRecordService.list(recordWrapper);
             Set<Long> matchingConsultationIds = matchingRecords.stream()

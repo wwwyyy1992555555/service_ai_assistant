@@ -52,20 +52,20 @@
         </rollingPolicy>
     </appender>
     
-    <!-- 数据库操作日志 -->
-    <logger name="com.baomidou.mybatisplus" level="DEBUG" additivity="false">
+    <!-- 数据库操作日志（生产环境关闭DEBUG） -->
+    <logger name="com.baomidou.mybatisplus" level="WARN" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE_INFO"/>
     </logger>
     
-    <!-- Spring Web 日志 -->
-    <logger name="org.springframework.web" level="DEBUG" additivity="false">
+    <!-- Spring Web 日志（生产环境关闭DEBUG） -->
+    <logger name="org.springframework.web" level="WARN" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE_INFO"/>
     </logger>
     
     <!-- 应用日志 -->
-    <logger name="com.myproject.service_ai_assistant" level="DEBUG" additivity="false">
+    <logger name="com.myproject.service_ai_assistant" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE_INFO"/>
         <appender-ref ref="FILE_ERROR"/>

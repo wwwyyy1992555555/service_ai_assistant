@@ -16,7 +16,7 @@
     <div id="app" class="chat-container" v-cloak>
         <!-- 头部 -->
         <div class="chat-header">
-            <h1>{{ config.companyName }}</h1>
+            <h1>{{ config.tenantName }}</h1>
             <p>{{ config.serviceTime }}</p>
         </div>
 
@@ -243,7 +243,7 @@
                 // 使用 chat.js 中定义的全局变量
                 const config = reactive({
                     tenantId: window.CURRENT_TENANT_ID || 1, // 使用动态租户 ID
-                    companyName: '',
+                    tenantName: '',
                     serviceTime: '',
                     welcomeMessage: '',
                     themeColor: '#1890ff'
@@ -262,7 +262,7 @@
                         console.log('响应结果:', result);
                         
                         if (result.code === 200 && result.data) {
-                            config.companyName = result.data.companyName || 'XX 市政务服务中心';
+                            config.tenantName = result.data.tenantName || 'XX 市政务服务中心';
                             config.serviceTime = result.data.serviceTime || '工作时间：周一至周日 9:00-17:00';
                             config.welcomeMessage = result.data.welcomeMessage || '您好！我是 AI 智能助手，请问有什么可以帮您？';
                             config.themeColor = result.data.themeColor || '#1890ff';
@@ -276,7 +276,7 @@
                     } catch (error) {
                         console.error('加载系统配置失败:', error);
                         // 使用默认配置
-                        config.companyName = 'XX 市政务服务中心';
+                        config.tenantName = 'XX 市政务服务中心';
                         config.serviceTime = '工作时间：周一至周日 9:00-17:00';
                         config.welcomeMessage = '您好！我是 AI 智能助手，请问有什么可以帮您？';
                     }

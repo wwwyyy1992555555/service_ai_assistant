@@ -7,6 +7,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import jakarta.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,9 +20,17 @@ import java.util.Map;
 public class LlmServiceImpl implements LlmService {
     
     private final LlmConfig llmConfig;
+    private RestTemplate restTemplate;
     
     public LlmServiceImpl(LlmConfig llmConfig) {
         this.llmConfig = llmConfig;
+    }
+    
+    @PostConstruct
+    public void init() {
+        // 初始化单例 RestTemplate，避免重复创建导致内存泄漏
+        restTemplate = new RestTemplate();
+        log.info("【LLM服务】RestTemplate 初始化完成");
     }
     
     @Override
@@ -85,9 +94,8 @@ public class LlmServiceImpl implements LlmService {
             parameters.put("result_format", "text");
             requestBody.put("parameters", parameters);
             
-            // 发送请求
+            // 发送请求（使用单例 RestTemplate）
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-            RestTemplate restTemplate = new RestTemplate();
             
             ResponseEntity<Map> response = restTemplate.exchange(
                 url,

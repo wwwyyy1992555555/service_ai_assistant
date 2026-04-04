@@ -2,6 +2,8 @@ package com.myproject.service_ai_assistant.dto;
 
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 /**
  * 用户信息 DTO - 用于登录和前端展示
  */
@@ -34,9 +36,19 @@ public class UserDTO {
     private String email;
 
     /**
-     * 角色：admin-管理员/operator-操作员
+     * 状态：0-禁用/1-启用
      */
-    private String role;
+    private Integer status;
+
+    /**
+     * 创建时间
+     */
+    private LocalDateTime createdTime;
+
+    /**
+     * 角色级别：0-超级管理员/1-普通管理员/2-操作员
+     */
+    private Integer roleLevel;
 
     /**
      * 头像 URL
@@ -62,6 +74,11 @@ public class UserDTO {
      * 租户名称
      */
     private String tenantName;
+
+    /**
+     * 租户编码
+     */
+    private String tenantCode;
 
     /**
      * 租户 Logo URL
