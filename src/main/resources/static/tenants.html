@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>租户管理 - AI 智库</title>
+    
+    <!-- 样式文件 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <link rel="stylesheet" href="css/common.css">
+
+    <!-- 关键：v-cloak 必须内联且优先加载，防止页面闪烁 -->
+    <style>
+        [v-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="module-page">
+    <div id="app" class="app-container" v-cloak>
+        <div class="table-container">
+            <div class="table-header" style="padding: 16px 24px; border-bottom: 2px solid #f0f0f0; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+                <div class="table-title" style="color: #262626; font-size: 16px; font-weight: 600;">🏢 租户管理</div>
+                <div class="toolbar" style="display: flex; gap: 12px; align-items: center;">
+                    <el-input
+                            v-model="searchKeyword"
+                            placeholder="搜索租户编码、名称"
+                            style="width: 250px;"
+                            clearable
+                            @clear="handleClearSearch"
+                            @keyup.enter="handleSearch"
+                    >
+                        <template #append>
+                            <el-button type="primary" @click="handleSearch">
+                                <el-icon><search /></el-icon> 搜索
+                            </el-button>
+                        </template>
+                    </el-input>
+                    <el-select v-model="filterStatus" placeholder="状态筛选" style="width: 120px;" clearable @change="handleFilterChange">
+                        <el-option label="启用" :value="1"></el-option>
+                        <el-option label="禁用" :value="0"></el-option>
+                    </el-select>
+                    <el-select v-model="filterIndustryType" placeholder="行业类型" style="width: 150px;" clearable @change="handleFilterChange">
+                        <el-option 
+                            v-for="item in industryTypeList" 
+                            :key="item.id" 
+                            :value="item.id" 
+                            :label="item.typeName">
+                        </el-option>
+                    </el-select>
+                    <el-button type="primary" @click="handleCreateTenant">
+                        <el-icon><plus /></el-icon> 新增租户
+                    </el-button>
+                </div>
+            </div>
+            
+            <el-table 
+                :data="tenantsList" 
+                stripe 
+                style="width: 100%" 
+                class="tenants-table" 
+                v-loading="loading">
+                <el-table-column prop="tenantCode" label="租户编码" min-width="150">
+                    <template #default="scope">
+                        <span style="font-weight: 500; color: #262626;">{{ scope.row.tenantCode }}</span>
+                    </template>
+                </el-table-column>
+                
+                <el-table-column prop="tenantName" label="租户名称" min-width="180">
+                    <template #default="scope">
+                        <span style="font-weight: 500; color: #262626;">{{ scope.row.tenantName }}</span>
+                    </template>
+                </el-table-column>
+                
+                <el-table-column prop="industryType" label="行业类型" width="120" align="center">
+                    <template #default="scope">
+                        <el-tag size="small">{{ getIndustryTypeName(scope.row.industryType) }}</el-tag>
+                    </template>
+                </el-table-column>
+                
+                <el-table-column prop="contactPerson" label="联系人" width="120">
+                    <template #default="scope">
+                        <span>{{ scope.row.contactPerson || '-' }}</span>
+                    </template>
+                </el-table-column>
+                
+                <el-table-column prop="contactPhone" label="联系电话" width="130">
+                    <template #default="scope">
+                        <span>{{ scope.row.contactPhone || '-' }}</span>
+                    </template>
+                </el-table-column>
+                
+                <el-table-column prop="status" label="状态" width="100" align="center">
+                    <template #default="scope">
+                        <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'" size="small">
+                            {{ scope.row.status === 1 ? '启用' : '禁用' }}
+                        </el-tag>
+                    </template>
+                </el-table-column>
+                
+                <el-table-column prop="createdTime" label="创建时间" min-width="160">
+                    <template #default="scope">
+                        <span>{{ formatDate(scope.row.createdTime) }}</span>
+                    </template>
+                </el-table-column>
+                
+                <el-table-column prop="expireTime" label="到期时间" min-width="160">
+                    <template #default="scope">
+                        <span :style="{ color: isExpired(scope.row.expireTime) ? '#f56c6c' : '' }">
+                            {{ formatDate(scope.row.expireTime) }}
+                        </span>
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="操作" width="180" align="left">
+                    <template #default="scope">
+                        <el-button type="primary" size="small" @click="handleEditTenant(scope.row)">编辑</el-button>
+                        <el-button 
+                            size="small" 
+                            @click="handleToggleStatus(scope.row)"
+                            :type="scope.row.status === 1 ? 'warning' : 'success'">
+                            {{ scope.row.status === 1 ? '禁用' : '启用' }}
+                        </el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+            
+            <div style="padding: 16px; display: flex; justify-content: flex-end; align-items: center; gap: 16px;">
+                <el-pagination
+                    v-model:current-page="page.current"
+                    v-model:page-size="page.size"
+                    :page-sizes="[10, 20, 50, 100]"
+                    :total="page.total"
+                    layout="total, sizes, prev, pager, next, jumper"
+                    @size-change="handleSizeChange"
+                    @current-change="handleCurrentChange"
+                />
+            </div>
+        </div>
+
+        <!-- 新建/编辑租户对话框 -->
+        <el-dialog
+            v-model="dialogVisible"
+            :title="isEditMode ? '编辑租户' : '新建租户'"
+            width="600px"
+        >
+            <el-form :model="formData" :rules="formRules" ref="formRef" label-width="100px">
+                <el-form-item label="租户编码" prop="tenantCode">
+                    <el-input v-model="formData.tenantCode" placeholder="请输入租户编码（唯一标识）" :disabled="isEditMode" />
+                </el-form-item>
+                
+                <el-form-item label="租户名称" prop="tenantName">
+                    <el-input v-model="formData.tenantName" placeholder="请输入租户名称" />
+                </el-form-item>
+                
+                <el-form-item label="行业类型" prop="industryType">
+                    <el-select v-model="formData.industryType" placeholder="请选择行业类型" style="width: 100%">
+                        <el-option 
+                            v-for="item in industryTypeList" 
+                            :key="item.id" 
+                            :value="item.id" 
+                            :label="item.typeName">
+                        </el-option>
+                    </el-select>
+                </el-form-item>
+                
+                <el-form-item label="到期时间" prop="expireTime">
+                    <el-date-picker
+                        v-model="formData.expireTime"
+                        type="datetime"
+                        placeholder="选择到期时间"
+                        style="width: 100%"
+                        value-format="YYYY-MM-DD HH:mm:ss"
+                    />
+                </el-form-item>
+                
+                <el-form-item label="联系人" prop="contactPerson">
+                    <el-input v-model="formData.contactPerson" placeholder="请输入联系人" />
+                </el-form-item>
+                
+                <el-form-item label="联系电话" prop="contactPhone">
+                    <el-input v-model="formData.contactPhone" placeholder="请输入联系电话" />
+                </el-form-item>
+                
+                <el-form-item label="备注" prop="remark">
+                    <el-input 
+                        v-model="formData.remark" 
+                        type="textarea" 
+                        :rows="3"
+                        placeholder="请输入备注信息" 
+                    />
+                </el-form-item>
+            </el-form>
+            
+            <template #footer>
+                <el-button @click="dialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="handleSubmit" :loading="submitting">
+                    {{ isEditMode ? '保存' : '创建' }}
+                </el-button>
+            </template>
+        </el-dialog>
+    </div>
+
+    <!-- 引入 Vue 和 Element Plus -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/@element-plus/icons-vue"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.min.js"></script>
+    
+    <!-- 引入 API 封装 -->
+    <script src="js/api.js"></script>
+    
+    <!-- 引入 Element Plus 公共配置 -->
+    <script src="js/common-element-config.js"></script>
+    
+    <!-- 引入租户管理逻辑 -->
+    <script src="js/modules/tenants.js"></script>
+</body>
+</html>
