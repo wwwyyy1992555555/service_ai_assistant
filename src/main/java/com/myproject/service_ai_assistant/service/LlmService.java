@@ -13,6 +13,14 @@ public interface LlmService {
     String generateResponse(String question);
     
     /**
+     * 生成回复（带历史上下文）
+     * @param question 用户当前问题
+     * @param historyContext 历史对话上下文
+     * @return 回复内容
+     */
+    String generateResponseWithContext(String question, String historyContext);
+    
+    /**
      * 基于知识库生成回复
      * @param question 用户问题
      * @param knowledgeContext 知识库上下文
@@ -25,4 +33,12 @@ public interface LlmService {
      * @return true=可用，false=不可用
      */
     boolean isAvailable();
+    
+    /**
+     * 生成回复（带联网搜索）
+     * @param question 用户问题
+     * @param historyContext 历史对话上下文
+     * @return 回复内容
+     */
+    String generateResponseWithWebSearch(String question, String historyContext);
 }

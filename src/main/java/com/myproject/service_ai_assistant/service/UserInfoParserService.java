@@ -202,11 +202,16 @@ public class UserInfoParserService {
     }
     
     /**
-     * 检查是否是礼貌问候语
+     * 检查是否是礼貌问候语（增加长度限制，防误判）
      * @param text 清理后的文本
      * @return true-是礼貌用语，false-不是
      */
     private boolean isPoliteGreeting(String text) {
+        // 如果输入较长（超过15个字符），说明不只是礼貌用语，可能包含业务问题
+        if (text.length() > 15) {
+            return false;
+        }
+        
         if (text.matches(".*(你好|您好|hello|hi|Hi|HI|早上好|中午好|晚上好|晚安).*")) {
             return true;
         }

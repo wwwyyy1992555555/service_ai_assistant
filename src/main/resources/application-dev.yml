@@ -115,23 +115,26 @@ logging:
     org.springframework.web: WARN
     com.baomidou.mybatisplus: WARN
 
-# 大模型配置（可选）
+# 大模型配置(可选)
 app:
   llm:
-    # 是否启用大模型（true=启用，false=关闭）
-    enabled: false
-    # 大模型服务商（目前支持：aliyun, baidu, kimi）
-    provider: aliyun
-    # API Key（从服务商获取）
-    api-key: ${LLM_API_KEY:your-api-key-here}
-    # API Secret（从服务商获取）
+    # 是否启用大模型(true=启用,false=关闭)
+    enabled: true
+    # 大模型服务商(目前支持:aliyun, baidu, kimi, zhipu)
+    provider: zhipu
+    # API Key(从服务商获取)
+    api-key: ${LLM_API_KEY:086732e37f814fbc88673bfbf3de9312.PuYogwojyujj8yQr}
+    # API Secret(从服务商获取,智谱不需要)
     api-secret: ${LLM_API_SECRET:}
-    # 模型名称（qwen-turbo 免费）
-    model: qwen-turbo
-    # 超时时间（秒）
+    # 模型名称(glm-4-flash-250414最快免费,qwen-turbo低价)
+    model: glm-4-flash-250414
+    # API地址(根据服务商配置对应地址)
+    api-url: https://open.bigmodel.cn/api/paas/v4/chat/completions
+    # 超时时间(秒)
     timeout: 30
-    # 是否使用知识库增强（true=基于知识库回答，false=自由回答）
+    # 是否使用知识库增强(true=基于知识库回答,false=自由回答)
     knowledge-enhanced: true
+
 
 # 数据清理任务配置（开发环境）
 data:

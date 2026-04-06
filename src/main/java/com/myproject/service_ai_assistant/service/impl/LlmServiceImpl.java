@@ -8,12 +8,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import jakarta.annotation.PostConstruct;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 大模型服务实现类 - 接入阿里云通义千问
+ * 大模型服务实现类 - 支持阿里云通义千问、智谱GLM等
  */
 @Slf4j
 @Service
@@ -36,33 +37,157 @@ public class LlmServiceImpl implements LlmService {
     @Override
     public String generateResponse(String question) {
         if (!llmConfig.isEnabled()) {
-            log.debug("大模型未启用，返回默认回复");
+            log.debug("大模型未启用,返回默认回复");
             return getDefaultResponse(question);
         }
-        
-        log.info("调用大模型生成回复：{}", question);
-        
-        // 调用通义千问 API
-        return callQwenApi(question, null);
+            
+        log.info("调用大模型生成回复:{}", question);
+            
+        // 根据服务商调用不同API
+        if ("zhipu".equalsIgnoreCase(llmConfig.getProvider())) {
+            return callZhipuApi(question, null);
+        } else {
+            return callQwenApi(question, null);
+        }
+    }
+    
+    @Override
+    public String generateResponseWithContext(String question, String historyContext) {
+        if (!llmConfig.isEnabled()) {
+            log.debug("大模型未启用,返回默认回复");
+            return getDefaultResponse(question);
+        }
+            
+        log.info("调用大模型生成回复（带上下文）:{}", question);
+            
+        // 根据服务商调用不同API
+        if ("zhipu".equalsIgnoreCase(llmConfig.getProvider())) {
+            return callZhipuApiWithContext(question, historyContext, null);
+        } else {
+            return callQwenApiWithContext(question, historyContext, null);
+        }
     }
     
     @Override
     public String generateResponseWithKnowledge(String question, String knowledgeContext) {
         if (!llmConfig.isEnabled()) {
-            log.debug("大模型未启用，返回默认回复");
+            log.debug("大模型未启用,返回默认回复");
             return getDefaultResponse(question);
         }
-        
-        log.info("基于知识库调用大模型：{}", question);
-        log.debug("知识库上下文：{}", knowledgeContext);
-        
-        // 调用通义千问 API，带上知识库上下文
-        return callQwenApi(question, knowledgeContext);
+            
+        log.info("基于知识库调用大模型:{}", question);
+        log.debug("知识库上下文:{}", knowledgeContext);
+            
+        // 根据服务商调用不同API
+        if ("zhipu".equalsIgnoreCase(llmConfig.getProvider())) {
+            return callZhipuApi(question, knowledgeContext);
+        } else {
+            return callQwenApi(question, knowledgeContext);
+        }
     }
     
     @Override
     public boolean isAvailable() {
         return llmConfig.isEnabled();
+    }
+    
+    @Override
+    public String generateResponseWithWebSearch(String question, String historyContext) {
+        if (!llmConfig.isEnabled()) {
+            log.debug("大模型未启用,返回默认回复");
+            return getDefaultResponse(question);
+        }
+        
+        log.info("调用大模型联网搜索:{}", question);
+        
+        // 目前仅智谱GLM支持联网搜索
+        if ("zhipu".equalsIgnoreCase(llmConfig.getProvider())) {
+            return callZhipuApiWithWebSearch(question, historyContext);
+        } else {
+            // 其他模型暂不支持联网，降级为普通调用
+            log.warn("当前模型不支持联网搜索，降级为普通调用");
+            return generateResponseWithContext(question, historyContext);
+        }
+    }
+    
+    /**
+     * 调用智谱GLM API（带联网搜索）
+     */
+    private String callZhipuApiWithWebSearch(String question, String historyContext) {
+        try {
+            String url = llmConfig.getApiUrl();
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("Authorization", "Bearer " + llmConfig.getApiKey());
+            
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", llmConfig.getModel());
+            
+            // 构建messages数组
+            List<Map<String, String>> messages = new ArrayList<>();
+            
+            // 系统提示词
+            messages.add(Map.of("role", "system", "content", 
+                "你是一个智能客服助手。请根据搜索结果回答用户问题，要求：\n" +
+                "1. 优先使用搜索结果中的最新信息\n" +
+                "2. 如果用户提供了姓名和手机号，在末尾添加：[INFO_COLLECTED]姓名:XXX,手机:138XXXXXXXX[/INFO_COLLECTED]\n" +
+                "3. 使用中文，语气友好专业"));
+            
+            // 如果有历史上下文
+            if (historyContext != null && !historyContext.isEmpty()) {
+                messages.add(Map.of("role", "user", "content", "历史对话：\n" + historyContext));
+            }
+            
+            // 当前问题
+            messages.add(Map.of("role", "user", "content", question));
+            
+            requestBody.put("messages", messages);
+            requestBody.put("temperature", 0.7);
+            requestBody.put("max_tokens", 2000);
+            
+            // 开启联网搜索
+            Map<String, Object> webSearchTool = new HashMap<>();
+            webSearchTool.put("type", "web_search");
+            webSearchTool.put("web_search", Map.of(
+                "enable", true,
+                "search_result", true  // 返回搜索结果
+            ));
+            requestBody.put("tools", List.of(webSearchTool));
+            
+            log.info("【联网搜索】请求智谱GLM: model={}", llmConfig.getModel());
+            
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+            
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("choices")) {
+                List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
+                if (choices != null && !choices.isEmpty()) {
+                    Map<String, Object> firstChoice = choices.get(0);
+                    Map<String, Object> message = (Map<String, Object>) firstChoice.get("message");
+                    if (message != null && message.containsKey("content")) {
+                        String answer = (String) message.get("content");
+                        
+                        // 检查是否有搜索结果
+                        if (message.containsKey("tool_calls")) {
+                            log.info("【联网搜索】已使用联网搜索功能");
+                        }
+                        
+                        log.info("GLM联网回复成功:{}", answer);
+                        return answer;
+                    }
+                }
+            }
+            
+            log.warn("GLM联网返回格式异常:{}", responseBody);
+            return getSimulatedResponse(question);
+            
+        } catch (Exception e) {
+            log.error("调用GLM联网搜索失败:{}", e.getMessage(), e);
+            return getSimulatedResponse(question);
+        }
     }
     
     /**
@@ -71,17 +196,135 @@ public class LlmServiceImpl implements LlmService {
     private String callQwenApi(String question, String knowledgeContext) {
         try {
             // 构建请求
-            String url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation";
-            
+            String url = llmConfig.getApiUrl();
+                
             // 构建提示词
             String prompt = buildPrompt(question, knowledgeContext);
-            
+                
             // 请求头
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.set("Authorization", "Bearer " + llmConfig.getApiKey());
-            
+                
             // 请求体
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", llmConfig.getModel());
+                
+            Map<String, Object> input = new HashMap<>();
+            input.put("prompt", prompt);
+            requestBody.put("input", input);
+                
+            // 参数配置
+            Map<String, Object> parameters = new HashMap<>();
+            parameters.put("result_format", "text");
+            requestBody.put("parameters", parameters);
+                
+            // 发送请求(使用单例 RestTemplate)
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+                
+            ResponseEntity<Map> response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                entity,
+                Map.class
+            );
+                
+            // 解析响应
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("output")) {
+                Map<String, Object> output = (Map<String, Object>) responseBody.get("output");
+                if (output.containsKey("text")) {
+                    String answer = (String) output.get("text");
+                    log.info("大模型回复成功:{}", answer);
+                    return answer;
+                }
+            }
+                
+            log.warn("大模型返回格式异常:{}", responseBody);
+            return getSimulatedResponse(question);
+                
+        } catch (Exception e) {
+            log.error("调用大模型失败:{}", e.getMessage());
+            return getSimulatedResponse(question);
+        }
+    }
+        
+    /**
+     * 调用智谱GLM API
+     */
+    private String callZhipuApi(String question, String knowledgeContext) {
+        try {
+            // 智谱API地址
+            String url = llmConfig.getApiUrl();
+                
+            // 构建提示词
+            String prompt = buildPrompt(question, knowledgeContext);
+                
+            // 请求头
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("Authorization", "Bearer " + llmConfig.getApiKey());
+                
+            // 请求体(GLM使用messages数组格式)
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", llmConfig.getModel());
+                
+            // 构建messages数组
+            List<Map<String, String>> messages = List.of(
+                Map.of("role", "user", "content", prompt)
+            );
+            requestBody.put("messages", messages);
+                
+            // 参数配置
+            requestBody.put("temperature", 0.7);  // 温度参数,控制随机性
+            requestBody.put("max_tokens", 2000);   // 最大token数
+                
+            // 发送请求
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+                
+            ResponseEntity<Map> response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                entity,
+                Map.class
+            );
+                
+            // 解析响应
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("choices")) {
+                List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
+                if (choices != null && !choices.isEmpty()) {
+                    Map<String, Object> firstChoice = choices.get(0);
+                    Map<String, Object> message = (Map<String, Object>) firstChoice.get("message");
+                    if (message != null && message.containsKey("content")) {
+                        String answer = (String) message.get("content");
+                        log.info("GLM回复成功:{}", answer);
+                        return answer;
+                    }
+                }
+            }
+                
+            log.warn("GLM返回格式异常:{}", responseBody);
+            return getSimulatedResponse(question);
+                
+        } catch (Exception e) {
+            log.error("调用GLM失败:{}", e.getMessage(), e);
+            return getSimulatedResponse(question);
+        }
+    }
+    
+    /**
+     * 调用通义千问 API（带上下文）
+     */
+    private String callQwenApiWithContext(String question, String historyContext, String knowledgeContext) {
+        try {
+            String url = llmConfig.getApiUrl();
+            String prompt = buildPromptWithContext(question, historyContext, knowledgeContext);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("Authorization", "Bearer " + llmConfig.getApiKey());
+            
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("model", llmConfig.getModel());
             
@@ -89,65 +332,128 @@ public class LlmServiceImpl implements LlmService {
             input.put("prompt", prompt);
             requestBody.put("input", input);
             
-            // 参数配置
             Map<String, Object> parameters = new HashMap<>();
             parameters.put("result_format", "text");
             requestBody.put("parameters", parameters);
             
-            // 发送请求（使用单例 RestTemplate）
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
             
-            ResponseEntity<Map> response = restTemplate.exchange(
-                url,
-                HttpMethod.POST,
-                entity,
-                Map.class
-            );
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
             
-            // 解析响应
             Map<String, Object> responseBody = response.getBody();
             if (responseBody != null && responseBody.containsKey("output")) {
                 Map<String, Object> output = (Map<String, Object>) responseBody.get("output");
                 if (output.containsKey("text")) {
                     String answer = (String) output.get("text");
-                    log.info("大模型回复成功：{}", answer);
+                    log.info("大模型回复成功:{}", answer);
                     return answer;
                 }
             }
             
-            log.warn("大模型返回格式异常：{}", responseBody);
+            log.warn("大模型返回格式异常:{}", responseBody);
             return getSimulatedResponse(question);
             
         } catch (Exception e) {
-            log.error("调用大模型失败：{}", e.getMessage());
+            log.error("调用大模型失败:{}", e.getMessage());
             return getSimulatedResponse(question);
         }
     }
     
     /**
-     * 构建提示词
+     * 调用智谱GLM API（带上下文）
      */
-    private String buildPrompt(String question, String knowledgeContext) {
+    private String callZhipuApiWithContext(String question, String historyContext, String knowledgeContext) {
+        try {
+            String url = llmConfig.getApiUrl();
+            String prompt = buildPromptWithContext(question, historyContext, knowledgeContext);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("Authorization", "Bearer " + llmConfig.getApiKey());
+            
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", llmConfig.getModel());
+            
+            // GLM 支持多轮对话，构建 messages 数组
+            List<Map<String, String>> messages = new ArrayList<>();
+            
+            // 如果有历史上下文，先添加系统提示词
+            if (historyContext != null && !historyContext.isEmpty()) {
+                messages.add(Map.of("role", "system", "content", "以下是历史对话记录，请结合上下文理解用户当前问题。"));
+                messages.add(Map.of("role", "user", "content", historyContext));
+            }
+            
+            // 添加当前问题
+            messages.add(Map.of("role", "user", "content", prompt));
+            
+            requestBody.put("messages", messages);
+            requestBody.put("temperature", 0.7);
+            requestBody.put("max_tokens", 2000);
+            
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+            
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("choices")) {
+                List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
+                if (choices != null && !choices.isEmpty()) {
+                    Map<String, Object> firstChoice = choices.get(0);
+                    Map<String, Object> message = (Map<String, Object>) firstChoice.get("message");
+                    if (message != null && message.containsKey("content")) {
+                        String answer = (String) message.get("content");
+                        log.info("GLM回复成功:{}", answer);
+                        return answer;
+                    }
+                }
+            }
+            
+            log.warn("GLM返回格式异常:{}", responseBody);
+            return getSimulatedResponse(question);
+            
+        } catch (Exception e) {
+            log.error("调用GLM失败:{}", e.getMessage(), e);
+            return getSimulatedResponse(question);
+        }
+    }
+    
+    /**
+     * 构建带上下文的提示词
+     */
+    private String buildPromptWithContext(String question, String historyContext, String knowledgeContext) {
         StringBuilder sb = new StringBuilder();
         
+        // 添加历史上下文
+        if (historyContext != null && !historyContext.trim().isEmpty()) {
+            sb.append("【历史对话】\n");
+            sb.append(historyContext);
+            sb.append("\n\n");
+        }
+        
+        // 添加知识库上下文
         if (knowledgeContext != null && !knowledgeContext.trim().isEmpty()) {
-            sb.append("请基于以下参考资料，用专业、友好、简洁的语言回答用户问题。\n\n");
             sb.append("【参考资料】\n");
             sb.append(knowledgeContext);
             sb.append("\n\n");
-            sb.append("【要求】\n");
-            sb.append("1. 基于参考资料回答，不要编造信息\n");
-            sb.append("2. 如果参考资料不足，请礼貌说明\n");
-            sb.append("3. 使用中文回答\n");
-            sb.append("4. 适当使用 emoji 表情，让回复更亲切\n\n");
-        } else {
-            sb.append("你是一个专业的政企 AI 助手，请用友好、专业、简洁的语言回答用户问题。\n\n");
         }
         
-        sb.append("【用户问题】\n");
+        sb.append("【用户当前问题】\n");
         sb.append(question);
         
+        // 添加信息收集规则
+        sb.append("\n\n【回复要求】\n");
+        sb.append("1. 结合历史对话和参考资料回答\n");
+        sb.append("2. 如果用户提供了姓名和手机号，在末尾添加：[INFO_COLLECTED]姓名:XXX,手机:138XXXXXXXX[/INFO_COLLECTED]\n");
+        sb.append("3. 使用中文，语气友好专业\n");
+        
         return sb.toString();
+    }
+    
+    /**
+     * 构建提示词（向后兼容）
+     */
+    private String buildPrompt(String question, String knowledgeContext) {
+        return buildPromptWithContext(question, null, knowledgeContext);
     }
     
     /**

@@ -92,14 +92,12 @@
                 </el-table-column>
                 <el-table-column prop="satisfaction" label="满意度" width="140" align="center">
                     <template #default="scope">
-                        <el-rate 
-                            v-if="scope.row.satisfaction" 
-                            :model-value="scope.row.satisfaction" 
-                            :colors="['#99A9BF', '#F7BA2A', '#F7BA2A']"
-                            size="small"
-                            disabled
-                        />
-                        <span v-else style="color: #999;">-</span>
+                        <template v-if="scope.row.satisfaction">
+                            <el-rate :model-value="scope.row.satisfaction" :colors="['#99A9BF', '#F7BA2A', '#F7BA2A']" size="small" disabled />
+                        </template>
+                        <template v-else>
+                            <span style="color: #999;">-</span>
+                        </template>
                     </template>
                 </el-table-column>
                 <el-table-column prop="createdTime" label="创建时间" width="160" align="center">
@@ -156,13 +154,12 @@
                     <span v-else style="color: #999;">-</span>
                 </el-descriptions-item>
                 <el-descriptions-item label="满意度" :span="2">
-                    <el-rate 
-                        v-if="selectedFeedback.satisfaction" 
-                        :model-value="selectedFeedback.satisfaction" 
-                        :colors="['#99A9BF', '#F7BA2A', '#F7BA2A']"
-                        disabled
-                    />
-                    <span v-else style="color: #999;">未评价</span>
+                    <template v-if="selectedFeedback.satisfaction">
+                        <el-rate :model-value="selectedFeedback.satisfaction" :colors="['#99A9BF', '#F7BA2A', '#F7BA2A']" disabled />
+                    </template>
+                    <template v-else>
+                        <span style="color: #999;">未评价</span>
+                    </template>
                 </el-descriptions-item>
                 <el-descriptions-item label="反馈原因" :span="2">
                     <div v-if="selectedFeedback.feedbackReasons" style="line-height: 1.8;">

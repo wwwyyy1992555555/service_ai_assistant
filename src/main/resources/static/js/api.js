@@ -471,6 +471,148 @@ const userApi = {
     }
 };
 
+// ==================== 租户管理接口 ====================
+
+/**
+ * 租户管理 API（仅超级管理员可访问）
+ */
+const tenantApi = {
+    /**
+     * 获取租户列表
+     */
+    getList: async function(current = 1, size = 10, keyword = '', status = null, industryType = null) {
+        const params = {
+            current: current || 1,
+            size: size || 10,
+        };
+        
+        if (keyword) {
+            params.keyword = keyword;
+        }
+        
+        if (status !== null && status !== undefined) {
+            params.status = status;
+        }
+        
+        if (industryType !== null && industryType !== undefined) {
+            params.industryType = industryType;
+        }
+        
+        const result = await get(`${API_BASE}/tenant/list`, params);
+        return result.data || { records: [], total: 0 };
+    },
+    
+    /**
+     * 创建租户
+     */
+    create: async function(data) {
+        const result = await post(`${API_BASE}/tenant`, data);
+        return result.data;
+    },
+    
+    /**
+     * 更新租户
+     */
+    update: async function(data) {
+        const result = await request(`${API_BASE}/tenant`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+        return result.data;
+    },
+    
+    /**
+     * 更新租户状态
+     */
+    updateStatus: async function(id, status) {
+        await post(`${API_BASE}/tenant/status`, { id, status });
+        return true;
+    },
+    
+    /**
+     * 删除租户
+     */
+    delete: async function(id) {
+        const result = await request(`${API_BASE}/tenant/${id}`, {
+            method: 'DELETE',
+        });
+        return result.data;
+    }
+};
+
+// ==================== 行业类型接口 ====================
+
+/**
+ * 行业类型 API
+ */
+const industryTypeApi = {
+    /**
+     * 获取行业类型列表
+     */
+    getList: async function() {
+        const result = await get(`${API_BASE}/industry-type/list`);
+        return result.data || [];
+    }
+};
+
+// ==================== 反馈接口 ====================
+
+/**
+ * 加载反馈列表
+ */
+async function loadFeedbackList(page, size, status, satisfaction, keyword) {
+    const params = {
+        page,
+        size
+    };
+    
+    if (status !== null && status !== undefined) {
+        params.status = status;
+    }
+    if (satisfaction !== null && satisfaction !== undefined) {
+        params.satisfaction = satisfaction;
+    }
+    if (keyword) {
+        params.keyword = keyword;
+    }
+    
+    const result = await get(`${API_BASE}/consult/feedback/list`, params);
+    return result.data || { records: [], total: 0 };
+}
+
+/**
+ * 获取反馈统计
+ */
+async function loadFeedbackStatistics() {
+    const result = await get(`${API_BASE}/consult/feedback/statistics`);
+    return result.data || {
+        totalFeedbacks: 0,
+        pendingCount: 0,
+        avgSatisfaction: '0.00'
+    };
+}
+
+/**
+ * 删除反馈
+ */
+async function deleteFeedback(id) {
+    const result = await request(`${API_BASE}/consult/feedback/${id}`, {
+        method: 'DELETE',
+    });
+    return result.data;
+}
+
+/**
+ * 更新反馈
+ */
+async function updateFeedback(id, data) {
+    const result = await request(`${API_BASE}/consult/feedback/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+    return result.data;
+}
+
 // 将 API 函数挂载到 window 对象，保持与现有代码兼容
 window.loadDashboard = loadDashboard;
 window.loadHotQuestions = loadHotQuestions;
@@ -489,6 +631,12 @@ window.getSessionDetail = getSessionDetail;
 window.deleteSession = deleteSession;
 window.loadSystemConfig = loadTenantConfig;
 window.saveSystemConfig = saveTenantConfig;
+window.loadFeedbackList = loadFeedbackList;
+window.loadFeedbackStatistics = loadFeedbackStatistics;
+window.deleteFeedback = deleteFeedback;
+window.updateFeedback = updateFeedback;
 window.api = {
-    user: userApi
+    user: userApi,
+    tenant: tenantApi,
+    industryType: industryTypeApi
 };

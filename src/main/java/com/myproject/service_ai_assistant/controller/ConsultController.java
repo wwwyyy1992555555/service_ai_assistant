@@ -59,18 +59,7 @@ public class ConsultController {
         log.info("【智能问答】收到咨询请求：sessionId={}, tenantId={}, question={}", 
                 request.getSessionId(), request.getTenantId(), request.getQuestion());
 
-        // 1. 提取关键词用于搜索
-        String searchKeyword = userInfoParser.extractKeyword(request.getQuestion());
-        log.info("【智能问答】搜索关键词：{}", searchKeyword);
-        
-        // 2. 搜索知识库匹配答案 - 优化匹配逻辑
-        List<KnowledgeItem> matchedKnowledge = knowledgeItemService.searchKnowledge(
-                request.getTenantId(), 
-                searchKeyword != null ? searchKeyword : request.getQuestion()
-        );
-        
-        log.debug("【智能问答】匹配到 {} 条知识", matchedKnowledge.size());
-
+        String question = request.getQuestion();
         String answer;
         Long matchedKnowledgeId = null;
         Double matchScore = 0.0;
@@ -78,123 +67,124 @@ public class ConsultController {
         String categoryName = null;
         Integer viewCount = 0;
 
+        // ========== 第1步：礼貌用语拦截（快速响应）==========
+        String politeResponse = generatePoliteResponse(question);
+        if (politeResponse != null) {
+            log.info("【智能问答】礼貌用语拦截");
+            answer = politeResponse;
+            
+            // 仍需提取用户信息
+            String[] userInfo = parseUserInfo(question, request.getSessionId());
+            String currentName = userInfo[0];
+            String currentPhone = userInfo[1];
+            
+            // 保存对话记录
+            ConsultationRecord record = saveConsultationRecord(request, answer, null, 0.0, null, null, 0);
+            record.setUserName(currentName);
+            record.setUserPhone(currentPhone);
+            consultationRecordService.updateById(record);
+            
+            return buildResponse(answer, null, 0.0, null, null, 0, null, record.getId());
+        }
+
+        // ========== 第2步：用户信息提取（始终执行）==========
+        String[] userInfo = parseUserInfo(question, request.getSessionId());
+        String currentName = userInfo[0];
+        String currentPhone = userInfo[1];
+        log.info("【用户信息】姓名：{}, 手机号：{}", currentName, currentPhone);
+
+        // ========== 第3步：知识库搜索 ==========
+        List<KnowledgeItem> matchedKnowledge = knowledgeItemService.searchKnowledge(
+                request.getTenantId(), 
+                question
+        );
+        log.debug("【智能问答】匹配到 {} 条知识", matchedKnowledge.size());
+
         if (!matchedKnowledge.isEmpty()) {
-            // 找到匹配的知识
+            // 找到匹配的知识，直接使用知识库答案
             KnowledgeItem item = matchedKnowledge.get(0);
             
-            // 使用智能计算的匹配度
-            matchScore = calculateMatchScore(request.getQuestion(), item);
-            log.info("【智能问答】智能匹配度：{}", matchScore);
+            matchScore = calculateMatchScore(question, item);
+            log.info("【智能问答】匹配度：{}", matchScore);
             
-            // 混合模式：根据匹配度决定是否使用大模型
-            if (matchScore >= 0.8) {
-                // 高匹配度：直接使用知识库答案（快速、准确）
-                log.info("【智能问答】高匹配度，直接使用知识库答案");
-                answer = item.getAnswer();
-            } else if (llmConfig.isEnabled() && llmConfig.isKnowledgeEnhanced()) {
-                // 中匹配度：大模型基于知识库润色（准确 + 自然）
-                log.info("【智能问答】中匹配度，使用大模型润色答案");
-                String knowledgeContext = buildKnowledgeContext(matchedKnowledge);
-                answer = llmService.generateResponseWithKnowledge(request.getQuestion(), knowledgeContext);
-            } else {
-                // 未启用大模型或不需要增强：使用知识库答案
-                log.info("【智能问答】使用知识库答案");
-                answer = item.getAnswer();
-            }
-            
+            answer = item.getAnswer();
             matchedKnowledgeId = item.getId();
             knowledgeTitle = item.getTitle();
             categoryName = getCategoryName(item.getCategoryId());
             viewCount = item.getViewCount() + 1;
             
-            log.info("【智能问答】匹配到知识：id={}, title={}, score={}", item.getId(), item.getTitle(), matchScore);
+            log.info("【智能问答】使用知识库答案：id={}, title={}", item.getId(), item.getTitle());
             
             // 增加浏览次数
             item.setViewCount(viewCount);
             knowledgeItemService.updateById(item);
         } else {
-            // 未找到匹配，先检查是否有关键信息，再检查礼貌用语
-            log.warn("【智能问答】未找到匹配的知识，question={}", request.getQuestion());
+            // ========== 第4步：AI 兜底（知识库无结果）==========
+            log.info("【智能问答】知识库无结果，AI兜底");
             
-            // 1. 优先检查是否包含关键业务信息（证件、业务等）
-            String keyword = userInfoParser.extractKeyword(request.getQuestion());
-            boolean hasKeyInfo = keyword != null && !keyword.equals(request.getQuestion());
-            
-            if (hasKeyInfo) {
-                // 有明确的关键信息但没匹配到知识，使用大模型或智能回复
-                log.info("【智能问答】检测到关键信息：{}，使用大模型/智能回复", keyword);
+            try {
                 if (llmConfig.isEnabled()) {
-                    answer = llmService.generateResponse(request.getQuestion());
+                    // 检测是否需要联网搜索
+                    if (needWebSearch(question)) {
+                        log.info("【智能问答】联网搜索");
+                        String historyContext = getHistoryContext(request.getSessionId(), 3);
+                        answer = llmService.generateResponseWithWebSearch(question, historyContext);
+                    } else {
+                        // 检测是否需要加载上下文
+                        String historyContext = null;
+                        if (needHistoryContext(question)) {
+                            log.info("【智能问答】加载历史上下文");
+                            historyContext = getHistoryContext(request.getSessionId(), 3);
+                        }
+                        log.info("【智能问答】大模型生成回复");
+                        answer = llmService.generateResponseWithContext(question, historyContext);
+                    }
                 } else {
-                    // 先解析用户当前输入，提取姓名和手机号（以最新输入为准）
-                    String[] userInfo = parseUserInfo(request.getQuestion(), request.getSessionId());
-                    answer = generateSmartResponse(request.getQuestion(), userInfo[0], userInfo[1]);
+                    // LLM未启用，走智能模板
+                    log.info("【智能问答】LLM未启用，使用智能模板");
+                    answer = generateSmartResponse(question, currentName, currentPhone);
                 }
-            } else {
-                // 2. 没有关键信息，检查是否是礼貌用语
-                String politeResponse = generatePoliteResponse(request.getQuestion());
-                if (politeResponse != null) {
-                    log.info("【智能问答】使用礼貌用语回复");
-                    answer = politeResponse;
-                } else if (llmConfig.isEnabled()) {
-                    // 3. 启用大模型：调用大模型生成回复
-                    log.info("【智能问答】使用大模型生成回复");
-                    answer = llmService.generateResponse(request.getQuestion());
-                } else {
-                    // 4. 未启用大模型：使用智能回复（根据用户信息动态调整）
-                    log.info("【智能问答】使用智能回复模板");
-                    // 先解析用户当前输入，提取姓名和手机号（以最新输入为准）
-                    String[] userInfo = parseUserInfo(request.getQuestion(), request.getSessionId());
-                    answer = generateSmartResponse(request.getQuestion(), userInfo[0], userInfo[1]);
-                }
+            } catch (Exception e) {
+                // ========== 第5步：异常兜底（LLM异常）==========
+                log.error("【智能问答】LLM调用异常，使用智能模板兜底：{}", e.getMessage());
+                answer = generateSmartResponse(question, currentName, currentPhone);
             }
         }
 
-        // === 新增：解析用户当前输入，提取姓名和手机号（以最新输入为准）===
-        String[] userInfo = parseUserInfo(request.getQuestion(), request.getSessionId());
-        String currentName = userInfo[0];
-        String currentPhone = userInfo[1];
-        
-        log.info("【用户信息更新】最终使用的姓名：{}, 手机号：{}", currentName, currentPhone);
+        // ========== 保存对话记录 ==========
+        ConsultationRecord record = saveConsultationRecord(
+                request, answer, matchedKnowledgeId, matchScore, 
+                knowledgeTitle, categoryName, matchedKnowledge.isEmpty() ? 0 : viewCount
+        );
+        record.setUserName(currentName);
+        record.setUserPhone(currentPhone);
+        consultationRecordService.updateById(record);
 
-        // 2. 保存对话记录（使用更新后的姓名和手机号）
-        ConsultationRecord record = new ConsultationRecord();
-        record.setTenantId(request.getTenantId());
-        record.setSessionId(request.getSessionId());
-        record.setUserId(request.getUserId());
-        record.setUserName(currentName);  // 使用更新后的姓名
-        record.setUserPhone(currentPhone);  // 使用更新后的手机号
-        record.setQuestion(request.getQuestion());
-        record.setAnswer(answer);
-        record.setMatchedKnowledgeId(matchedKnowledgeId);
-        record.setMatchScore(matchScore);
-        record.setIsSolved(matchedKnowledgeId != null ? 1 : 0);
-        record.setDeviceType(request.getDeviceType());
-        record.setIpAddress(request.getIpAddress());
-        
-        consultationRecordService.save(record);
-        log.info("【智能问答】保存对话记录：recordId={}, name={}, phone={}", 
-                record.getId(), currentName, currentPhone);
+        // ========== 检查 AI 返回的用户信息标记 ==========
+        if (answer.contains("[INFO_COLLECTED]")) {
+            String llmName = extractFieldFromTag(answer, "姓名:");
+            String llmPhone = extractFieldFromTag(answer, "手机:");
+            
+            if (llmName != null || llmPhone != null) {
+                if (llmName != null) {
+                    record.setUserName(llmName);
+                    log.info("【AI信息提取】姓名：{}", llmName);
+                }
+                if (llmPhone != null) {
+                    record.setUserPhone(llmPhone);
+                    log.info("【AI信息提取】手机号：{}", llmPhone);
+                }
+                
+                // 移除标记并同步更新记录对象，确保数据库不存储标记
+                answer = answer.replaceAll("\\[INFO_COLLECTED\\].*?\\[/INFO_COLLECTED\\]", "").trim();
+                record.setAnswer(answer);
+                consultationRecordService.updateById(record);
+            }
+        }
 
-        // 3. 返回结果
-        ConsultResponse response = new ConsultResponse();
-        response.setAnswer(answer);
-        response.setMatchedKnowledgeId(matchedKnowledgeId);
-        response.setMatchScore(matchScore);
-        response.setKnowledgeTitle(knowledgeTitle);
-        response.setCategoryName(categoryName);
-        response.setViewCount(viewCount);
-        response.setConsultationId(record.getId()); // 添加咨询记录 ID
-        response.setSuggestedQuestions(matchedKnowledge.stream()
-                .skip(1)
-                .limit(3)
-                .map(KnowledgeItem::getQuestion)
-                .toList());
-        
-        log.info("【智能问答】返回答案：answerLength={}, suggestedQuestions={}", 
-                answer.length(), response.getSuggestedQuestions().size());
-
-        return Result.success(response);
+        // ========== 返回结果 ==========
+        return buildResponse(answer, matchedKnowledgeId, matchScore, knowledgeTitle, 
+                categoryName, viewCount, matchedKnowledge, record.getId());
     }
 
     @PostMapping("/parse-user-input")
@@ -407,37 +397,83 @@ public class ConsultController {
         
         String cleanText = question.trim();
         
+        // 如果输入较长（超过10个字符），说明不只是礼貌用语，可能包含业务问题
+        // 跳过礼貌用语处理，继续走知识库搜索或 AI 回复流程
+        if (cleanText.length() > 10) {
+            return null;
+        }
+        
         // === 问候语 ===
         if (cleanText.matches(".*(你好|您好|hello|hi|Hi|HI|早上好|中午好|晚上好|晚安).*")) {
             return "您好！👋 很高兴为您服务！请问有什么可以帮您？";
         }
         
         // === 感谢语 ===
-        if (cleanText.matches(".*(谢谢 | 感谢 | 谢谢你 | 感谢您 | 非常感谢 | 太感谢了).*")) {
+        if (cleanText.matches(".*(谢谢|感谢|谢谢你|感谢您|非常感谢|太感谢了).*")) {
             return "不客气！😊 这是我应该做的，还有其他问题吗？";
         }
         
         // === 再见语 ===
-        if (cleanText.matches(".*(再见 | 拜拜 | bye|Bye|BYE|下次见 | 回见).*")) {
+        if (cleanText.matches(".*(再见|拜拜|bye|Bye|BYE|下次见|回见).*")) {
             return "再见！祝您生活愉快！👋";
         }
                 
         // === 道歉语 ===
-        if (cleanText.matches(".*(对不起 | 抱歉 | 不好意思 | 请原谅).*")) {
+        if (cleanText.matches(".*(对不起|抱歉|不好意思|请原谅).*")) {
             return "没关系的！😊 请问有什么可以帮您？";
         }
                 
         // === 肯定语 ===
-        if (cleanText.matches(".*(好的 | 好的谢谢 | 明白了 | 知道了 | 了解 | 懂了|ok|OK|Ok).*")) {
+        if (cleanText.matches(".*(好的|好的谢谢|明白了|知道了|了解|懂了|ok|OK|Ok).*")) {
             return "好的！😊 如果有其他问题，随时都可以问我哦~";
         }
                 
         // === 否定语 ===
-        if (cleanText.matches(".*(不用了 | 不需要 | 算了 | 没关系 | 没事).*")) {
+        if (cleanText.matches(".*(不用了|不需要|算了|没关系|没事).*")) {
             return "好的，如果您有其他问题，欢迎随时咨询！😊";
         }
         
         return null;  // 不是礼貌用语，返回 null 继续后续处理
+    }
+    
+    /**
+     * 获取历史对话上下文（用于 AI 记忆）
+     * @param sessionId 会话 ID
+     * @param limit 最近 N 轮对话
+     * @return 格式化的历史对话字符串
+     */
+    private String getHistoryContext(String sessionId, int limit) {
+        if (sessionId == null || sessionId.isEmpty()) {
+            return "";
+        }
+        
+        try {
+            var queryWrapper = new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ConsultationRecord>()
+                    .eq(ConsultationRecord::getSessionId, sessionId)
+                    .orderByDesc(ConsultationRecord::getCreatedTime)
+                    .last("LIMIT " + limit);
+            
+            List<ConsultationRecord> records = consultationRecordService.list(queryWrapper);
+            if (records.isEmpty()) {
+                return "";
+            }
+            
+            // 反转列表，按时间正序排列
+            java.util.Collections.reverse(records);
+            
+            StringBuilder sb = new StringBuilder();
+            for (ConsultationRecord record : records) {
+                sb.append("用户：").append(record.getQuestion()).append("\n");
+                sb.append("AI：").append(record.getAnswer()).append("\n\n");
+            }
+            
+            log.debug("【历史上下文】加载 {} 条历史对话", records.size());
+            return sb.toString();
+            
+        } catch (Exception e) {
+            log.warn("【获取历史上下文】失败：{}", e.getMessage());
+            return "";
+        }
     }
     
     /**
@@ -483,6 +519,61 @@ public class ConsultController {
         }
         
         return new String[] { currentName, currentPhone };
+    }
+    
+    /**
+     * 检测是否需要联网搜索
+     * @param question 用户问题
+     * @return true=需要联网，false=不需要
+     */
+    private boolean needWebSearch(String question) {
+        // 检查功能是否启用
+        if (!llmConfig.isWebSearchEnabled()) {
+            return false;
+        }
+        
+        if (question == null || question.trim().isEmpty()) {
+            return false;
+        }
+        
+        // 从配置中读取联网搜索触发关键词
+        for (String keyword : llmConfig.getWebSearchKeywords()) {
+            if (question.contains(keyword)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * 检测是否需要加载历史上下文（追问场景）
+     * @param question 用户问题
+     * @return true=需要上下文，false=不需要
+     */
+    private boolean needHistoryContext(String question) {
+        // 检查功能是否启用
+        if (!llmConfig.isHistoryContextEnabled()) {
+            return false;
+        }
+        
+        if (question == null || question.trim().isEmpty()) {
+            return false;
+        }
+        
+        // 从配置中读取追问触发关键词
+        for (String keyword : llmConfig.getFollowUpKeywords()) {
+            if (question.contains(keyword)) {
+                return true;
+            }
+        }
+        
+        // 问题过短（可能是追问）
+        if (question.length() <= llmConfig.getShortQuestionLength()) {
+            return true;
+        }
+        
+        return false;
     }
     
     /**
@@ -554,5 +645,94 @@ public class ConsultController {
         double viewBonus = Math.min(item.getViewCount() * 0.001, 0.1);  // 最多加 0.1
 
         return Math.min(totalScore + viewBonus, 1.0);  // 不超过 1.0
+    }
+    
+    /**
+     * 保存对话记录
+     */
+    private ConsultationRecord saveConsultationRecord(ConsultRequest request, String answer, 
+            Long matchedKnowledgeId, Double matchScore, String knowledgeTitle, 
+            String categoryName, Integer viewCount) {
+        ConsultationRecord record = new ConsultationRecord();
+        record.setTenantId(request.getTenantId());
+        record.setSessionId(request.getSessionId());
+        record.setUserId(request.getUserId());
+        record.setQuestion(request.getQuestion());
+        record.setAnswer(answer);
+        record.setMatchedKnowledgeId(matchedKnowledgeId);
+        record.setMatchScore(matchScore);
+        record.setIsSolved(matchedKnowledgeId != null ? 1 : 0);
+        record.setDeviceType(request.getDeviceType());
+        record.setIpAddress(request.getIpAddress());
+        
+        consultationRecordService.save(record);
+        log.info("【智能问答】保存对话记录：recordId={}", record.getId());
+        return record;
+    }
+    
+    /**
+     * 构建响应对象
+     */
+    private Result<ConsultResponse> buildResponse(String answer, Long matchedKnowledgeId, 
+            Double matchScore, String knowledgeTitle, String categoryName, 
+            Integer viewCount, List<KnowledgeItem> matchedKnowledge, Long consultationId) {
+        ConsultResponse response = new ConsultResponse();
+        response.setAnswer(answer);
+        response.setMatchedKnowledgeId(matchedKnowledgeId);
+        response.setMatchScore(matchScore);
+        response.setKnowledgeTitle(knowledgeTitle);
+        response.setCategoryName(categoryName);
+        response.setViewCount(viewCount);
+        response.setConsultationId(consultationId);
+        
+        if (matchedKnowledge != null && !matchedKnowledge.isEmpty()) {
+            response.setSuggestedQuestions(matchedKnowledge.stream()
+                    .skip(1)
+                    .limit(3)
+                    .map(KnowledgeItem::getQuestion)
+                    .toList());
+        }
+        
+        log.info("【智能问答】返回答案：answerLength={}, consultationId={}", answer.length(), consultationId);
+        return Result.success(response);
+    }
+    
+    /**
+     * 从标记中提取字段值
+     * 例如：从 "[INFO_COLLECTED]姓名:张三,手机:13800138000[/INFO_COLLECTED]" 中提取 "姓名:" 后面的值
+     */
+    private String extractFieldFromTag(String text, String fieldName) {
+        try {
+            // 找到标记内容
+            int startIdx = text.indexOf("[INFO_COLLECTED]");
+            int endIdx = text.indexOf("[/INFO_COLLECTED]");
+            
+            if (startIdx == -1 || endIdx == -1) {
+                return null;
+            }
+            
+            // 提取标记内的内容
+            String content = text.substring(startIdx + 14, endIdx);
+            
+            // 查找字段
+            int fieldIdx = content.indexOf(fieldName);
+            if (fieldIdx == -1) {
+                return null;
+            }
+            
+            // 提取字段值（从字段名后到逗号或结束）
+            int valueStart = fieldIdx + fieldName.length();
+            int valueEnd = content.indexOf(",", valueStart);
+            if (valueEnd == -1) {
+                valueEnd = content.length();
+            }
+            
+            String value = content.substring(valueStart, valueEnd).trim();
+            return value.isEmpty() ? null : value;
+            
+        } catch (Exception e) {
+            log.warn("【提取标记字段】失败：{}", e.getMessage());
+            return null;
+        }
     }
 }

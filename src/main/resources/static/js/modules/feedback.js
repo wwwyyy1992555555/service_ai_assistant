@@ -35,20 +35,15 @@ const app = createApp({
         const processing = ref(false);
         const processRemark = ref('');
 
-        // API 基础路径
-        const API_BASE_URL = '/api';
+        // API 基础路径已在 api.js 中定义
 
         /**
          * 加载统计数据
          */
         async function loadStatistics() {
             try {
-                const response = await fetch(`${API_BASE_URL}/consult/feedback/statistics`);
-                const result = await response.json();
-                
-                if (result.code === 200) {
-                    stats.value = result.data;
-                }
+                const result = await window.loadFeedbackStatistics();
+                stats.value = result;
             } catch (error) {
                 // 静默失败，不显示错误日志
             }
@@ -60,32 +55,19 @@ const app = createApp({
         async function loadFeedbackList() {
             loading.value = true;
             try {
-                // 构建查询参数
-                const params = new URLSearchParams();
-                params.append('page', pageCurrent.value);
-                params.append('size', pageSize.value);
-                
-                // 添加搜索关键词
-                if (filterForm.keyword && filterForm.keyword.trim()) {
-                    params.append('keyword', filterForm.keyword.trim());
-                }
-                
-                if (filterForm.status !== null) {
-                    params.append('status', filterForm.status);
-                }
-                if (filterForm.satisfaction !== null) {
-                    params.append('satisfaction', filterForm.satisfaction);
-                }
-                
-                const response = await fetch(`${API_BASE_URL}/consult/feedback/list?${params.toString()}`);
-                const result = await response.json();
-                
-                if (result.code === 200) {
-                    feedbackList.value = result.data.records || [];
-                    pageTotal.value = result.data.total || 0;
-                }
+                const result = await window.loadFeedbackList(
+                    pageCurrent.value,
+                    pageSize.value,
+                    filterForm.status,
+                    filterForm.satisfaction,
+                    filterForm.keyword ? filterForm.keyword.trim() : ''
+                );
+                feedbackList.value = result.records || [];
+                pageTotal.value = result.total || 0;
             } catch (error) {
                 ElementPlus.ElMessage.error('加载失败');
+                feedbackList.value = [];
+                pageTotal.value = 0;
             } finally {
                 loading.value = false;
             }
@@ -172,27 +154,14 @@ const app = createApp({
         async function saveFeedbackEdit() {
             processing.value = true;
             try {
-                const response = await fetch(`${API_BASE_URL}/consult/feedback/${selectedFeedback.value.id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        id: selectedFeedback.value.id,
-                        processRemark: selectedFeedback.value.processRemark
-                    })
+                await window.updateFeedback(selectedFeedback.value.id, {
+                    id: selectedFeedback.value.id,
+                    processRemark: selectedFeedback.value.processRemark
                 });
-
-                const result = await response.json();
-                
-                if (result.code === 200) {
-                    ElementPlus.ElMessage.success('保存成功');
-                    detailDialogVisible.value = false;
-                    loadFeedbackList();
-                    loadStatistics();
-                } else {
-                    ElementPlus.ElMessage.error(result.message || '保存失败');
-                }
+                ElementPlus.ElMessage.success('保存成功');
+                detailDialogVisible.value = false;
+                loadFeedbackList();
+                loadStatistics();
             } catch (error) {
                 ElementPlus.ElMessage.error('保存失败');
             } finally {
@@ -214,19 +183,10 @@ const app = createApp({
                 }
             ).then(async () => {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/consult/feedback/${id}`, {
-                        method: 'DELETE'
-                    });
-
-                    const result = await response.json();
-                    
-                    if (result.code === 200) {
-                        ElementPlus.ElMessage.success('删除成功');
-                        loadFeedbackList();
-                        loadStatistics();
-                    } else {
-                        ElementPlus.ElMessage.error(result.message || '删除失败');
-                    }
+                    await window.deleteFeedback(id);
+                    ElementPlus.ElMessage.success('删除成功');
+                    loadFeedbackList();
+                    loadStatistics();
                 } catch (error) {
                     ElementPlus.ElMessage.error('删除失败');
                 }
@@ -246,30 +206,17 @@ const app = createApp({
 
             processing.value = true;
             try {
-                const response = await fetch(`${API_BASE_URL}/consult/feedback/${selectedFeedback.value.id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        id: selectedFeedback.value.id,
-                        isProcessed: 1,
-                        processRemark: selectedFeedback.value.processRemark,
-                        processor: '管理员',
-                        processTime: new Date().toISOString()
-                    })
+                await window.updateFeedback(selectedFeedback.value.id, {
+                    id: selectedFeedback.value.id,
+                    isProcessed: 1,
+                    processRemark: selectedFeedback.value.processRemark,
+                    processor: '管理员',
+                    processTime: new Date().toISOString()
                 });
-
-                const result = await response.json();
-                
-                if (result.code === 200) {
-                    ElementPlus.ElMessage.success('处理成功');
-                    detailDialogVisible.value = false;
-                    loadFeedbackList();
-                    loadStatistics();
-                } else {
-                    ElementPlus.ElMessage.error(result.message || '处理失败');
-                }
+                ElementPlus.ElMessage.success('处理成功');
+                detailDialogVisible.value = false;
+                loadFeedbackList();
+                loadStatistics();
             } catch (error) {
                 ElementPlus.ElMessage.error('处理失败');
             } finally {
