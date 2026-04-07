@@ -1,5 +1,7 @@
 package com.myproject.service_ai_assistant.config;
 
+import com.myproject.service_ai_assistant.common.ResultCode;
+import com.myproject.service_ai_assistant.context.UserContext;
 import com.myproject.service_ai_assistant.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -40,37 +42,51 @@ public class AuthInterceptor implements HandlerInterceptor {
         // 3. 验证 Token 是否有效
         if (!StringUtils.hasText(token)) {
             log.warn("【认证失败】Token 为空：uri={}", request.getRequestURI());
-            throw new BusinessException(401, "未授权访问");
+            throw new BusinessException(ResultCode.UNAUTHORIZED);
         }
         
-        // 4. 从 Redis 查询 Token 对应的用户 ID
+        // 4. 从 Redis 查询 Token 对应的用户信息
         String tokenKey = "token:" + token;
-        String userId = redisTemplate.opsForValue().get(tokenKey);
+        String userInfo = redisTemplate.opsForValue().get(tokenKey);
         
-        if (userId == null) {
+        if (userInfo == null) {
             log.warn("【认证失败】Token 无效或已过期：token={}", token);
-            throw new BusinessException(401, "登录已过期，请重新登录");
+            throw new BusinessException(ResultCode.TOKEN_EXPIRED);
         }
         
-        // 5. 【单设备登录控制】验证是否是当前最新的 Token
+        // 5. 解析用户信息（格式：userId:tenantId:roleLevel）
+        String[] parts = userInfo.split(":");
+        if (parts.length != 3) {
+            log.warn("【认证失败】用户信息格式错误：userInfo={}", userInfo);
+            throw new BusinessException(ResultCode.UNAUTHORIZED);
+        }
+        
+        Long userId = Long.parseLong(parts[0]);
+        Long tenantId = Long.parseLong(parts[1]);
+        Integer roleLevel = Integer.parseInt(parts[2]);
+        
+        // 6. 【单设备登录控制】验证是否是当前最新的 Token
         String userTokenKey = USER_TOKEN_KEY_PREFIX + userId;
         String currentToken = redisTemplate.opsForValue().get(userTokenKey);
         
         if (!token.equals(currentToken)) {
             log.warn("【认证失败】Token 已失效（可能已在其他设备登录）：userId={}, currentToken={}, requestToken={}", 
                     userId, currentToken, token);
-            throw new BusinessException(401, "您的账号已在其他设备登录，请重新登录");
+            throw new BusinessException(ResultCode.MULTI_LOGIN);
         }
         
-        // 6. 将用户 ID 存入请求上下文
-        request.setAttribute("userId", userId);
+        // 7. 将用户信息存入 UserContext（供 Service 层使用）
+        UserContext.set(userId, tenantId, roleLevel);
         
-        // 7. 刷新 Token 有效期（自动续期）
-        redisTemplate.expire(tokenKey, 7 * 24 * 60 * 60, TimeUnit.SECONDS);
-        redisTemplate.expire(userTokenKey, 7 * 24 * 60 * 60, TimeUnit.SECONDS);
-        
-        log.debug("【认证成功】userId={}, uri={}", userId, request.getRequestURI());
+        log.debug("【认证成功】userId={}, tenantId={}, roleLevel={}, uri={}", 
+                userId, tenantId, roleLevel, request.getRequestURI());
         
         return true;
+    }
+    
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+        // 清理 UserContext，防止内存泄漏
+        UserContext.clear();
     }
 }

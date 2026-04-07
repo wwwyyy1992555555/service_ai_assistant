@@ -1,8 +1,10 @@
 package com.myproject.service_ai_assistant.controller;
 
+import com.myproject.service_ai_assistant.annotation.RequireRole;
+import com.myproject.service_ai_assistant.common.Result;
+import com.myproject.service_ai_assistant.common.LevelCode;
 import com.myproject.service_ai_assistant.entity.ConsultationFeedback;
 import com.myproject.service_ai_assistant.service.ConsultationFeedbackService;
-import com.myproject.service_ai_assistant.common.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,12 +42,14 @@ public class FeedbackController {
     }
 
     @GetMapping("/statistics")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "获取反馈统计", description = "获取所有反馈的统计数据，包括总数、待处理数、平均满意度等")
     public Result<Map<String, Object>> getStatistics() {
         return Result.success(feedbackService.getStatistics());
     }
 
     @GetMapping("/pending")
+    @RequireRole(  minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "获取待处理反馈", description = "获取待处理的反馈列表，按创建时间倒序排列")
     public Result<List<ConsultationFeedback>> getPendingFeedbacks(
             @RequestParam(defaultValue = "20") Integer limit) {
@@ -53,6 +57,7 @@ public class FeedbackController {
     }
 
     @GetMapping("/list")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "获取所有反馈列表", description = "获取所有反馈记录，用于后台管理")
     public Result<Map<String, Object>> getAllFeedbacks(
             @RequestParam(defaultValue = "1") Integer page,
@@ -64,6 +69,7 @@ public class FeedbackController {
     }
 
     @PostMapping("/process/{id}")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "处理反馈", description = "管理员处理用户反馈，填写处理备注并标记为已处理")
     public Result<Void> processFeedback(
             @PathVariable Long id,
@@ -75,13 +81,15 @@ public class FeedbackController {
     }
 
     @DeleteMapping("/{id}")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "删除反馈", description = "删除指定的反馈记录")
     public Result<Void> deleteFeedback(@PathVariable Long id) {
         feedbackService.removeById(id);
         return Result.success();
     }
 
-    @PutMapping("/{id}")
+    @PostMapping("/{id}")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "更新反馈", description = "更新反馈记录信息")
     public Result<Void> updateFeedback(
             @PathVariable Long id,

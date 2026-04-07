@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.myproject.service_ai_assistant.common.ResultCode;
 import com.myproject.service_ai_assistant.entity.TenantConfig;
 import com.myproject.service_ai_assistant.entity.TenantInfo;
 import com.myproject.service_ai_assistant.exception.BusinessException;
@@ -76,7 +77,7 @@ public class TenantInfoServiceImpl extends ServiceImpl<TenantInfoMapper, TenantI
         wrapper.eq(TenantInfo::getTenantCode, tenantInfo.getTenantCode());
         Long count = this.count(wrapper);
         if (count > 0) {
-            throw new BusinessException(400, "租户编码已存在");
+            throw new BusinessException(ResultCode.TENANT_CODE_EXISTS);
         }
         
         // 2. 设置默认值
@@ -113,12 +114,12 @@ public class TenantInfoServiceImpl extends ServiceImpl<TenantInfoMapper, TenantI
         // 1. 检查租户是否存在
         TenantInfo tenant = this.getById(tenantId);
         if (tenant == null) {
-            throw new BusinessException(404, "租户不存在");
+            throw new BusinessException(ResultCode.TENANT_NOT_FOUND);
         }
         
         // 2. 检查租户状态（只能删除禁用的租户）
         if (tenant.getStatus() == 1) {
-            throw new BusinessException(400, "只能删除已禁用的租户，请先禁用该租户");
+            throw new BusinessException(ResultCode.TENANT_DELETE_FAILED);
         }
         
         // 3. 逻辑删除租户
@@ -134,7 +135,7 @@ public class TenantInfoServiceImpl extends ServiceImpl<TenantInfoMapper, TenantI
         // 1. 检查租户是否存在
         TenantInfo tenant = this.getById(tenantId);
         if (tenant == null) {
-            throw new BusinessException(404, "租户不存在");
+            throw new BusinessException(ResultCode.TENANT_NOT_FOUND);
         }
         
         // 2. 更新状态
@@ -164,13 +165,13 @@ public class TenantInfoServiceImpl extends ServiceImpl<TenantInfoMapper, TenantI
         // 1. 检查租户是否存在
         TenantInfo existing = this.getById(tenantInfo.getId());
         if (existing == null) {
-            throw new BusinessException(404, "租户不存在");
+            throw new BusinessException(ResultCode.TENANT_NOT_FOUND);
         }
         
         // 2. 更新非空字段（MyBatis-Plus 默认只更新非 null 字段）
         boolean success = this.updateById(tenantInfo);
         if (!success) {
-            throw new BusinessException(500, "更新租户信息失败");
+            throw new BusinessException(ResultCode.TENANT_UPDATE_FAILED);
         }
         
         log.info("【更新租户信息】更新成功：id={}", tenantInfo.getId());

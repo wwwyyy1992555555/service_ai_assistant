@@ -4,8 +4,12 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.myproject.service_ai_assistant.common.LevelCode;
+import com.myproject.service_ai_assistant.common.ResultCode;
 import com.myproject.service_ai_assistant.common.SimilarityUtil;
+import com.myproject.service_ai_assistant.context.UserContext;
 import com.myproject.service_ai_assistant.entity.KnowledgeItem;
+import com.myproject.service_ai_assistant.exception.BusinessException;
 import com.myproject.service_ai_assistant.mapper.KnowledgeItemMapper;
 import com.myproject.service_ai_assistant.service.KnowledgeItemService;
 import lombok.extern.slf4j.Slf4j;
@@ -259,5 +263,27 @@ public class KnowledgeItemServiceImpl extends ServiceImpl<KnowledgeItemMapper, K
         wrapper.eq(KnowledgeItem::getTenantId, tenantId)
                 .eq(KnowledgeItem::getPublishStatus, 1);
         return this.count(wrapper);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean updateById(KnowledgeItem entity) {
+        // ✅ 水平越权校验：确保修改的是当前租户的知识（运营商 tenant_id=0 可跨租户操作）
+        UserContext.validateHorizontalPermission(entity.getTenantId());
+        return super.updateById(entity);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean removeById(java.io.Serializable id) {
+        // ✅ 水平越权校验：确保删除的是当前租户的知识（运营商 tenant_id=0 可跨租户操作）
+        KnowledgeItem item = this.getById(id);
+        if (item == null) {
+            return false;
+        }
+        
+        UserContext.validateHorizontalPermission(item.getTenantId());
+        
+        return super.removeById(id);
     }
 }

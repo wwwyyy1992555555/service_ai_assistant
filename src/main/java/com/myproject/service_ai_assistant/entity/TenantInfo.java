@@ -1,6 +1,7 @@
 package com.myproject.service_ai_assistant.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import lombok.Delegate;
 
@@ -33,9 +34,9 @@ public class TenantInfo implements Serializable {
     private String tenantCode;
 
     /**
-     * 行业类型：legal-律所/medical-医院/government-政务/community-社区
+     * 行业类型 ID（关联 tenant_industry_type 表）
      */
-    private String industryType;
+    private Integer industryType;
 
     /**
      * 联系人
@@ -51,6 +52,12 @@ public class TenantInfo implements Serializable {
      * 状态：0-禁用 1-启用
      */
     private Integer status;
+
+    /**
+     * 过期时间（NULL 表示永久有效）
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private LocalDateTime expireTime;
 
     /**
      * 备注

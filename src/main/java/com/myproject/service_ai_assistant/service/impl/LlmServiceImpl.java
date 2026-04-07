@@ -34,22 +34,7 @@ public class LlmServiceImpl implements LlmService {
         log.info("【LLM服务】RestTemplate 初始化完成");
     }
     
-    @Override
-    public String generateResponse(String question) {
-        if (!llmConfig.isEnabled()) {
-            log.debug("大模型未启用,返回默认回复");
-            return getDefaultResponse(question);
-        }
-            
-        log.info("调用大模型生成回复:{}", question);
-            
-        // 根据服务商调用不同API
-        if ("zhipu".equalsIgnoreCase(llmConfig.getProvider())) {
-            return callZhipuApi(question, null);
-        } else {
-            return callQwenApi(question, null);
-        }
-    }
+
     
     @Override
     public String generateResponseWithContext(String question, String historyContext) {
@@ -68,23 +53,7 @@ public class LlmServiceImpl implements LlmService {
         }
     }
     
-    @Override
-    public String generateResponseWithKnowledge(String question, String knowledgeContext) {
-        if (!llmConfig.isEnabled()) {
-            log.debug("大模型未启用,返回默认回复");
-            return getDefaultResponse(question);
-        }
-            
-        log.info("基于知识库调用大模型:{}", question);
-        log.debug("知识库上下文:{}", knowledgeContext);
-            
-        // 根据服务商调用不同API
-        if ("zhipu".equalsIgnoreCase(llmConfig.getProvider())) {
-            return callZhipuApi(question, knowledgeContext);
-        } else {
-            return callQwenApi(question, knowledgeContext);
-        }
-    }
+
     
     @Override
     public boolean isAvailable() {

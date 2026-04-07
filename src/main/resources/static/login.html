@@ -24,17 +24,17 @@
                 <div class="login-form">
                     <div class="form-item">
                         <el-select
-                            v-model="loginForm.loginType"
+                            v-model="loginForm.tenantId"
                             placeholder="请选择登录类型"
                             size="large"
                             style="width: 100%;"
                         >
-                            <el-option label="租户登录" value="tenant"></el-option>
-                            <el-option label="超级管理员" value="super"></el-option>
+                            <el-option label="租户登录" :value="null"></el-option>
+                            <el-option label="运营商登录" :value="0"></el-option>
                         </el-select>
                     </div>
 
-                    <div class="form-item" v-if="loginForm.loginType === 'tenant'">
+                    <div class="form-item" v-if="loginForm.tenantId === null">
                         <el-input
                             v-model="loginForm.tenantCode"
                             placeholder="请输入租户编码"
@@ -112,7 +112,7 @@
         const app = createApp({
             setup() {
                 const loginForm = Vue.reactive({
-                    loginType: 'tenant',
+                    tenantId: null,
                     tenantCode: '',
                     username: '',
                     password: ''
@@ -153,12 +153,12 @@
                     loading.value = true;
 
                     try {
-                        // 方案一：(tenant_id, username) 联合唯一，必须传 tenantId
+                        // 统一通过 tenantId 和 tenantCode 登录
                         const result = await window.login(
                             loginForm.username,
                             loginForm.password,
                             loginForm.tenantCode || '',
-                            loginForm.loginType
+                            loginForm.tenantId
                         );
 
                         if (result.code === 200 && result.data) {

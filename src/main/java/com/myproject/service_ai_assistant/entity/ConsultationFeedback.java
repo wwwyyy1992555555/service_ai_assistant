@@ -87,4 +87,16 @@ public class ConsultationFeedback implements Serializable {
      */
     @TableLogic
     private Integer deleted;
+
+    /**
+     * 用户姓名（非数据库字段，用于关联查询）
+     */
+    @TableField(exist = false)
+    private String userName;
+
+    /**
+     * 用户手机号（非数据库字段，用于关联查询）
+     */
+    @TableField(exist = false)
+    private String userPhone;
 }

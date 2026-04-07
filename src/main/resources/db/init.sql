@@ -22,6 +22,7 @@ CREATE TABLE `tenant_info` (
   `theme_color` VARCHAR(20) DEFAULT '#1890ff' COMMENT '主题色',
   `welcome_message` VARCHAR(500) DEFAULT '您好，请问有什么可以帮您？' COMMENT '欢迎语',
   `status` TINYINT DEFAULT 1 COMMENT '状态：0-禁用 1-启用',
+  `expire_time` DATETIME DEFAULT NULL COMMENT '过期时间（NULL 表示永久有效）',
   `remark` VARCHAR(1000) DEFAULT NULL COMMENT '备注',
   `created_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除 1-已删除',
@@ -91,7 +92,7 @@ CREATE TABLE `consultation_record` (
   `question` TEXT NOT NULL COMMENT '用户问题',
   `answer` TEXT COMMENT 'AI 回答',
   `matched_knowledge_id` BIGINT DEFAULT NULL COMMENT '匹配的知识 ID',
-  `match_score` DECIMAL(5,4) DEFAULT NULL COMMENT '匹配度分数',
+  `match_score` DECIMAL(3,2) DEFAULT NULL COMMENT '匹配度分数（0-1）',
   `satisfaction` TINYINT DEFAULT NULL COMMENT '满意度：1-非常不满意 5-非常满意',
   `feedback` VARCHAR(500) DEFAULT NULL COMMENT '用户反馈',
   `is_solved` TINYINT DEFAULT 1 COMMENT '是否解决',
@@ -102,7 +103,8 @@ CREATE TABLE `consultation_record` (
   `deleted` TINYINT DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `idx_tenant_session` (`tenant_id`, `session_id`),
-  KEY `idx_created_time` (`created_time`)
+  KEY `idx_session_tenant_time` (`session_id`, `tenant_id`, `created_time`),
+  KEY `idx_tenant_time` (`tenant_id`, `created_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='咨询对话记录表';
 
 -- ========================================
@@ -171,12 +173,11 @@ CREATE TABLE `consultation_feedback` (
   `processor` VARCHAR(50) COMMENT '处理人',
   `process_time` DATETIME COMMENT '处理时间',
   `created_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `deleted` INT DEFAULT 0 COMMENT '逻辑删除',
+  `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除',
   PRIMARY KEY (`id`),
-  KEY `idx_tenant` (`tenant_id`),
-  KEY `idx_consultation` (`consultation_id`),
-  KEY `idx_processed` (`is_processed`),
-  KEY `idx_created` (`created_time`)
+  KEY `idx_tenant_consultation` (`tenant_id`, `consultation_id`),
+  KEY `idx_session` (`session_id`),
+  KEY `idx_processed_time` (`is_processed`, `created_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='咨询反馈表';
 
 -- ========================================

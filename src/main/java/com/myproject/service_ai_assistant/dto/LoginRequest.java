@@ -23,12 +23,12 @@ public class LoginRequest {
     private String password;
 
     /**
-     * 租户编码（登录时填写）
+     * 租户编码（普通租户登录时填写）
      */
     private String tenantCode;
 
     /**
-     * 登录类型：tenant-租户登录/super-超级管理员登录
+     * 租户ID（超级管理员登录时传0，普通租户可不传由tenantCode解析）
      */
-    private String loginType = "tenant";
+    private Long tenantId;
 }

@@ -2,7 +2,9 @@
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.myproject.service_ai_assistant.annotation.RequireRole;
 import com.myproject.service_ai_assistant.common.Result;
+import com.myproject.service_ai_assistant.common.LevelCode;
 import com.myproject.service_ai_assistant.dto.CategoryDTO;
 import com.myproject.service_ai_assistant.dto.KnowledgeDTO;
 import com.myproject.service_ai_assistant.entity.KnowledgeCategory;
@@ -12,7 +14,6 @@ import com.myproject.service_ai_assistant.service.KnowledgeItemService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -36,6 +37,7 @@ public class KnowledgeController {
     private KnowledgeCategoryService knowledgeCategoryService;
 
     @GetMapping("/list")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "分页查询知识列表")
     public Result<Page<KnowledgeItem>> list(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
@@ -66,6 +68,7 @@ public class KnowledgeController {
     }
 
     @GetMapping("/{id}")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "获取知识详情")
     public Result<KnowledgeItem> getById(@Parameter(description = "知识 ID") @PathVariable Long id) {
         log.info("【知识详情】查询 ID: {}", id);
@@ -79,6 +82,7 @@ public class KnowledgeController {
     }
 
     @PostMapping
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "新增知识")
     public Result<Boolean> save(@Valid @RequestBody KnowledgeDTO dto) {
         log.info("【新增知识】title={}, question={}", dto.getTitle(), dto.getQuestion());
@@ -96,6 +100,7 @@ public class KnowledgeController {
     }
 
     @PutMapping
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "更新知识")
     public Result<Boolean> update(@Valid @RequestBody KnowledgeDTO dto) {
         log.info("【更新知识】id={}, title={}", dto.getId(), dto.getTitle());
@@ -113,6 +118,7 @@ public class KnowledgeController {
     }
 
     @DeleteMapping("/{id}")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "删除知识")
     public Result<Boolean> delete(@Parameter(description = "知识 ID") @PathVariable Long id) {
         log.info("【删除知识】id={}", id);
@@ -137,6 +143,7 @@ public class KnowledgeController {
     }
 
     @GetMapping("/categories")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "查询分类列表")
     public Result<List<KnowledgeCategory>> getCategories() {
         log.info("【查询分类列表】tenantId=1");
@@ -145,6 +152,7 @@ public class KnowledgeController {
     }
     
     @PostMapping("/category")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "新增/编辑分类")
     public Result<Boolean> saveCategory(@RequestBody CategoryDTO dto) {
         log.info("【保存分类】name={}", dto.getCategoryName());
@@ -172,6 +180,7 @@ public class KnowledgeController {
     }
     
     @DeleteMapping("/category/{id}")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "删除分类")
     public Result<Boolean> deleteCategory(@Parameter(description = "分类 ID") @PathVariable Long id) {
         log.info("【删除分类】id={}", id);

@@ -4,10 +4,12 @@ import cn.hutool.crypto.digest.BCrypt;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.myproject.service_ai_assistant.common.PasswordUtil;
+import com.myproject.service_ai_assistant.common.LevelCode;
+import com.myproject.service_ai_assistant.context.UserContext;
 import com.myproject.service_ai_assistant.dto.LoginRequest;
 import com.myproject.service_ai_assistant.dto.UserCreateRequest;
+import com.myproject.service_ai_assistant.common.ResultCode;
 import com.myproject.service_ai_assistant.dto.UserDTO;
-import com.myproject.service_ai_assistant.entity.TenantConfig;
 import com.myproject.service_ai_assistant.entity.TenantInfo;
 import com.myproject.service_ai_assistant.entity.User;
 import com.myproject.service_ai_assistant.exception.BusinessException;
@@ -74,12 +76,13 @@ public class UserServiceImpl implements UserService {
     private static final String TENANT_CODE_CACHE_PREFIX = "tenant:code:";
 
     /**
-     * 用户登录（支持租户用户和超级管理员）
+     * 用户登录
      * 方案一：(tenant_id, username) 联合唯一
      */
     @Override
     public UserDTO login(LoginRequest request) {
-        log.info("【用户登录】开始登录，username={}, loginType={}", request.getUsername(), request.getLoginType());
+        log.info("【用户登录】开始登录，username={}, tenantId={}, tenantCode={}", 
+                request.getUsername(), request.getTenantId(), request.getTenantCode());
         
         // 1. 检查账号是否已被锁定
         String failCountKey = "login:fail:" + request.getUsername();
@@ -89,98 +92,90 @@ public class UserServiceImpl implements UserService {
         if (Boolean.TRUE.equals(isLocked)) {
             Long remainSeconds = redisTemplate.getExpire(lockKey, TimeUnit.SECONDS);
             log.warn("【用户登录】账号已被锁定，请稍后再试：username={}, 剩余时间={}秒", request.getUsername(), remainSeconds);
-            throw new BusinessException(403, String.format("账号已被锁定，请 %d 分钟后再试", remainSeconds / 60));
+            throw new BusinessException(ResultCode.ACCOUNT_LOCKED, remainSeconds / 60);
         }
         
-        // 2. 查询用户（根据 loginType 决定查询策略）
-        User user;
-        if ("super".equals(request.getLoginType())) {
+        // 2. 确定 tenantId（优先使用前端传的 tenantId，否则通过 tenantCode 解析）
+        Long tenantId;
+        if (request.getTenantId() != null && request.getTenantId() == LevelCode.ROLE_LEVEL_TENANT_ID) {
             // 超级管理员：tenant_id 固定为 0
-            user = userMapper.selectByUsername(0L, request.getUsername());
-        } else {
-            // 租户用户：先根据 tenantCode 查 tenant_id（带缓存），再联合查询用户和配置
-            if (request.getTenantCode() == null || request.getTenantCode().trim().isEmpty()) {
-                throw new BusinessException(400, "请输入租户编码");
-            }
-            
+            tenantId = LevelCode.ROLE_LEVEL_TENANT_ID;
+            log.info("【用户登录】超级管理员登录模式：tenantId=0");
+        } else if (request.getTenantCode() != null && !request.getTenantCode().trim().isEmpty()) {
+            // 租户用户：根据 tenantCode 查 tenant_id
             String tenantCode = request.getTenantCode().trim();
-            Long resolvedTenantId = getTenantIdByCode(tenantCode);
-            
-            // 联合查询用户和租户配置（一次 SQL）
-            java.util.Map<String, Object> userWithConfig = userMapper.selectUserWithConfig(resolvedTenantId, request.getUsername());
-            
-            if (userWithConfig == null) {
-                log.warn("【用户登录】用户不存在：username={}, tenantId={}", request.getUsername(), resolvedTenantId);
-                incrementLoginFailCount(failCountKey, lockKey);
-                throw new BusinessException(401, "用户名或密码错误");
-            }
-            
-            // 从 Map 中提取 User 对象
-            user = new User();
-            user.setId(((Number) userWithConfig.get("id")).longValue());
-            user.setTenantId(((Number) userWithConfig.get("tenant_id")).longValue());
-            user.setUsername((String) userWithConfig.get("username"));
-            user.setPassword((String) userWithConfig.get("password"));
-            user.setRealName((String) userWithConfig.get("real_name"));
-            user.setPhone((String) userWithConfig.get("phone"));
-            user.setEmail((String) userWithConfig.get("email"));
-            user.setRoleLevel(((Number) userWithConfig.get("role_level")).intValue());
-            user.setStatus(((Number) userWithConfig.get("status")).intValue());
-            user.setAvatarUrl((String) userWithConfig.get("avatar_url"));
-            user.setLastLoginTime((java.time.LocalDateTime) userWithConfig.get("last_login_time"));
-            user.setLastLoginIp((String) userWithConfig.get("last_login_ip"));
-            user.setCreatedTime((java.time.LocalDateTime) userWithConfig.get("created_time"));
-            user.setUpdatedTime((java.time.LocalDateTime) userWithConfig.get("updated_time"));
+            tenantId = getTenantIdByCode(tenantCode);
+            log.info("【用户登录】租户登录模式：tenantCode={}, tenantId={}", tenantCode, tenantId);
+        } else {
+            log.warn("【用户登录】缺少租户信息：username={}", request.getUsername());
+            throw new BusinessException(ResultCode.TENANT_CODE_REQUIRED);
         }
         
-        if (user == null) {
-            log.warn("【用户登录】用户不存在：username={}, loginType={}", request.getUsername(), request.getLoginType());
-            // 记录失败次数
+        // 3. 查询用户和租户配置（一次 SQL）
+        java.util.Map<String, Object> userWithConfig = userMapper.selectUserWithConfig(tenantId, request.getUsername());
+        
+        if (userWithConfig == null) {
+            log.warn("【用户登录】用户不存在：username={}, tenantId={}", request.getUsername(), tenantId);
             incrementLoginFailCount(failCountKey, lockKey);
-            throw new BusinessException(401, "用户名或密码错误");
+            throw new BusinessException(ResultCode.AUTH_FAILED);
         }
+        
+        // 从 Map 中提取 User 对象
+        User user = new User();
+        user.setId(((Number) userWithConfig.get("id")).longValue());
+        user.setTenantId(((Number) userWithConfig.get("tenant_id")).longValue());
+        user.setUsername((String) userWithConfig.get("username"));
+        user.setPassword((String) userWithConfig.get("password"));
+        user.setRealName((String) userWithConfig.get("real_name"));
+        user.setPhone((String) userWithConfig.get("phone"));
+        user.setEmail((String) userWithConfig.get("email"));
+        user.setRoleLevel(((Number) userWithConfig.get("role_level")).intValue());
+        user.setStatus(((Number) userWithConfig.get("status")).intValue());
+        user.setAvatarUrl((String) userWithConfig.get("avatar_url"));
+        user.setLastLoginTime((java.time.LocalDateTime) userWithConfig.get("last_login_time"));
+        user.setLastLoginIp((String) userWithConfig.get("last_login_ip"));
+        user.setCreatedTime((java.time.LocalDateTime) userWithConfig.get("created_time"));
+        user.setUpdatedTime((java.time.LocalDateTime) userWithConfig.get("updated_time"));
+        
         log.info("【用户登录】用户已找到：userId={}, username={}, tenantId={}, roleLevel={}", 
                 user.getId(), user.getUsername(), user.getTenantId(), user.getRoleLevel());
         
-        // 3. 验证密码
+        // 4. 验证密码
         boolean passwordMatch = BCrypt.checkpw(request.getPassword(), user.getPassword());
         log.info("【用户登录】密码验证结果：{}", passwordMatch ? "匹配" : "不匹配");
         if (!passwordMatch) {
             log.warn("【用户登录】密码错误：username={}", request.getUsername());
             // 记录失败次数
             incrementLoginFailCount(failCountKey, lockKey);
-            throw new BusinessException(401, "用户名或密码错误");
+            throw new BusinessException(ResultCode.AUTH_FAILED);
         }
         
-        // 4. 检查用户状态
+        // 5. 检查用户状态
         if (user.getStatus() == 0) {
             log.warn("【用户登录】用户已被禁用：username={}", request.getUsername());
-            throw new BusinessException(403, "账号已被禁用，请联系管理员");
+            throw new BusinessException(ResultCode.ACCOUNT_DISABLED);
         }
         
-        // 5. 更新登录信息（局部事务）
+        // 6. 更新登录信息（局部事务）
         updateLoginInfo(user.getId());
         
-        // 6. 转换为 DTO
+        // 7. 转换为 DTO
         UserDTO userDTO = new UserDTO();
         BeanUtils.copyProperties(user, userDTO);
         // 不返回密码
         
-        // 6.1 如果是租户用户，填充租户配置（从联合查询结果中获取）
-        if (!"super".equals(request.getLoginType()) && user.getTenantId() != 0) {
-            java.util.Map<String, Object> userWithConfig = userMapper.selectUserWithConfig(user.getTenantId(), user.getUsername());
-            if (userWithConfig != null) {
-                userDTO.setTenantLogoUrl((String) userWithConfig.get("tenant_logo_url"));
-                userDTO.setTenantThemeColor((String) userWithConfig.get("tenant_theme_color"));
-                userDTO.setTenantWelcomeMessage((String) userWithConfig.get("tenant_welcome_message"));
-            }
+        // 7.1 填充租户配置（从联合查询结果中获取）
+        if (userWithConfig != null) {
+            userDTO.setTenantLogoUrl((String) userWithConfig.get("tenant_logo_url"));
+            userDTO.setTenantThemeColor((String) userWithConfig.get("tenant_theme_color"));
+            userDTO.setTenantWelcomeMessage((String) userWithConfig.get("tenant_welcome_message"));
         }
         
-        // 7. 填充租户信息
-        if ("super".equals(request.getLoginType()) || user.getTenantId() == 0) {
+        // 8. 填充租户信息
+        if (user.getTenantId().equals(LevelCode.ROLE_LEVEL_SUPER_ADMIN)) {
             // 超级管理员
             log.info("【用户登录】超级管理员登录成功：username={}", request.getUsername());
-            userDTO.setTenantId(0L);
+            userDTO.setTenantId(LevelCode.ROLE_LEVEL_TENANT_ID);
             userDTO.setTenantName("平台管理端");
         } else {
             // 租户用户 - 从 tenant_info 获取租户名称
@@ -199,7 +194,15 @@ public class UserServiceImpl implements UserService {
         String token = generateToken(user);
         userDTO.setToken(token);
         
-        // 8. 单设备登录控制 - 使旧设备的 Token 失效
+        // 9. 将 Token 和用户信息存入 Redis
+        String redisKey = "token:" + token;
+        // 存储格式：userId:tenantId:roleLevel（简化序列化，避免JSON依赖）
+        String userInfo = user.getId() + ":" + user.getTenantId() + ":" + user.getRoleLevel();
+        redisTemplate.opsForValue().set(redisKey, userInfo, TOKEN_EXPIRE_SECONDS, TimeUnit.SECONDS);
+        log.info("【Token 存入 Redis】userId={}, tenantId={}, roleLevel={}, token={}", 
+                user.getId(), user.getTenantId(), user.getRoleLevel(), token);
+        
+        // 10. 单设备登录控制
         String userTokenKey = USER_TOKEN_KEY_PREFIX + user.getId();
         String oldToken = redisTemplate.opsForValue().get(userTokenKey);
         if (oldToken != null) {
@@ -209,16 +212,11 @@ public class UserServiceImpl implements UserService {
             log.info("【单设备登录】旧设备 Token 已失效：userId={}, oldToken={}", user.getId(), oldToken);
         }
         
-        // 保存新 Token 到用户 - Token 映射
+        // 保存新 Token 映射
         redisTemplate.opsForValue().set(userTokenKey, token, TOKEN_EXPIRE_SECONDS, TimeUnit.SECONDS);
         log.info("【单设备登录】保存新 Token：userId={}, token={}", user.getId(), token);
         
-        // 9. 将 Token 存入 Redis（实现登录状态控制）
-        String redisKey = "token:" + token;
-        redisTemplate.opsForValue().set(redisKey, user.getId().toString(), TOKEN_EXPIRE_SECONDS, TimeUnit.SECONDS);
-        log.info("【Token 存入 Redis】userId={}, token={}, expireTime={}秒", user.getId(), token, TOKEN_EXPIRE_SECONDS);
-        
-        // 10. 清除登录失败记录（登录成功后）
+        // 11. 清除登录失败记录（登录成功后）
         redisTemplate.delete(failCountKey);
         redisTemplate.delete(lockKey);
         log.info("【登录安全】清除登录失败记录：username={}", request.getUsername());
@@ -246,12 +244,12 @@ public class UserServiceImpl implements UserService {
         
         if (tenant == null) {
             log.warn("【用户登录】租户不存在：tenantCode={}", tenantCode);
-            throw new BusinessException(401, "租户编码不存在");
+            throw new BusinessException(ResultCode.TENANT_NOT_FOUND);
         }
         
         if (tenant.getStatus() == 0) {
             log.warn("【用户登录】租户已被禁用：tenantCode={}", tenantCode);
-            throw new BusinessException(403, "该租户已被禁用，请联系管理员");
+            throw new BusinessException(ResultCode.TENANT_DISABLED);
         }
         
         // 3. 写入缓存（TTL 30 天）
@@ -277,7 +275,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO getUserById(Long userId) {
         User user = userMapper.selectById(userId);
         if (user == null) {
-            throw new BusinessException(404, "用户不存在");
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
         }
 
         UserDTO userDTO = new UserDTO();
@@ -330,13 +328,13 @@ public class UserServiceImpl implements UserService {
         // 1. 查询用户
         User user = userMapper.selectById(userId);
         if (user == null) {
-            throw new BusinessException(404, "用户不存在");
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
         }
         
         // 2. 验证旧密码
         if (!PasswordUtil.verify(oldPassword, user.getPassword())) {
             log.warn("【修改密码】旧密码错误：userId={}", userId);
-            throw new BusinessException(400, "原密码错误");
+            throw new BusinessException(ResultCode.OLD_PASSWORD_WRONG);
         }
         
         // 3. 校验新密码强度
@@ -344,7 +342,7 @@ public class UserServiceImpl implements UserService {
             PasswordUtil.validateStrongPassword(newPassword);
         } catch (IllegalArgumentException e) {
             log.warn("【修改密码】新密码强度不足：userId={}, error={}", userId, e.getMessage());
-            throw new BusinessException(400, e.getMessage());
+            throw new BusinessException(ResultCode.PARAM_VALIDATION_ERROR, e.getMessage());
         }
         
         // 4. 加密新密码并更新
@@ -355,7 +353,7 @@ public class UserServiceImpl implements UserService {
             log.info("【修改密码成功】userId={}", userId);
         } else {
             log.error("【修改密码失败】userId={}", userId);
-            throw new BusinessException(500, "修改密码失败");
+            throw new BusinessException(ResultCode.PASSWORD_CHANGE_FAILED);
         }
     }
 
@@ -372,7 +370,7 @@ public class UserServiceImpl implements UserService {
         
         if (existingUser != null) {
             log.warn("【创建用户】用户名已存在：username={}, tenantId={}", request.getUsername(), request.getTenantId());
-            throw new BusinessException(400, "用户名已存在");
+            throw new BusinessException(ResultCode.USERNAME_EXISTS);
         }
         
         // 1.1 物理删除该用户名下的所有已删除记录（使用原生SQL绕过@TableLogic）
@@ -393,7 +391,7 @@ public class UserServiceImpl implements UserService {
             User existingPhoneUser = userMapper.selectByPhone(request.getTenantId(), request.getPhone());
             if (existingPhoneUser != null) {
                 log.warn("【创建用户】手机号已存在：phone={}, tenantId={}", request.getPhone(), request.getTenantId());
-                throw new BusinessException(400, "手机号已存在");
+                throw new BusinessException(ResultCode.PHONE_EXISTS);
             }
         }
         
@@ -402,7 +400,7 @@ public class UserServiceImpl implements UserService {
             PasswordUtil.validateStrongPassword(request.getPassword());
         } catch (IllegalArgumentException e) {
             log.warn("【创建用户】密码强度不足：username={}, error={}", request.getUsername(), e.getMessage());
-            throw new BusinessException(400, e.getMessage());
+            throw new BusinessException(ResultCode.PARAM_VALIDATION_ERROR, e.getMessage());
         }
         
         // 4. 创建用户
@@ -421,7 +419,7 @@ public class UserServiceImpl implements UserService {
         int result = userMapper.insert(user);
         if (result <= 0) {
             log.error("【创建用户】失败：username={}, tenantId={}", request.getUsername(), request.getTenantId());
-            throw new BusinessException(500, "创建用户失败");
+            throw new BusinessException(ResultCode.USER_CREATE_FAILED);
         }
         
         log.info("【创建用户成功】userId={}, username={}, tenantId={}", user.getId(), user.getUsername(), user.getTenantId());
@@ -445,15 +443,18 @@ public class UserServiceImpl implements UserService {
         // 1. 查询用户
         User user = userMapper.selectById(userId);
         if (user == null) {
-            throw new BusinessException(404, "用户不存在");
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
         }
+        
+        // ✅ 水平越权校验：确保操作的是当前租户的数据（运营商 tenant_id=0 可跨租户操作）
+        UserContext.validateHorizontalPermission(user.getTenantId());
         
         // 2. 校验新密码强度
         try {
             PasswordUtil.validateStrongPassword(newPassword);
         } catch (IllegalArgumentException e) {
             log.warn("【重置密码】新密码强度不足：userId={}, error={}", userId, e.getMessage());
-            throw new BusinessException(400, e.getMessage());
+            throw new BusinessException(ResultCode.PARAM_VALIDATION_ERROR, e.getMessage());
         }
         
         // 3. 加密新密码并更新
@@ -465,7 +466,7 @@ public class UserServiceImpl implements UserService {
             log.info("【重置密码成功】userId={}", userId);
         } else {
             log.error("【重置密码失败】userId={}", userId);
-            throw new BusinessException(500, "重置密码失败");
+            throw new BusinessException(ResultCode.PASSWORD_RESET_FAILED);
         }
     }
 
@@ -480,8 +481,11 @@ public class UserServiceImpl implements UserService {
         // 1. 查询用户
         User user = userMapper.selectById(userId);
         if (user == null) {
-            throw new BusinessException(404, "用户不存在");
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
         }
+        
+        // ✅ 水平越权校验：确保操作的是当前租户的数据（运营商 tenant_id=0 可跨租户操作）
+        UserContext.validateHorizontalPermission(user.getTenantId());
         
         // 2. 更新状态
         user.setStatus(status);
@@ -492,7 +496,7 @@ public class UserServiceImpl implements UserService {
             log.info("【更新用户状态成功】userId={}, status={}", userId, status);
         } else {
             log.error("【更新用户状态失败】userId={}, status={}", userId, status);
-            throw new BusinessException(500, "更新用户状态失败");
+            throw new BusinessException(ResultCode.USER_UPDATE_FAILED);
         }
     }
     
@@ -507,13 +511,16 @@ public class UserServiceImpl implements UserService {
         // 1. 查询用户
         User user = userMapper.selectById(userId);
         if (user == null) {
-            throw new BusinessException(404, "用户不存在");
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
         }
         
-        // 2. 不允许删除超级管理员（roleLevel=0）
-        if (user.getRoleLevel() != null && user.getRoleLevel() == 0) {
+        // ✅ 水平越权校验：确保操作的是当前租户的数据（运营商 tenant_id=0 可跨租户操作）
+        UserContext.validateHorizontalPermission(user.getTenantId());
+        
+        // 2. 不允许删除运营商（tenant_id=0）
+        if (user.getRoleLevel() != null && user.getTenantId() == LevelCode.ROLE_LEVEL_TENANT_ID) {
             log.warn("【删除用户】不允许删除超级管理员：userId={}, username={}", userId, user.getUsername());
-            throw new BusinessException(403, "不允许删除超级管理员账号");
+            throw new BusinessException(ResultCode.DELETE_SUPER_ADMIN_FORBIDDEN);
         }
         
         // 2.1 物理删除该用户名下的所有已删除记录（使用原生SQL绕过@TableLogic）
@@ -553,7 +560,7 @@ public class UserServiceImpl implements UserService {
             }
         } else {
             log.error("【删除用户】失败：userId={}", userId);
-            throw new BusinessException(500, "删除用户失败");
+            throw new BusinessException(ResultCode.USER_DELETE_FAILED);
         }
     }
 
@@ -568,7 +575,7 @@ public class UserServiceImpl implements UserService {
         // 权限校验：操作员(roleLevel=2)无权访问用户管理
         if (currentUserRoleLevel != null && currentUserRoleLevel > 1) {
             log.warn("【获取用户列表】权限不足：currentUserRoleLevel={}", currentUserRoleLevel);
-            throw new BusinessException(403, "您没有权限访问用户管理");
+            throw new BusinessException(ResultCode.PERMISSION_DENIED);
         }
         
         // 创建 MyBatis-Plus 的 Page 对象
@@ -581,7 +588,7 @@ public class UserServiceImpl implements UserService {
             List<User> users = userMapper.searchByTenantId(tenantId, keyword.trim());
             
             // 权限过滤：普通管理员(roleLevel=1)只能查看一级(1)和操作员(2)
-            if (currentUserRoleLevel != null && currentUserRoleLevel == 1) {
+            if (currentUserRoleLevel != null && currentUserRoleLevel.equals(LevelCode.ROLE_LEVEL_ADMIN)) {
                 users = users.stream()
                     .filter(user -> user.getRoleLevel() != null && user.getRoleLevel() >= 1)
                     .collect(Collectors.toList());
@@ -601,12 +608,12 @@ public class UserServiceImpl implements UserService {
             LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
             
             // 超级管理员(tenantId=0)查询所有租户的用户，否则只查询指定租户
-            if (tenantId != null && tenantId > 0) {
+            if (tenantId != null && tenantId > LevelCode.ROLE_LEVEL_SUPER_ADMIN) {
                 queryWrapper.eq(User::getTenantId, tenantId);
             }
             
             // 权限过滤：普通管理员(roleLevel=1)只能查看一级(1)和操作员(2)
-            if (currentUserRoleLevel != null && currentUserRoleLevel == 1) {
+            if (currentUserRoleLevel != null && currentUserRoleLevel.equals(LevelCode.ROLE_LEVEL_ADMIN)) {
                 queryWrapper.ge(User::getRoleLevel, 1);
             }
             // 超级管理员(roleLevel=0)无需过滤，查看所有用户
@@ -624,7 +631,7 @@ public class UserServiceImpl implements UserService {
             // 不返回密码
             
             // 查询租户信息（名称和编码）
-            if (user.getTenantId() != null && user.getTenantId() > 0) {
+            if (user.getTenantId() != null && user.getTenantId() > LevelCode.ROLE_LEVEL_SUPER_ADMIN) {
                 try {
                     TenantInfo tenantInfo = tenantInfoMapper.selectById(user.getTenantId());
                     if (tenantInfo != null) {

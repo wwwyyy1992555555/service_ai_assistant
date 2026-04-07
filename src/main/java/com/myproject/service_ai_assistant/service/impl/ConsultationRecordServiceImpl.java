@@ -3,7 +3,11 @@ package com.myproject.service_ai_assistant.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.myproject.service_ai_assistant.common.LevelCode;
+import com.myproject.service_ai_assistant.common.ResultCode;
+import com.myproject.service_ai_assistant.context.UserContext;
 import com.myproject.service_ai_assistant.entity.ConsultationRecord;
+import com.myproject.service_ai_assistant.exception.BusinessException;
 import com.myproject.service_ai_assistant.mapper.ConsultationRecordMapper;
 import com.myproject.service_ai_assistant.service.ConsultationRecordService;
 import lombok.extern.slf4j.Slf4j;
@@ -34,27 +38,27 @@ public class ConsultationRecordServiceImpl extends ServiceImpl<ConsultationRecor
         // 查询总数（按会话分组）
         long total = this.baseMapper.countSessions(tenantId);
         
-        // 为每个会话补充最新的用户信息
+        // 为每个会话补充最新的用户信息（优化：批量查询解决N+1问题）
         if (!records.isEmpty()) {
-            List<ConsultationRecord> processedRecords = new ArrayList<>();
-            for (ConsultationRecord record : records) {
-                // 查询该会话的最新用户信息
-                LambdaQueryWrapper<ConsultationRecord> wrapper = new LambdaQueryWrapper<>();
-                wrapper.eq(ConsultationRecord::getSessionId, record.getSessionId())
-                        .eq(ConsultationRecord::getTenantId, tenantId)
-                        .orderByDesc(ConsultationRecord::getCreatedTime)
-                        .last("LIMIT 1");
-                
-                ConsultationRecord latestRecord = this.getOne(wrapper);
-                if (latestRecord != null) {
-                    // 补充最新用户信息
-                    record.setUserName(latestRecord.getUserName());
-                    record.setUserPhone(latestRecord.getUserPhone());
-                    record.setUserId(latestRecord.getUserId());
+            List<String> sessionIds = records.stream()
+                .map(ConsultationRecord::getSessionId)
+                .distinct()
+                .collect(Collectors.toList());
+            
+            // 批量查询每个会话的最新用户信息（1次SQL代替N次）
+            List<ConsultationRecord> latestUserInfos = this.baseMapper.selectLatestUserInfoBySessions(tenantId, sessionIds);
+            Map<String, ConsultationRecord> latestRecordMap = latestUserInfos.stream()
+                .collect(Collectors.toMap(ConsultationRecord::getSessionId, r -> r, (r1, r2) -> r1));
+            
+            // 填充用户信息
+            records.forEach(record -> {
+                ConsultationRecord latest = latestRecordMap.get(record.getSessionId());
+                if (latest != null) {
+                    record.setUserName(latest.getUserName());
+                    record.setUserPhone(latest.getUserPhone());
+                    record.setUserId(latest.getUserId());
                 }
-                processedRecords.add(record);
-            }
-            records = processedRecords;
+            });
         }
         
         Page<ConsultationRecord> result = new Page<>(page.getCurrent(), page.getSize(), total);
@@ -101,40 +105,27 @@ public class ConsultationRecordServiceImpl extends ServiceImpl<ConsultationRecor
         // 执行分页查询
         Page<ConsultationRecord> result = this.page(page, wrapper);
         
-        // 为每个会话补充最新的用户信息（优化：批量查询避免N+1问题）
+        // 为每个会话补充最新的用户信息（优化：批量查询解决N+1问题）
         if (!result.getRecords().isEmpty()) {
             List<String> sessionIds = result.getRecords().stream()
                 .map(ConsultationRecord::getSessionId)
                 .distinct()
                 .collect(Collectors.toList());
             
-            // 批量查询每个会话的最新记录
-            Map<String, ConsultationRecord> latestRecordMap = new HashMap<>();
-            for (String sessionId : sessionIds) {
-                LambdaQueryWrapper<ConsultationRecord> userWrapper = new LambdaQueryWrapper<>();
-                userWrapper.eq(ConsultationRecord::getSessionId, sessionId)
-                        .eq(ConsultationRecord::getTenantId, tenantId)
-                        .orderByDesc(ConsultationRecord::getCreatedTime)
-                        .last("LIMIT 1");
-                
-                ConsultationRecord latestRecord = this.getOne(userWrapper);
-                if (latestRecord != null) {
-                    latestRecordMap.put(sessionId, latestRecord);
-                }
-            }
+            // 批量查询每个会话的最新用户信息（1次SQL代替N次）
+            List<ConsultationRecord> latestUserInfos = this.baseMapper.selectLatestUserInfoBySessions(tenantId, sessionIds);
+            Map<String, ConsultationRecord> latestRecordMap = latestUserInfos.stream()
+                .collect(Collectors.toMap(ConsultationRecord::getSessionId, r -> r, (r1, r2) -> r1));
             
             // 填充用户信息
-            List<ConsultationRecord> processedRecords = result.getRecords().stream().map(record -> {
-                ConsultationRecord latestRecord = latestRecordMap.get(record.getSessionId());
-                if (latestRecord != null) {
-                    record.setUserName(latestRecord.getUserName());
-                    record.setUserPhone(latestRecord.getUserPhone());
-                    record.setUserId(latestRecord.getUserId());
+            result.getRecords().forEach(record -> {
+                ConsultationRecord latest = latestRecordMap.get(record.getSessionId());
+                if (latest != null) {
+                    record.setUserName(latest.getUserName());
+                    record.setUserPhone(latest.getUserPhone());
+                    record.setUserId(latest.getUserId());
                 }
-                return record;
-            }).collect(Collectors.toList());
-            
-            result.setRecords(processedRecords);
+            });
         }
         
         log.debug("【对话记录搜索（支持用户信息）】tenantId={}, keyword={}, userName={}, userPhone={}, current={}, size={}, total={}", 
@@ -219,5 +210,19 @@ public class ConsultationRecordServiceImpl extends ServiceImpl<ConsultationRecor
         log.debug("【满意度统计】date={}, count={}, avg={:.2f}", date, records.size(), avg);
         
         return Math.round(avg * 100) / 100.0;  // 保留两位小数
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean removeById(java.io.Serializable id) {
+        // ✅ 水平越权校验：确保删除的是当前租户的会话（运营商 tenant_id=0 可跨租户操作）
+        ConsultationRecord record = this.getById(id);
+        if (record == null) {
+            return false;
+        }
+        
+        UserContext.validateHorizontalPermission(record.getTenantId());
+        
+        return super.removeById(id);
     }
 }

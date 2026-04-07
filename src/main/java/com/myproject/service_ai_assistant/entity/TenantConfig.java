@@ -44,6 +44,7 @@ public class TenantConfig implements Serializable {
     /**
      * 企业名称
      */
+    @Deprecated
     private String companyName;
 
     /**

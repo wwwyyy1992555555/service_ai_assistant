@@ -1,6 +1,8 @@
 package com.myproject.service_ai_assistant.controller;
 
+import com.myproject.service_ai_assistant.annotation.RequireRole;
 import com.myproject.service_ai_assistant.common.Result;
+import com.myproject.service_ai_assistant.common.LevelCode;
 import com.myproject.service_ai_assistant.dto.UserCreateRequest;
 import com.myproject.service_ai_assistant.dto.UserDTO;
 import com.myproject.service_ai_assistant.entity.TenantInfo;
@@ -38,9 +40,10 @@ public class UserController {
     private TenantInfoMapper tenantInfoMapper;
 
     /**
-     * 创建用户
+     * 创建用户（需要管理员权限）
      */
     @PostMapping("/create")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "创建用户", description = "租户管理员创建用户")
     public Result<UserDTO> createUser(
             @Validated @RequestBody UserCreateRequest request
@@ -57,9 +60,10 @@ public class UserController {
     }
 
     /**
-     * 重置用户密码
+     * 重置用户密码（需要管理员权限）
      */
     @PostMapping("/reset-password")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "重置用户密码", description = "管理员重置用户密码")
     public Result<Boolean> resetPassword(
             @Parameter(description = "用户 ID", required = true) @RequestParam Long userId,
@@ -77,9 +81,10 @@ public class UserController {
     }
 
     /**
-     * 更新用户状态
+     * 更新用户状态（需要管理员权限）
      */
     @PostMapping("/update-status")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "更新用户状态", description = "启用/禁用用户")
     public ResponseEntity<?> updateUserStatus(
             @Parameter(description = "用户 ID", required = true) @RequestParam Long userId,
@@ -140,9 +145,10 @@ public class UserController {
     }
     
     /**
-     * 删除用户
+     * 删除用户（需要管理员权限）
      */
     @PostMapping("/delete")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "删除用户", description = "删除指定用户")
     public Result<Boolean> deleteUser(
             @Parameter(description = "用户 ID", required = true) @RequestParam Long userId

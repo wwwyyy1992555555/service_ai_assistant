@@ -1,7 +1,9 @@
 package com.myproject.service_ai_assistant.controller;
 
 import cn.hutool.core.util.StrUtil;
+import com.myproject.service_ai_assistant.annotation.RequireRole;
 import com.myproject.service_ai_assistant.common.Result;
+import com.myproject.service_ai_assistant.common.LevelCode;
 import com.myproject.service_ai_assistant.common.SimilarityUtil;
 import com.myproject.service_ai_assistant.config.LlmConfig;
 import com.myproject.service_ai_assistant.dto.ConsultRequest;
@@ -9,21 +11,15 @@ import com.myproject.service_ai_assistant.dto.ConsultResponse;
 import com.myproject.service_ai_assistant.dto.UserInfoParseRequest;
 import com.myproject.service_ai_assistant.entity.ConsultationRecord;
 import com.myproject.service_ai_assistant.entity.KnowledgeItem;
-import com.myproject.service_ai_assistant.service.ConsultationRecordService;
-import com.myproject.service_ai_assistant.service.KnowledgeItemService;
-import com.myproject.service_ai_assistant.service.LlmService;
-import com.myproject.service_ai_assistant.service.TenantConfigService;
-import com.myproject.service_ai_assistant.service.UserInfoParserService;
+import com.myproject.service_ai_assistant.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.Data;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 
 /**
@@ -87,11 +83,41 @@ public class ConsultController {
             return buildResponse(answer, null, 0.0, null, null, 0, null, record.getId());
         }
 
-        // ========== 第2步：用户信息提取（始终执行）==========
+        // ========== 第2步：用户信息提取与历史比对 ==========
         String[] userInfo = parseUserInfo(question, request.getSessionId());
         String currentName = userInfo[0];
         String currentPhone = userInfo[1];
         log.info("【用户信息】姓名：{}, 手机号：{}", currentName, currentPhone);
+
+        // 获取历史信息用于智能回复
+        String lastSavedName = null;
+        String lastSavedPhone = null;
+        boolean isInfoDuplicate = false;
+        
+        try {
+            var historyWrapper = new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ConsultationRecord>()
+                    .eq(ConsultationRecord::getSessionId, request.getSessionId())
+                    .isNotNull(ConsultationRecord::getUserName)
+                    .or()
+                    .isNotNull(ConsultationRecord::getUserPhone)
+                    .orderByDesc(ConsultationRecord::getCreatedTime)
+                    .last("LIMIT 1");
+            
+            ConsultationRecord lastRecord = consultationRecordService.getOne(historyWrapper);
+            if (lastRecord != null) {
+                lastSavedName = lastRecord.getUserName();
+                lastSavedPhone = lastRecord.getUserPhone();
+                
+                // 判断是否是重复提交：当前提取的信息与历史记录完全一致
+                if (currentName != null && currentName.equals(lastSavedName) &&
+                    currentPhone != null && currentPhone.equals(lastSavedPhone)) {
+                    isInfoDuplicate = true;
+                    log.info("【智能判断】检测到用户重复提交相同信息");
+                }
+            }
+        } catch (Exception e) {
+            log.debug("【智能判断】获取历史记录失败：{}", e.getMessage());
+        }
 
         // ========== 第3步：知识库搜索 ==========
         List<KnowledgeItem> matchedKnowledge = knowledgeItemService.searchKnowledge(
@@ -142,12 +168,12 @@ public class ConsultController {
                 } else {
                     // LLM未启用，走智能模板
                     log.info("【智能问答】LLM未启用，使用智能模板");
-                    answer = generateSmartResponse(question, currentName, currentPhone);
+                    answer = generateSmartResponse(question, currentName, currentPhone, isInfoDuplicate);
                 }
             } catch (Exception e) {
                 // ========== 第5步：异常兜底（LLM异常）==========
                 log.error("【智能问答】LLM调用异常，使用智能模板兜底：{}", e.getMessage());
-                answer = generateSmartResponse(question, currentName, currentPhone);
+                answer = generateSmartResponse(question, currentName, currentPhone, isInfoDuplicate);
             }
         }
 
@@ -246,6 +272,7 @@ public class ConsultController {
     }
     
     @GetMapping("/list")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "分页查询对话记录", description = "分页查询对话记录列表")
     public Result<com.baomidou.mybatisplus.extension.plugins.pagination.Page<ConsultationRecord>> listRecords(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
@@ -262,6 +289,7 @@ public class ConsultController {
     }
 
     @DeleteMapping("/session/{sessionId}")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "删除会话", description = "删除整个会话的所有对话记录")
     public Result<Void> deleteSession(@Parameter(description = "会话 ID", required = true) @PathVariable String sessionId) {
         log.info("【删除会话】sessionId={}", sessionId);
@@ -290,6 +318,7 @@ public class ConsultController {
     }
 
     @GetMapping("/session/{sessionId}")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "查询会话详情", description = "根据会话 ID 查询完整的对话历史")
     public Result<List<ConsultationRecord>> getSessionDetail(@Parameter(description = "会话 ID", required = true) @PathVariable String sessionId) {
         log.info("【会话详情】sessionId={}", sessionId);
@@ -307,7 +336,12 @@ public class ConsultController {
     /**
      * 生成智能回复（根据用户信息动态调整）
      */
-    private String generateSmartResponse(String question, String userName, String userPhone) {
+    private String generateSmartResponse(String question, String userName, String userPhone, boolean isInfoDuplicate) {
+        // 1. 如果检测到用户重复提交了相同的信息，给予简短确认
+        if (isInfoDuplicate) {
+            return "您的信息我们已经记下了，请问还有其他可以帮您的吗？😊";
+        }
+        
         // 从系统配置中读取服务热线和工作时间
         String servicePhone = "12345";
         String serviceTime = "工作时间：周一至周日 9:00-17:00";
@@ -518,7 +552,53 @@ public class ConsultController {
             }
         }
         
+        // 过滤占位符数据，防止浪费数据库空间
+        currentName = filterPlaceholder(currentName);
+        currentPhone = filterPlaceholder(currentPhone);
+        
         return new String[] { currentName, currentPhone };
+    }
+    
+    /**
+     * 过滤示例/占位符数据（防止浪费数据库空间）
+     * @param value 待过滤的值
+     * @return 过滤后的值（如果是占位符则返回 null）
+     */
+    private String filterPlaceholder(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        
+        String trimmed = value.trim();
+        
+        // 过滤姓名占位符：XXX、某某、测试、test 等
+        if (trimmed.matches("(?i)^(xxx|test|demo|测试|示例|某某|某人|无名|匿名|unknown)$")) {
+            log.debug("【过滤占位符】姓名占位符：{}", trimmed);
+            return null;
+        }
+        
+        // 过滤电话占位符：138XXXXXXXX、13800000000、13812345678 等规律数字
+        if (trimmed.matches("^1[3-9]\\d{9}$")) {
+            // 检查是否是规律数字（占位符）
+            String digits = trimmed.replaceAll("\\D", "");
+            // 全相同数字：13800000000
+            if (digits.matches("^1[3-9]0{9}$")) {
+                log.debug("【过滤占位符】电话占位符（全0）：{}", trimmed);
+                return null;
+            }
+            // 连续递增/递减：13812345678
+            if (digits.matches("^1[3-9]12345678$")) {
+                log.debug("【过滤占位符】电话占位符（递增）：{}", trimmed);
+                return null;
+            }
+            // X 占位：138XXXXXXXX
+            if (trimmed.toUpperCase().contains("X")) {
+                log.debug("【过滤占位符】电话占位符（X占位）：{}", trimmed);
+                return null;
+            }
+        }
+        
+        return value;
     }
     
     /**

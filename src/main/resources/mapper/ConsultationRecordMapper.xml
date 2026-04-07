@@ -21,6 +21,28 @@
         ORDER BY t1.created_time DESC
     </select>
 
+    <!-- 批量查询多个会话的最新用户信息（解决N+1问题） -->
+    <select id="selectLatestUserInfoBySessions" resultType="com.myproject.service_ai_assistant.entity.ConsultationRecord">
+        SELECT 
+            t1.session_id,
+            t1.user_name,
+            t1.user_phone,
+            t1.user_id
+        FROM consultation_record t1
+        INNER JOIN (
+            SELECT session_id, MAX(created_time) as latest_time
+            FROM consultation_record
+            WHERE session_id IN
+            <foreach collection="sessionIds" item="sessionId" open="(" separator="," close=")">
+                #{sessionId}
+            </foreach>
+            AND tenant_id = #{tenantId}
+            AND deleted = 0
+            GROUP BY session_id
+        ) t2 ON t1.session_id = t2.session_id AND t1.created_time = t2.latest_time
+        WHERE t1.deleted = 0
+    </select>
+
     <!-- 统计会话总数 -->
     <select id="countSessions" resultType="long">
         SELECT COUNT(DISTINCT session_id) 

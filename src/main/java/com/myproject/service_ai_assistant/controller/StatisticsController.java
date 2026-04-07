@@ -1,6 +1,8 @@
 package com.myproject.service_ai_assistant.controller;
 
+import com.myproject.service_ai_assistant.annotation.RequireRole;
 import com.myproject.service_ai_assistant.common.Result;
+import com.myproject.service_ai_assistant.common.LevelCode;
 import com.myproject.service_ai_assistant.entity.ConsultationRecord;
 import com.myproject.service_ai_assistant.entity.KnowledgeItem;
 import com.myproject.service_ai_assistant.service.ConsultationRecordService;
@@ -36,6 +38,7 @@ public class StatisticsController {
     private KnowledgeItemService knowledgeItemService;
 
     @GetMapping("/dashboard")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "获取看板数据", description = "返回管理后台首页的统计数据")
     public Result<DashboardData> getDashboardData(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
@@ -85,6 +88,7 @@ public class StatisticsController {
     }
 
     @GetMapping("/hot-questions")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "获取热门问题 TOP10", description = "返回浏览次数最高的问题列表")
     public Result<List<KnowledgeItem>> getHotQuestions(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
@@ -99,6 +103,7 @@ public class StatisticsController {
     }
 
     @GetMapping("/recent-records")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "获取最近对话记录", description = "返回最近的对话记录")
     public Result<List<ConsultationRecord>> getRecentRecords(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,

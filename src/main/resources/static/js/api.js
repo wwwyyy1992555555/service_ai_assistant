@@ -33,18 +33,14 @@ async function request(url, options = {}) {
 
         // 401 未授权，跳转登录页
         if (response.status === 401 || data.code === 401) {
-            // 清除本地存储的 token 和用户信息
+            // 清除本地存储
             localStorage.removeItem('token');
-            localStorage.removeItem('userInfo');
+            localStorage.removeItem('user');
+            localStorage.removeItem('tenantConfig');
             
-            // 显示提示信息
-            alert('登录已过期，请重新登录');
-            
-            // 跳转到登录页
-            window.location.href = '/login.html';
-            
-            // 抛出错误，阻止后续处理
-            throw new Error('未授权访问');
+            // 立即跳转
+            window.location.replace('/login.html');
+            return;
         }
 
         if (data.code !== 200 && data.code !== 0) {
@@ -328,16 +324,16 @@ async function deleteSession(sessionId) {
  * 用户登录
  * @param {string} username - 用户名
  * @param {string} password - 密码
- * @param {string} tenantCode - 租户编码（超级管理员登录时传空字符串）
- * @param {string} loginType - 登录类型：tenant-租户登录/super-超级管理员登录
+ * @param {string} tenantCode - 租户编码（普通租户登录时填写）
+ * @param {number|null} tenantId - 租户ID（超级管理员传0，普通租户传null由后端解析tenantCode）
  * @returns {Promise<Object>} - 登录结果（包含 token 和完整的租户配置信息）
  */
-async function login(username, password, tenantCode, loginType = 'tenant') {
+async function login(username, password, tenantCode, tenantId = null) {
     const result = await post(`${API_BASE}/auth/login`, {
         username,
         password,
         tenantCode,
-        loginType
+        tenantId
     });
     return result;
 }
@@ -506,7 +502,7 @@ const tenantApi = {
      * 创建租户
      */
     create: async function(data) {
-        const result = await post(`${API_BASE}/tenant`, data);
+        const result = await post(`${API_BASE}/tenant/create`, data);
         return result.data;
     },
     
@@ -514,10 +510,7 @@ const tenantApi = {
      * 更新租户
      */
     update: async function(data) {
-        const result = await request(`${API_BASE}/tenant`, {
-            method: 'PUT',
-            body: JSON.stringify(data),
-        });
+        const result = await post(`${API_BASE}/tenant/update`, data);
         return result.data;
     },
     
@@ -525,7 +518,7 @@ const tenantApi = {
      * 更新租户状态
      */
     updateStatus: async function(id, status) {
-        await post(`${API_BASE}/tenant/status`, { id, status });
+        await post(`${API_BASE}/tenant/update-status?tenantId=${id}&status=${status}`);
         return true;
     },
     
@@ -606,10 +599,7 @@ async function deleteFeedback(id) {
  * 更新反馈
  */
 async function updateFeedback(id, data) {
-    const result = await request(`${API_BASE}/consult/feedback/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-    });
+    const result = await post(`${API_BASE}/consult/feedback/${id}`, data);
     return result.data;
 }
 

@@ -5,12 +5,16 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.myproject.service_ai_assistant.common.LevelCode;
+import com.myproject.service_ai_assistant.common.ResultCode;
+import com.myproject.service_ai_assistant.context.UserContext;
 import com.myproject.service_ai_assistant.entity.ConsultationFeedback;
 import com.myproject.service_ai_assistant.entity.ConsultationRecord;
 import com.myproject.service_ai_assistant.exception.BusinessException;
 import com.myproject.service_ai_assistant.mapper.ConsultationFeedbackMapper;
 import com.myproject.service_ai_assistant.service.ConsultationFeedbackService;
 import com.myproject.service_ai_assistant.service.ConsultationRecordService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +27,7 @@ import java.util.stream.Collectors;
 /**
  * 咨询反馈服务实现
  */
+@Slf4j
 @Service
 public class ConsultationFeedbackServiceImpl extends ServiceImpl<ConsultationFeedbackMapper, ConsultationFeedback> 
         implements ConsultationFeedbackService {
@@ -39,7 +44,7 @@ public class ConsultationFeedbackServiceImpl extends ServiceImpl<ConsultationFee
         // 验证咨询记录是否存在
         ConsultationRecord record = consultationRecordService.getById(consultationId);
         if (record == null) {
-            throw new BusinessException("咨询记录不存在");
+            throw new BusinessException(ResultCode.CONSULTATION_NOT_FOUND);
         }
 
         // 创建反馈记录
@@ -56,7 +61,7 @@ public class ConsultationFeedbackServiceImpl extends ServiceImpl<ConsultationFee
             try {
                 feedback.setFeedbackReasons(objectMapper.writeValueAsString(reasons));
             } catch (JsonProcessingException e) {
-                throw new BusinessException("反馈原因格式错误");
+                throw new BusinessException(ResultCode.FEEDBACK_FORMAT_ERROR);
             }
         }
         
@@ -212,6 +217,28 @@ public class ConsultationFeedbackServiceImpl extends ServiceImpl<ConsultationFee
             }
         }
         
+        // 批量关联查询用户信息（解决 N+1 问题）
+        if (!resultPage.getRecords().isEmpty()) {
+            List<Long> consultationIds = resultPage.getRecords().stream()
+                .map(ConsultationFeedback::getConsultationId)
+                .distinct()
+                .collect(Collectors.toList());
+            
+            // 批量查询咨询记录以获取用户信息
+            List<ConsultationRecord> records = consultationRecordService.listByIds(consultationIds);
+            Map<Long, ConsultationRecord> recordMap = records.stream()
+                .collect(Collectors.toMap(ConsultationRecord::getId, r -> r, (r1, r2) -> r1));
+            
+            // 填充用户信息到反馈对象中
+            resultPage.getRecords().forEach(feedback -> {
+                ConsultationRecord record = recordMap.get(feedback.getConsultationId());
+                if (record != null) {
+                    feedback.setUserName(record.getUserName());
+                    feedback.setUserPhone(record.getUserPhone());
+                }
+            });
+        }
+        
         Map<String, Object> response = new HashMap<>();
         response.put("records", resultPage.getRecords());
         response.put("total", resultPage.getTotal());
@@ -224,8 +251,11 @@ public class ConsultationFeedbackServiceImpl extends ServiceImpl<ConsultationFee
     public void processFeedback(Long id, String remark, String processor) {
         ConsultationFeedback feedback = this.getById(id);
         if (feedback == null) {
-            throw new BusinessException("反馈记录不存在");
+            throw new BusinessException(ResultCode.FEEDBACK_NOT_FOUND);
         }
+        
+        // ✅ 水平越权校验：确保处理的是当前租户的反馈（运营商 tenant_id=0 可跨租户操作）
+        UserContext.validateHorizontalPermission(feedback.getTenantId());
         
         feedback.setIsProcessed(1);
         feedback.setProcessRemark(remark);

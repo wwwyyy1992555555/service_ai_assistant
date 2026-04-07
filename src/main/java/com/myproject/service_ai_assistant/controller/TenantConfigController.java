@@ -1,6 +1,8 @@
 package com.myproject.service_ai_assistant.controller;
 
+import com.myproject.service_ai_assistant.annotation.RequireRole;
 import com.myproject.service_ai_assistant.common.Result;
+import com.myproject.service_ai_assistant.common.LevelCode;
 import com.myproject.service_ai_assistant.dto.TenantConfigDTO;
 import com.myproject.service_ai_assistant.service.TenantConfigService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,6 +38,7 @@ public class TenantConfigController {
     }
 
     @PostMapping("/save")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "保存系统配置", description = "保存或更新系统配置信息")
     public Result<Boolean> saveConfig(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,

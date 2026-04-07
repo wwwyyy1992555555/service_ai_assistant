@@ -45,4 +45,13 @@ public interface ConsultationRecordMapper extends BaseMapper<ConsultationRecord>
      * 查询指定会话的最高匹配度
      */
     Double selectMaxMatchScore(@Param("sessionId") String sessionId, @Param("tenantId") Long tenantId);
+
+    /**
+     * 批量查询多个会话的最新用户信息（解决N+1问题）
+     * @param tenantId 租户ID
+     * @param sessionIds 会话ID列表
+     * @return 最新用户信息列表
+     */
+    List<ConsultationRecord> selectLatestUserInfoBySessions(@Param("tenantId") Long tenantId,
+                                                             @Param("sessionIds") List<String> sessionIds);
 }

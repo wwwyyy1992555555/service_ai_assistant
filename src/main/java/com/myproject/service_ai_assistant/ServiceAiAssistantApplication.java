@@ -25,9 +25,9 @@ public class ServiceAiAssistantApplication extends SpringBootServletInitializer 
         log.info("====================================");
         log.info("AI 智库企业咨询平台启动成功！");
         log.info("API 文档地址：http://localhost:8080/swagger-ui.html");
-        log.info("管理后台：http://localhost:8080/admin.html");
-        log.info("聊天页面：http://localhost:8080/chat.html?tenantId=1");
-        log.info("后台登陆：http://localhost:8080/login.html");
+        log.info("管理后台：http://localhost");
+        log.info("聊天页面：http://localhost/chat?tenantId=1");
+        log.info("后台登陆：http://localhost/login");
         log.info("====================================");
     }
 
