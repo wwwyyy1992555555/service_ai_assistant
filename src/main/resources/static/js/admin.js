@@ -71,23 +71,6 @@ const app = createApp({
         const currentMenu = ref(defaultMenu);
         const renderKey = ref(0);
         
-        // 动态组件管理
-        const loadedComponents = reactive({
-            categories: null  // 已加载的组件
-        });
-        
-        // 组件懒加载映射
-        const componentLoaders = {
-            categories: () => {
-                if (!loadedComponents.categories) {
-                    // 组件已在 HTML 中通过 script 标签加载
-                    loadedComponents.categories = window.CategoriesComponent;
-                    console.log('✅ 分类管理组件已加载');
-                }
-                return loadedComponents.categories;
-            }
-        };
-        
         // 统计数据
         const stats = reactive({
             todayConsultations: 0,
@@ -130,11 +113,6 @@ const app = createApp({
         
         const switchMenu = (menu) => {
             currentMenu.value = menu;
-            
-            // 懒加载对应组件
-            if (componentLoaders[menu]) {
-                componentLoaders[menu]();
-            }
         };
         
         // ==================== 数据看板模块 ====================
@@ -603,7 +581,6 @@ const app = createApp({
             categoryMap,
             selectedKnowledge,
             detailDialogVisible,
-            loadedComponents,  // 导出动态组件
             getMenuName,
             switchMenu,
             saveSettings,
