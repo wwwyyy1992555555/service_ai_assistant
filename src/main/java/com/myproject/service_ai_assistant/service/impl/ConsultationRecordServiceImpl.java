@@ -1,25 +1,22 @@
 package com.myproject.service_ai_assistant.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.myproject.service_ai_assistant.common.LevelCode;
-import com.myproject.service_ai_assistant.common.ResultCode;
-import com.myproject.service_ai_assistant.context.UserContext;
-import com.myproject.service_ai_assistant.entity.ConsultationRecord;
-import com.myproject.service_ai_assistant.exception.BusinessException;
-import com.myproject.service_ai_assistant.mapper.ConsultationRecordMapper;
-import com.myproject.service_ai_assistant.service.ConsultationRecordService;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.myproject.service_ai_assistant.context.UserContext;
+import com.myproject.service_ai_assistant.entity.ConsultationRecord;
+import com.myproject.service_ai_assistant.mapper.ConsultationRecordMapper;
+import com.myproject.service_ai_assistant.service.ConsultationRecordService;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 咨询对话记录服务实现类

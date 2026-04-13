@@ -4,7 +4,6 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.myproject.service_ai_assistant.common.LevelCode;
 import com.myproject.service_ai_assistant.common.ResultCode;
 import com.myproject.service_ai_assistant.common.SimilarityUtil;
 import com.myproject.service_ai_assistant.context.UserContext;

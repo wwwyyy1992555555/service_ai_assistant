@@ -1,18 +1,18 @@
 package com.myproject.service_ai_assistant.config;
 
-import com.myproject.service_ai_assistant.common.ResultCode;
-import com.myproject.service_ai_assistant.context.UserContext;
-import com.myproject.service_ai_assistant.exception.BusinessException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import java.util.concurrent.TimeUnit;
+import com.myproject.service_ai_assistant.common.ResultCode;
+import com.myproject.service_ai_assistant.context.UserContext;
+import com.myproject.service_ai_assistant.exception.BusinessException;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 认证拦截器 - 实现 Token 验证和单设备登录控制

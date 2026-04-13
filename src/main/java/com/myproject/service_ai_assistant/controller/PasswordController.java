@@ -3,7 +3,6 @@ package com.myproject.service_ai_assistant.controller;
 import com.myproject.service_ai_assistant.common.PasswordStrength;
 import com.myproject.service_ai_assistant.common.PasswordUtil;
 import com.myproject.service_ai_assistant.dto.PasswordStrengthDTO;
-import com.myproject.service_ai_assistant.dto.UserDTO;
 import com.myproject.service_ai_assistant.exception.BusinessException;
 import com.myproject.service_ai_assistant.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;

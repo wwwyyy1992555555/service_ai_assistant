@@ -1,7 +1,8 @@
 package com.myproject.service_ai_assistant.common;
 
-import java.util.*;
-import java.util.regex.Pattern;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * 文本相似度计算工具类
