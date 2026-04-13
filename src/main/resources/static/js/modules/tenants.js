@@ -9,7 +9,7 @@ const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 if (currentUser.tenantId !== 0) {
     ElementPlus.ElMessage.error('您没有权限访问此页面');
     setTimeout(() => {
-        window.top.location.href = '/admin.html';
+        window.top.location.href = '/admin';
     }, 1500);
 }
 

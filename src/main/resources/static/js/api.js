@@ -5,6 +5,16 @@
 
 const API_BASE = '/api';
 
+// 引入用户认证工具（简化租户ID获取）
+function _getTenantId(defaultId = 1) {
+    try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        return user.tenantId !== undefined ? user.tenantId : defaultId;
+    } catch (e) {
+        return defaultId;
+    }
+}
+
 /**
  * 通用请求封装
  * @param {string} url - 请求 URL
@@ -31,15 +41,26 @@ async function request(url, options = {}) {
         const response = await fetch(url, config);
         const data = await response.json();
 
-        // 401 未授权，跳转登录页
-        if (response.status === 401 || data.code === 401) {
+        // 认证失败：401 或特定错误码（Token 过期、无效、多设备登录）
+        if (response.status === 401 || 
+            data.code === 401 || 
+            data.code === 1004 ||  // TOKEN_EXPIRED
+            data.code === 1005 ||  // TOKEN_INVALID
+            data.code === 1006) {  // MULTI_LOGIN
+            
+            // 获取错误消息
+            const errorMsg = data.message || '登录已过期，请重新登录';
+            
             // 清除本地存储
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             localStorage.removeItem('tenantConfig');
             
+            // 保存错误消息到 sessionStorage
+            sessionStorage.setItem('loginError', errorMsg);
+            
             // 立即跳转
-            window.location.replace('/login.html');
+            window.top.location.replace('/login');
             return;
         }
 
@@ -88,10 +109,8 @@ function del(url) {
  * 获取统计数据
  */
 async function loadDashboard() {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const tenantId = user.tenantId !== undefined ? user.tenantId : 1;
     const result = await get(`${API_BASE}/statistics/dashboard`, { 
-        tenantId: tenantId
+        tenantId: _getTenantId()
     });
     return result.data || {};
 }
@@ -102,11 +121,8 @@ async function loadDashboard() {
  * @returns {Promise<Array>}
  */
 async function loadHotQuestions(limit = 10) {
-    // 调用后端专门的热门问题接口：/api/statistics/hot-questions
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const tenantId = user.tenantId !== undefined ? user.tenantId : 1;
     const result = await get(`${API_BASE}/statistics/hot-questions`, { 
-        tenantId: tenantId, 
+        tenantId: _getTenantId(), 
         limit: limit 
     });
     return result.data || [];
@@ -125,8 +141,7 @@ async function loadHotQuestions(limit = 10) {
  * @returns {Promise<{records: Array, total: number}>}
  */
 async function loadKnowledgeList(current, size, keyword, publishStatus, isTop, categoryId) {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const tenantId = user.tenantId !== undefined ? user.tenantId : 1;
+    const tenantId = _getTenantId();
     // 确保参数类型正确：publishStatus 和 isTop 必须是 Integer
     const params = {
         tenantId: tenantId,
@@ -170,8 +185,7 @@ async function loadKnowledgeList(current, size, keyword, publishStatus, isTop, c
  * @returns {Promise<{records: Array, total: number}>}
  */
 async function searchKnowledge(keyword, current, size, publishStatus, isTop, categoryId) {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const tenantId = user.tenantId !== undefined ? user.tenantId : 1;
+    const tenantId = _getTenantId();
     const params = {
         tenantId: tenantId,
         keyword: keyword || '',
@@ -274,8 +288,7 @@ async function deleteKnowledge(id) {
  * @returns {Promise<{records: Array, total: number}>}
  */
 async function loadRecordsList(current, size) {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const tenantId = user.tenantId !== undefined ? user.tenantId : 1;
+    const tenantId = _getTenantId();
     const result = await get(`${API_BASE}/consult/list`, {
         tenantId: tenantId,
         current: current || 1,
@@ -289,8 +302,7 @@ async function loadRecordsList(current, size) {
  * @returns {Promise<{records: Array, total: number}>}
  */
 async function searchRecords(keyword, current, size) {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const tenantId = user.tenantId !== undefined ? user.tenantId : 1;
+    const tenantId = _getTenantId();
     const result = await get(`${API_BASE}/consult/search`, {
         tenantId: tenantId,
         keyword: keyword || '',

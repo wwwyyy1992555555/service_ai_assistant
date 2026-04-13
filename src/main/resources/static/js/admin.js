@@ -24,7 +24,12 @@ const userStr = localStorage.getItem('user');
 const tenantConfigStr = localStorage.getItem('tenantConfig'); // 新增：从登录时获取的配置
 
 if (!token || !userStr) {
-    window.location.href = '/login.html';
+    if (typeof ElementPlus !== 'undefined' && ElementPlus.ElMessage) {
+        ElementPlus.ElMessage.error('请先登录');
+    }
+    setTimeout(() => {
+        window.top.location.replace('/login');
+    }, 300);
 }
 
 const user = userStr ? JSON.parse(userStr) : null;
@@ -65,9 +70,9 @@ const app = createApp({
         });
         
         // ==================== 状态定义 ====================
-        // 根据用户类型设置默认菜单
-        const defaultMenu = hasAdminPermission.value ? 'users' : 'dashboard';
-        console.log('【菜单调试】defaultMenu:', defaultMenu);
+        // 运营商显示租户管理，租户用户显示数据看板
+        const defaultMenu = isSuperAdmin.value ? 'tenants' : 'dashboard';
+        console.log('【菜单调试】defaultMenu:', defaultMenu, 'isSuperAdmin:', isSuperAdmin.value);
         const currentMenu = ref(defaultMenu);
         const renderKey = ref(0);
         
@@ -153,7 +158,7 @@ const app = createApp({
                 ElementPlus.ElMessage.success('已退出登录');
                 
                 setTimeout(() => {
-                    window.location.href = '/login.html';
+                    window.top.location.replace('/login');
                 }, 500);
             } catch (error) {
                 if (error !== 'cancel') {

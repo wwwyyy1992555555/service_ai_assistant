@@ -5,11 +5,76 @@
 // ==================== 权限检查 ====================
 const userStr = localStorage.getItem('user');
 if (!userStr) {
-    ElementPlus.ElMessage.error('请先登录');
-    window.location.href = '/login.html';
+    if (typeof ElementPlus !== 'undefined' && ElementPlus.ElMessage) {
+        ElementPlus.ElMessage.error('请先登录');
+    }
+    setTimeout(() => {
+        window.top.location.replace('/login');
+    }, 300);
 }
 
 const currentUser = JSON.parse(userStr);
+
+// ==================== 公共密码验证器 ====================
+/**
+ * 密码强度验证器（复用）
+ * @param {string} value - 密码值
+ * @param {Function} callback - Element Plus 验证回调
+ */
+function validatePasswordStrength(value, callback) {
+    if (!value) {
+        callback();
+        return;
+    }
+    
+    if (value.length < 8) {
+        callback(new Error('密码长度至少 8 位'));
+        return;
+    }
+    
+    if (!/[0-9]/.test(value)) {
+        callback(new Error('密码必须包含数字'));
+        return;
+    }
+    
+    if (!/[a-zA-Z]/.test(value)) {
+        callback(new Error('密码必须包含字母'));
+        return;
+    }
+    
+    const weakPasswords = ['123456', 'password', 'admin', '12345678', 'qwerty', '123456789', '12345', '1234567', 'letmein', '111111'];
+    if (weakPasswords.includes(value.toLowerCase())) {
+        callback(new Error('密码过于简单，请使用更复杂的密码'));
+        return;
+    }
+    
+    callback();
+}
+
+// ==================== 用户信息辅助函数 ====================
+/**
+ * 获取当前租户ID（带默认值）
+ */
+function _getCurrentTenantId(defaultId = 1) {
+    try {
+        const userInfo = JSON.parse(localStorage.getItem('user') || '{}');
+        return userInfo.tenantId !== undefined ? userInfo.tenantId : defaultId;
+    } catch (e) {
+        return defaultId;
+    }
+}
+
+/**
+ * 获取当前用户角色等级
+ */
+function _getCurrentRoleLevel(defaultLevel = 2) {
+    try {
+        const userInfo = JSON.parse(localStorage.getItem('user') || '{}');
+        return userInfo.roleLevel !== undefined ? Number(userInfo.roleLevel) : defaultLevel;
+    } catch (e) {
+        return defaultLevel;
+    }
+}
 
 const { createApp, onMounted, onUnmounted, nextTick } = Vue;
 
@@ -83,7 +148,7 @@ const app = createApp({
                         try {
                             const userInfo = JSON.parse(localStorage.getItem('user') || '{}');
                             // 超级管理员使用表单中选择的租户 ID，普通管理员使用自身租户 ID
-                            const tenantId = isSuperAdmin.value ? formData.tenantId : userInfo.tenantId;
+                            const tenantId = isSuperAdmin.value ? formData.tenantId : _getCurrentTenantId();
                             
                             // 未选择租户时暂不校验
                             if (!tenantId) {
@@ -120,35 +185,7 @@ const app = createApp({
             password: [
                 { required: true, message: '请输入密码', trigger: 'blur' },
                 {
-                    validator: (rule, value, callback) => {
-                        if (!value) {
-                            callback();
-                            return;
-                        }
-                        
-                        if (value.length < 8) {
-                            callback(new Error('密码长度至少 8 位'));
-                            return;
-                        }
-                        
-                        if (!/[0-9]/.test(value)) {
-                            callback(new Error('密码必须包含数字'));
-                            return;
-                        }
-                        
-                        if (!/[a-zA-Z]/.test(value)) {
-                            callback(new Error('密码必须包含字母'));
-                            return;
-                        }
-                        
-                        const weakPasswords = ['123456', 'password', 'admin', '12345678', 'qwerty', '123456789', '12345', '1234567', 'letmein', '111111'];
-                        if (weakPasswords.includes(value.toLowerCase())) {
-                            callback(new Error('密码过于简单，请使用更复杂的密码'));
-                            return;
-                        }
-                        
-                        callback();
-                    },
+                    validator: (rule, value, callback) => validatePasswordStrength(value, callback),
                     trigger: 'blur'
                 }
             ]
@@ -158,35 +195,7 @@ const app = createApp({
             newPassword: [
                 { required: true, message: '请输入新密码', trigger: 'blur' },
                 {
-                    validator: (rule, value, callback) => {
-                        if (!value) {
-                            callback();
-                            return;
-                        }
-                        
-                        if (value.length < 8) {
-                            callback(new Error('密码长度至少 8 位'));
-                            return;
-                        }
-                        
-                        if (!/[0-9]/.test(value)) {
-                            callback(new Error('密码必须包含数字'));
-                            return;
-                        }
-                        
-                        if (!/[a-zA-Z]/.test(value)) {
-                            callback(new Error('密码必须包含字母'));
-                            return;
-                        }
-                        
-                        const weakPasswords = ['123456', 'password', 'admin', '12345678', 'qwerty', '123456789', '12345', '1234567', 'letmein', '111111'];
-                        if (weakPasswords.includes(value.toLowerCase())) {
-                            callback(new Error('密码过于简单，请使用更复杂的密码'));
-                            return;
-                        }
-                        
-                        callback();
-                    },
+                    validator: (rule, value, callback) => validatePasswordStrength(value, callback),
                     trigger: 'blur'
                 }
             ],
@@ -230,12 +239,11 @@ const app = createApp({
         // 加载用户列表
         const loadUsers = async () => {
             loading.value = true;
-            try {// 从本地存储获取租户 ID 和角色级别
-                const userInfo = JSON.parse(localStorage.getItem('user') || '{}');
-                const tenantId = userInfo.tenantId !== undefined ? userInfo.tenantId : 1;
-                const currentUserRoleLevel = userInfo.roleLevel !== undefined ? userInfo.roleLevel : 2;
+            try {
+                const tenantId = _getCurrentTenantId();
+                const currentUserRoleLevel = _getCurrentRoleLevel();
                 
-                console.log('【加载用户列表】当前登录用户:', userInfo.username, 'tenantId:', tenantId, 'roleLevel:', currentUserRoleLevel);
+                console.log('【加载用户列表】当前登录用户:', currentUser.username, 'tenantId:', tenantId, 'roleLevel:', currentUserRoleLevel);
                 
                 // 调用分页接口，传递当前用户角色级别用于权限过滤
                 const result = await window.api.user.getList(tenantId, page.current, page.size, searchKeyword.value, currentUserRoleLevel);
@@ -351,8 +359,7 @@ const app = createApp({
                 await formRef.value.validate();
                 submitting.value = true;
                 
-                const userInfo = JSON.parse(localStorage.getItem('user') || '{}');
-                const tenantId = userInfo.tenantId !== undefined ? userInfo.tenantId : 1;
+                const tenantId = _getCurrentTenantId();
                 
                 if (dialogType.value === 'create') {
                     await window.api.user.create({
@@ -476,8 +483,7 @@ const app = createApp({
         
         // 检查是否允许删除用户
         const canDeleteUser = (user) => {
-            // 当前登录用户信息
-            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+            const currentUserRoleLevel = _getCurrentRoleLevel();
             
             // 不允许删除超级管理员
             if (user.roleLevel === 0) {
@@ -485,12 +491,12 @@ const app = createApp({
             }
             
             // 超级管理员可以删除任何人（除了自己）
-            if (currentUser.roleLevel === 0) {
+            if (currentUserRoleLevel === 0) {
                 return true;
             }
             
             // 普通管理员只能删除操作员
-            if (currentUser.roleLevel === 1 && user.roleLevel === 2) {
+            if (currentUserRoleLevel === 1 && user.roleLevel === 2) {
                 return true;
             }
             
@@ -499,18 +505,17 @@ const app = createApp({
         
         // 获取删除禁用的原因
         const getDeleteDisabledReason = (user) => {
-            // 当前登录用户信息
-            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+            const currentUserRoleLevel = _getCurrentRoleLevel();
             
             if (user.roleLevel === 0) {
                 return '不允许删除超级管理员';
             }
             
-            if (currentUser.roleLevel === 1 && user.roleLevel !== 2) {
+            if (currentUserRoleLevel === 1 && user.roleLevel !== 2) {
                 return '普通管理员只能删除操作员';
             }
             
-            if (currentUser.roleLevel === 2) {
+            if (currentUserRoleLevel === 2) {
                 return '操作员没有删除权限';
             }
             
@@ -519,8 +524,7 @@ const app = createApp({
         
         // 检查是否允许重置密码
         const canResetPassword = (user) => {
-            // 当前登录用户信息
-            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+            const currentUserRoleLevel = _getCurrentRoleLevel();
             
             // 不允许重置超级管理员密码
             if (user.roleLevel === 0) {
@@ -528,12 +532,12 @@ const app = createApp({
             }
             
             // 超级管理员可以重置任何人密码
-            if (currentUser.roleLevel === 0) {
+            if (currentUserRoleLevel === 0) {
                 return true;
             }
             
             // 普通管理员只能重置操作员密码
-            if (currentUser.roleLevel === 1 && user.roleLevel === 2) {
+            if (currentUserRoleLevel === 1 && user.roleLevel === 2) {
                 return true;
             }
             
@@ -542,18 +546,17 @@ const app = createApp({
         
         // 获取重置密码禁用的原因
         const getResetPasswordDisabledReason = (user) => {
-            // 当前登录用户信息
-            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+            const currentUserRoleLevel = _getCurrentRoleLevel();
             
             if (user.roleLevel === 0) {
                 return '不允许重置超级管理员密码';
             }
             
-            if (currentUser.roleLevel === 1 && user.roleLevel !== 2) {
+            if (currentUserRoleLevel === 1 && user.roleLevel !== 2) {
                 return '普通管理员只能重置操作员密码';
             }
             
-            if (currentUser.roleLevel === 2) {
+            if (currentUserRoleLevel === 2) {
                 return '操作员没有重置密码权限';
             }
             

@@ -29,12 +29,12 @@
                             size="large"
                             style="width: 100%;"
                         >
-                            <el-option label="租户登录" :value="null"></el-option>
+                            <el-option label="租户登录" value="tenant"></el-option>
                             <el-option label="运营商登录" :value="0"></el-option>
                         </el-select>
                     </div>
 
-                    <div class="form-item" v-if="loginForm.tenantId === null">
+                    <div class="form-item" v-if="loginForm.tenantId === 'tenant'">
                         <el-input
                             v-model="loginForm.tenantCode"
                             placeholder="请输入租户编码"
@@ -111,8 +111,21 @@
 
         const app = createApp({
             setup() {
+                // 检查是否有登录错误消息
+                const loginError = sessionStorage.getItem('loginError');
+                if (loginError) {
+                    // 显示错误消息
+                    setTimeout(() => {
+                        if (typeof ElementPlus !== 'undefined' && ElementPlus.ElMessage) {
+                            ElementPlus.ElMessage.error(loginError);
+                        }
+                        // 清除消息，避免刷新后重复显示
+                        sessionStorage.removeItem('loginError');
+                    }, 100);
+                }
+                
                 const loginForm = Vue.reactive({
-                    tenantId: null,
+                    tenantId: 'tenant',
                     tenantCode: '',
                     username: '',
                     password: ''
@@ -154,11 +167,14 @@
 
                     try {
                         // 统一通过 tenantId 和 tenantCode 登录
+                        // tenantId: 运营商传0，租户登录传null(由后端解析tenantCode)
+                        const tenantIdForApi = loginForm.tenantId === 'tenant' ? null : loginForm.tenantId;
+                        
                         const result = await window.login(
                             loginForm.username,
                             loginForm.password,
                             loginForm.tenantCode || '',
-                            loginForm.tenantId
+                            tenantIdForApi
                         );
 
                         if (result.code === 200 && result.data) {
@@ -181,7 +197,7 @@
                             ElementPlus.ElMessage.success('登录成功！');
 
                             setTimeout(() => {
-                                window.location.href = '/admin.html';
+                                window.location.href = '/admin';
                             }, 500);
                         } else {
                             ElementPlus.ElMessage.error(result.message || '登录失败');

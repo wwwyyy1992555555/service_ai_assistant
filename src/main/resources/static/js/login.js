@@ -96,7 +96,7 @@ const app = createApp({
 
                             // 跳转到管理后台
                             setTimeout(() => {
-                                window.location.href = '/admin.html';
+                                window.location.href = '/admin';
                             }, 500);
                         } else {
                             ElementPlus.ElMessage.error(result.message || '登录失败');
