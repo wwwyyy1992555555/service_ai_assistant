@@ -42,3 +42,17 @@ logs/
 **/application-dev.yml
 **/application-prod.yml
 **/application-test.yml
+CODE_STYLE_GUIDE_MINIMAL.md
+CODE_STYLE_GUIDE_SIMPLE.md
+CODE_STYLE_GUIDE.md
+LLM_CONFIG.md
+NGINX_DEPLOYMENT.md
+PROJECT_SUMMARY.md
+PROXYAI.md
+REDIS_CONFIG.md
+REFACTOR_SUMMARY_20260327.md
+SEARCH_OPTIMIZATION_PHASE1.md
+TODAY_WORK_SUMMARY.md
+.lingma/rules/code.md
+.lingma/rules/project_rules.md
+.trae/rules/project-rules.md
