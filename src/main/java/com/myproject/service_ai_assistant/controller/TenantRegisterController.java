@@ -1,6 +1,7 @@
 package com.myproject.service_ai_assistant.controller;
 
 import com.myproject.service_ai_assistant.common.Result;
+import com.myproject.service_ai_assistant.common.ResultCode;
 import com.myproject.service_ai_assistant.dto.SendVerifyCodeRequest;
 import com.myproject.service_ai_assistant.dto.TenantRegisterRequest;
 import com.myproject.service_ai_assistant.service.TenantInfoService;
@@ -37,7 +38,7 @@ public class TenantRegisterController {
         try {
             tenantInfoService.sendVerifyCode(request.getContactEmail());
             log.info("【发送验证码】成功：contactEmail={}", request.getContactEmail());
-            return Result.success("验证码已发送至您的邮箱");
+            return Result.success(ResultCode.VERIFY_CODE_SENT.getMessage());
 
         } catch (Exception e) {
             log.error("【发送验证码】失败：{}", e.getMessage(), e);
@@ -67,7 +68,7 @@ public class TenantRegisterController {
 
             Map<String, String> result = new HashMap<>();
             result.put("tenantCode", tenantCode);
-            result.put("message", "注册成功！请使用 tenant_code 配置 chat 页面");
+            result.put("message", ResultCode.REGISTER_SUCCESS.getMessage());
 
             log.info("【租户注册】成功：tenantCode={}", tenantCode);
             return Result.success(result);

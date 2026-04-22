@@ -12,7 +12,7 @@ if (typeof Vue === 'undefined') {
         </div>
     `;
 } else {
-    console.log('✅ Vue 加载成功，版本:', Vue.version);
+    console.log(formatMessage(MESSAGE.INFO.VUE_LOADED, {version: Vue.version}));
 }
 
 const app = createApp({

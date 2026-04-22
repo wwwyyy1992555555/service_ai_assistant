@@ -23,9 +23,9 @@ window.API_BASE_URL = API_BASE_URL;
 window.CURRENT_TENANT_ID = CURRENT_TENANT_ID;
 
 // 调试日志：确认变量已正确导出
-console.log('=== chat.js 加载完成 ===');
-console.log('API_BASE_URL:', window.API_BASE_URL);
-console.log('CURRENT_TENANT_ID:', window.CURRENT_TENANT_ID);
+console.log(MESSAGE.INFO.CHAT_JS_LOADED);
+console.log(formatMessage(MESSAGE.INFO.API_BASE_URL, {url: window.API_BASE_URL}));
+console.log(formatMessage(MESSAGE.INFO.CURRENT_TENANT_ID, {id: window.CURRENT_TENANT_ID}));
 
 // 生成会话 ID
 function generateSessionId() {

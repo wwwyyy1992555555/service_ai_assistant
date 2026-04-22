@@ -45,6 +45,7 @@ public enum ResultCode {
     EMAIL_REGISTERED(2011, "该邮箱已注册，请更换邮箱或找回密码"),
     VERIFY_CODE_EXPIRED(2012, "验证码已过期或不存在"),
     VERIFY_CODE_ERROR(2013, "验证码错误"),
+    REGISTER_SUCCESS(2014, "注册成功！请使用 tenant_code 配置 chat 页面"),
     
     // ========== 业务通用 (3xxx) ==========
     BUSINESS_ERROR(3001, "业务异常"),
@@ -67,6 +68,9 @@ public enum ResultCode {
     PERMISSION_DENIED(3111, "权限不足，无法执行此操作"),
     PERMISSION_DENIED_USER_MANAGEMENT(3112, "您的角色等级不足以访问用户管理模块，请联系超级管理员"),
     PERMISSION_DENIED_DELETE_USER(3113, "无权删除等级大于或等于您的用户（用户名：%s）"),
+    USER_ID_NOT_EXISTS(3114, "用户ID为%d不存在"),
+    CROSS_TENANT_OPERATION_FORBIDDEN(3115, "无权删除其他租户的用户"),
+    FEEDBACK_IDS_REQUIRED(3116, "请选择要删除的反馈"),
     
     // ========== 参数校验相关 (32xx) ==========
     USERNAME_EMPTY(3201, "用户名不能为空"),
@@ -90,6 +94,7 @@ public enum ResultCode {
     // ========== Redis 相关 (61xx) ==========
     REDIS_OPERATION_FAILED(6101, "验证码存储失败，请检查 Redis 服务"),
     EMAIL_SEND_FAILED(6102, "验证码发送失败，请稍后重试"),
+    VERIFY_CODE_SENT(6103, "验证码已发送至您的邮箱"),
     
     // ========== AI 服务相关 (7xxx) ==========
     AI_SERVICE_ERROR(7001, "AI 服务调用失败"),

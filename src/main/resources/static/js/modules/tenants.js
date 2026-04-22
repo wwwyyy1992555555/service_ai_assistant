@@ -79,7 +79,7 @@ const app = createApp({
                 const result = await window.api.industryType.getList();
                 industryTypeList.value = result || [];
             } catch (error) {
-                console.error('加载行业类型失败:', error);
+                console.error(MESSAGE.ERROR.LOAD_INDUSTRY_TYPES_FAILED, error);
             }
         };
         
@@ -91,7 +91,7 @@ const app = createApp({
                 tenantsList.value = result.records || [];
                 page.total = result.total || 0;
             } catch (error) {
-                console.error('加载租户列表失败:', error);
+                console.error(MESSAGE.ERROR.LOAD_TENANTS_FAILED, error);
                 ElementPlus.ElMessage.error(error.message || '网络错误，请稍后重试');
             } finally {
                 loading.value = false;
@@ -180,7 +180,7 @@ const app = createApp({
                 if (error.message && error.message.includes('验证')) {
                     return;
                 }
-                console.error('保存租户失败:', error);
+                console.error(MESSAGE.ERROR.OPERATION_FAILED, error);
                 ElementPlus.ElMessage.error(error.message || '保存失败，请稍后重试');
             } finally {
                 submitting.value = false;

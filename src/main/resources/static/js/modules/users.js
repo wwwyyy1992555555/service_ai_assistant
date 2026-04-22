@@ -6,7 +6,7 @@
 const userStr = localStorage.getItem('user');
 if (!userStr) {
     if (typeof ElementPlus !== 'undefined' && ElementPlus.ElMessage) {
-        ElementPlus.ElMessage.error('请先登录');
+        ElementPlus.ElMessage.error(MESSAGE.ERROR.LOGIN_REQUIRED);
     }
     setTimeout(() => {
         window.top.location.replace('/login');
@@ -30,23 +30,23 @@ function validatePasswordStrength(value, callback) {
     }
     
     if (value.length < 8) {
-        callback(new Error('密码长度至少 8 位'));
+        callback(new Error(MESSAGE.ERROR.PASSWORD_LENGTH_MIN));
         return;
     }
     
     if (!/[0-9]/.test(value)) {
-        callback(new Error('密码必须包含数字'));
+        callback(new Error(MESSAGE.ERROR.PASSWORD_MUST_CONTAIN_NUMBER));
         return;
     }
     
     if (!/[a-zA-Z]/.test(value)) {
-        callback(new Error('密码必须包含字母'));
+        callback(new Error(MESSAGE.ERROR.PASSWORD_MUST_CONTAIN_LETTER));
         return;
     }
     
     const weakPasswords = ['123456', 'password', 'admin', '12345678', 'qwerty', '123456789', '12345', '1234567', 'letmein', '111111'];
     if (weakPasswords.includes(value.toLowerCase())) {
-        callback(new Error('密码过于简单，请使用更复杂的密码'));
+        callback(new Error(MESSAGE.ERROR.PASSWORD_TOO_SIMPLE));
         return;
     }
     
@@ -83,11 +83,14 @@ const { createApp, onMounted, onUnmounted, nextTick } = Vue;
 const app = createApp({
     setup() {
         // 是否为超级管理员
-        const isSuperAdmin = Vue.ref(userStr && currentUser.tenantId === 0);
+        const isSuperAdmin = Vue.ref(userStr && LEVEL_CODE.isPlatformProvider(currentUser.tenantId));
         
         // 当前登录用户的角色等级（用于控制可创建的用户等级）
         const roleLevelValue = currentUser.roleLevel !== undefined ? Number(currentUser.roleLevel) : 2;
-        console.log('【用户等级调试】currentUser.roleLevel:', currentUser.roleLevel, '转换为数字:', roleLevelValue);
+        console.log(formatMessage(MESSAGE.INFO.USER_LEVEL_DEBUG, {
+            level: currentUser.roleLevel,
+            numeric: roleLevelValue
+        }));
         const currentUserRoleLevel = Vue.ref(roleLevelValue);
         
         const usersList = Vue.ref([]);
@@ -146,8 +149,8 @@ const app = createApp({
         // 表单验证规则
         const formRules = {
             username: [
-                { required: true, message: '请输入用户名', trigger: 'blur' },
-                { min: 3, max: 20, message: '用户名长度在 3 到 20 个字符', trigger: 'blur' },
+                { required: true, message: formatMessage(MESSAGE.ERROR.FIELD_REQUIRED, {field: '用户名'}), trigger: 'blur' },
+                { min: 3, max: 20, message: formatMessage(MESSAGE.ERROR.FIELD_LENGTH_RANGE, {field: '用户名', min: 3, max: 20}), trigger: 'blur' },
                 {
                     validator: async (rule, value, callback) => {
                         if (!value) {
@@ -174,26 +177,26 @@ const app = createApp({
                             
                             const exists = await window.api.user.checkUsername(tenantId, value);
                             if (exists) {
-                                callback(new Error('该用户名已被使用'));
+                                callback(new Error(MESSAGE.ERROR.USERNAME_ALREADY_USED));
                             } else {
                                 callback();
                             }
                         } catch (error) {
-                            console.error('检查用户名失败:', error);
-                            callback(new Error('检查用户名失败，请稍后重试'));
+                            console.error(MESSAGE.ERROR.USERNAME_CHECK_FAILED, error);
+                            callback(new Error(MESSAGE.ERROR.USERNAME_CHECK_FAILED));
                         }
                     },
                     trigger: 'blur'
                 }
             ],
             tenantId: [
-                { required: true, message: '请选择租户', trigger: 'change' }
+                { required: true, message: MESSAGE.ERROR.TENANT_REQUIRED, trigger: 'change' }
             ],
             roleLevel: [
-                { required: true, message: '请选择等级', trigger: 'change' }
+                { required: true, message: MESSAGE.ERROR.ROLE_LEVEL_REQUIRED, trigger: 'change' }
             ],
             password: [
-                { required: true, message: '请输入密码', trigger: 'blur' },
+                { required: true, message: MESSAGE.ERROR.PASSWORD_REQUIRED, trigger: 'blur' },
                 {
                     validator: (rule, value, callback) => validatePasswordStrength(value, callback),
                     trigger: 'blur'
@@ -203,18 +206,18 @@ const app = createApp({
         
         const resetPasswordRules = {
             newPassword: [
-                { required: true, message: '请输入新密码', trigger: 'blur' },
+                { required: true, message: formatMessage(MESSAGE.ERROR.FIELD_REQUIRED, {field: '新密码'}), trigger: 'blur' },
                 {
                     validator: (rule, value, callback) => validatePasswordStrength(value, callback),
                     trigger: 'blur'
                 }
             ],
             confirmPassword: [
-                { required: true, message: '请确认新密码', trigger: 'blur' },
+                { required: true, message: formatMessage(MESSAGE.ERROR.FIELD_REQUIRED, {field: '确认新密码'}), trigger: 'blur' },
                 {
                     validator: (rule, value, callback) => {
                         if (value !== resetPasswordForm.newPassword) {
-                            callback(new Error('两次输入的密码不一致'));
+                            callback(new Error(MESSAGE.ERROR.PASSWORD_CONFIRM_MISMATCH));
                         } else {
                             callback();
                         }
@@ -239,7 +242,7 @@ const app = createApp({
                     const result = await window.api.user.searchTenants(query);
                     tenantOptions.value = result;
                 } catch (error) {
-                    console.error('搜索租户失败:', error);
+                    console.error(MESSAGE.ERROR.SEARCH_TENANTS_FAILED, error);
                 } finally {
                     tenantSearchLoading.value = false;
                 }
@@ -254,7 +257,7 @@ const app = createApp({
         // 批量删除用户
         const handleBatchDelete = async () => {
             if (selectedRows.value.length === 0) {
-                ElementPlus.ElMessage.warning('请先选择要删除的用户');
+                ElementPlus.ElMessage.warning(MESSAGE.ERROR.USER_IDS_REQUIRED.replace('反馈', '用户'));
                 return;
             }
             
@@ -292,13 +295,13 @@ const app = createApp({
                 const tenantId = isSuperAdmin.value ? selectedRows.value[0].tenantId : _getCurrentTenantId();
                 
                 await window.api.user.batchDelete(tenantId, userIds);
-                ElementPlus.ElMessage.success('批量删除成功');
+                ElementPlus.ElMessage.success(MESSAGE.SUCCESS.DELETE);
                 selectedRows.value = [];
                 page.current = 1;
                 loadUsers();
             } catch (error) {
                 if (error !== 'cancel') {
-                    ElementPlus.ElMessage.error(error?.message || '批量删除失败');
+                    ElementPlus.ElMessage.error(error?.message || MESSAGE.ERROR.USER_DELETE_FAILED);
                 }
             }
         };
@@ -310,15 +313,19 @@ const app = createApp({
                 const tenantId = _getCurrentTenantId();
                 const currentUserRoleLevel = _getCurrentRoleLevel();
                 
-                console.log('【加载用户列表】当前登录用户:', currentUser.username, 'tenantId:', tenantId, 'roleLevel:', currentUserRoleLevel);
+                console.log(formatMessage(MESSAGE.INFO.LOAD_USER_LIST_DEBUG, {
+                    username: currentUser.username,
+                    tenantId: tenantId,
+                    roleLevel: currentUserRoleLevel
+                }));
                 
                 // 调用分页接口，传递当前用户角色级别用于权限过滤
                 const result = await window.api.user.getList(tenantId, page.current, page.size, searchKeyword.value, currentUserRoleLevel);
                 usersList.value = result.records || [];
                 page.total = result.total || 0;
             } catch (error) {
-                console.error('加载用户列表失败:', error);
-                ElementPlus.ElMessage.error('网络错误，请稍后重试');
+                console.error(MESSAGE.ERROR.LOAD_DATA_FAILED, error);
+                ElementPlus.ElMessage.error(MESSAGE.ERROR.NETWORK);
             } finally {
                 loading.value = false;
             }
@@ -476,7 +483,7 @@ const app = createApp({
         const handleDelete = async (user) => {
             try {
                 // 构建详细的确认信息
-                const roleText = user.roleLevel === 0 ? '超级管理员' : (user.roleLevel === 1 ? '普通管理员' : '操作员');
+                const roleText = LEVEL_CODE.getRoleLevelName(user.roleLevel);
                 const statusText = user.status === 1 ? '启用' : '禁用';
                 const confirmMessage = `
                     <div style="text-align: left; line-height: 1.8;">
@@ -503,19 +510,19 @@ const app = createApp({
                 // 获取被删除用户所在的租户ID（超级管理员跨租户操作时使用）
                 const tenantId = isSuperAdmin.value ? user.tenantId : _getCurrentTenantId();
                 await window.api.user.delete(tenantId, user.id);
-                ElementPlus.ElMessage.success('用户删除成功');
+                ElementPlus.ElMessage.success(MESSAGE.SUCCESS.DELETE);
                 loadUsers();
             } catch (error) {
                 if (error !== 'cancel') {
-                    console.error('删除失败:', error);
+                    console.error(MESSAGE.ERROR.USER_DELETE_FAILED, error);
                     // 根据错误类型显示不同的提示
-                    if (error.message && error.message.includes('不允许删除超级管理员')) {
-                        ElementPlus.ElMessage.error('不允许删除超级管理员账号');
-                    } else if (error.message && error.message.includes('用户不存在')) {
-                        ElementPlus.ElMessage.warning('用户不存在或已被删除');
+                    if (error.message && error.message.includes(LEVEL_CODE.getRoleLevelName(LEVEL_CODE.ROLE_LEVEL_SUPER_ADMIN))) {
+                        ElementPlus.ElMessage.error(MESSAGE.ERROR.DELETE_SUPER_ADMIN_FORBIDDEN);
+                    } else if (error.message && error.message.includes(MESSAGE.ERROR.USER_NOT_FOUND)) {
+                        ElementPlus.ElMessage.warning(MESSAGE.ERROR.USER_NOT_FOUND);
                         loadUsers(); // 刷新列表
                     } else {
-                        ElementPlus.ElMessage.error('删除失败，请稍后重试');
+                        ElementPlus.ElMessage.error(MESSAGE.ERROR.USER_DELETE_FAILED);
                     }
                 }
             }
@@ -528,11 +535,11 @@ const app = createApp({
                 resettingPassword.value = true;
                 
                 await window.api.user.resetPassword(editingUser.value.id, resetPasswordForm.newPassword);
-                ElementPlus.ElMessage.success('密码重置成功');
+                ElementPlus.ElMessage.success(MESSAGE.SUCCESS.UPDATE);
                 resetPasswordDialogVisible.value = false;
             } catch (error) {
-                console.error('密码重置失败:', error);
-                ElementPlus.ElMessage.error('密码重置失败，请稍后重试');
+                console.error(MESSAGE.ERROR.PASSWORD_RESET_FAILED, error);
+                ElementPlus.ElMessage.error(MESSAGE.ERROR.PASSWORD_RESET_FAILED);
             } finally {
                 resettingPassword.value = false;
             }
@@ -542,12 +549,7 @@ const app = createApp({
         
         // 获取角色名称
         const getRoleName = (roleLevel) => {
-            switch (roleLevel) {
-                case 0: return '超级管理员';
-                case 1: return '普通管理员';
-                case 2: return '操作员';
-                default: return '未知角色';
-            }
+            return LEVEL_CODE.getRoleLevelName(roleLevel);
         };
         
         // 检查是否允许删除用户
@@ -555,17 +557,17 @@ const app = createApp({
             const currentUserRoleLevel = _getCurrentRoleLevel();
             
             // 不允许删除超级管理员
-            if (user.roleLevel === 0) {
+            if (user.roleLevel === LEVEL_CODE.ROLE_LEVEL_SUPER_ADMIN) {
                 return false;
             }
             
             // 超级管理员可以删除任何人（除了自己）
-            if (currentUserRoleLevel === 0) {
+            if (currentUserRoleLevel === LEVEL_CODE.ROLE_LEVEL_PROVIDER) {
                 return true;
             }
             
             // 普通管理员只能删除操作员
-            if (currentUserRoleLevel === 1 && user.roleLevel === 2) {
+            if (currentUserRoleLevel === LEVEL_CODE.ROLE_LEVEL_ADMIN && user.roleLevel === LEVEL_CODE.ROLE_LEVEL_OPERATOR) {
                 return true;
             }
             
@@ -576,16 +578,16 @@ const app = createApp({
         const getDeleteDisabledReason = (user) => {
             const currentUserRoleLevel = _getCurrentRoleLevel();
             
-            if (user.roleLevel === 0) {
-                return '不允许删除超级管理员';
+            if (user.roleLevel === LEVEL_CODE.ROLE_LEVEL_SUPER_ADMIN) {
+                return MESSAGE.ERROR.DELETE_SUPER_ADMIN_FORBIDDEN;
             }
             
-            if (currentUserRoleLevel === 1 && user.roleLevel !== 2) {
-                return '普通管理员只能删除操作员';
+            if (currentUserRoleLevel === LEVEL_CODE.ROLE_LEVEL_ADMIN && user.roleLevel !== LEVEL_CODE.ROLE_LEVEL_OPERATOR) {
+                return formatMessage(MESSAGE.ERROR.PERMISSION_DENIED_DELETE_USER, {username: user.username});
             }
             
-            if (currentUserRoleLevel === 2) {
-                return '操作员没有删除权限';
+            if (currentUserRoleLevel === LEVEL_CODE.ROLE_LEVEL_OPERATOR) {
+                return MESSAGE.ERROR.PERMISSION_DENIED;
             }
             
             return '';
@@ -596,17 +598,17 @@ const app = createApp({
             const currentUserRoleLevel = _getCurrentRoleLevel();
             
             // 不允许重置超级管理员密码
-            if (user.roleLevel === 0) {
+            if (user.roleLevel === LEVEL_CODE.ROLE_LEVEL_SUPER_ADMIN) {
                 return false;
             }
             
             // 超级管理员可以重置任何人密码
-            if (currentUserRoleLevel === 0) {
+            if (currentUserRoleLevel === LEVEL_CODE.ROLE_LEVEL_PROVIDER) {
                 return true;
             }
             
             // 普通管理员只能重置操作员密码
-            if (currentUserRoleLevel === 1 && user.roleLevel === 2) {
+            if (currentUserRoleLevel === LEVEL_CODE.ROLE_LEVEL_ADMIN && user.roleLevel === LEVEL_CODE.ROLE_LEVEL_OPERATOR) {
                 return true;
             }
             
@@ -617,16 +619,16 @@ const app = createApp({
         const getResetPasswordDisabledReason = (user) => {
             const currentUserRoleLevel = _getCurrentRoleLevel();
             
-            if (user.roleLevel === 0) {
+            if (user.roleLevel === LEVEL_CODE.ROLE_LEVEL_SUPER_ADMIN) {
                 return '不允许重置超级管理员密码';
             }
             
-            if (currentUserRoleLevel === 1 && user.roleLevel !== 2) {
+            if (currentUserRoleLevel === LEVEL_CODE.ROLE_LEVEL_ADMIN && user.roleLevel !== LEVEL_CODE.ROLE_LEVEL_OPERATOR) {
                 return '普通管理员只能重置操作员密码';
             }
             
-            if (currentUserRoleLevel === 2) {
-                return '操作员没有重置密码权限';
+            if (currentUserRoleLevel === LEVEL_CODE.ROLE_LEVEL_OPERATOR) {
+                return MESSAGE.ERROR.PERMISSION_DENIED;
             }
             
             return '';
@@ -635,9 +637,9 @@ const app = createApp({
         // 获取角色标签类型
         const getRoleTagType = (roleLevel) => {
             switch (roleLevel) {
-                case 0: return 'danger'; // 超级管理员 - 红色
-                case 1: return 'warning'; // 普通管理员 - 橙色
-                case 2: return 'success'; // 操作员 - 绿色
+                case LEVEL_CODE.ROLE_LEVEL_SUPER_ADMIN: return 'danger'; // 超级管理员 - 红色
+                case LEVEL_CODE.ROLE_LEVEL_ADMIN: return 'warning'; // 普通管理员 - 橙色
+                case LEVEL_CODE.ROLE_LEVEL_OPERATOR: return 'success'; // 操作员 - 绿色
                 default: return 'info';
             }
         };

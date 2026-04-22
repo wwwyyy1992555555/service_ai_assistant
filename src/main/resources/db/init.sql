@@ -19,9 +19,6 @@ CREATE TABLE `tenant_info` (
   `contact_person` VARCHAR(50) DEFAULT NULL COMMENT '联系人',
   `contact_phone` VARCHAR(20) DEFAULT NULL COMMENT '联系电话',
   `contact_email` VARCHAR(100) DEFAULT NULL COMMENT '联系邮箱',
-  `logo_url` VARCHAR(500) DEFAULT NULL COMMENT '企业 Logo',
-  `theme_color` VARCHAR(20) DEFAULT '#1890ff' COMMENT '主题色',
-  `welcome_message` VARCHAR(500) DEFAULT '您好，请问有什么可以帮您？' COMMENT '欢迎语',
   `status` TINYINT DEFAULT 1 COMMENT '状态：0-禁用 1-启用',
   `expire_time` DATETIME DEFAULT NULL COMMENT '过期时间（NULL 表示永久有效）',
   `remark` VARCHAR(1000) DEFAULT NULL COMMENT '备注',
@@ -118,7 +115,7 @@ CREATE TABLE `tenant_config` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT 'ID',
   `tenant_id` BIGINT NOT NULL COMMENT '租户 ID',
   `logo_url` VARCHAR(500) DEFAULT NULL COMMENT '企业 Logo',
-  `theme_color` VARCHAR(20) DEFAULT '#1890ff' COMMENT '主题颜色',
+  `theme_color` VARCHAR(50) DEFAULT '#1890ff' COMMENT '主题颜色',
   `welcome_message` VARCHAR(500) DEFAULT '您好，请问有什么可以帮您？' COMMENT '欢迎语',
   `company_name` VARCHAR(100) DEFAULT NULL COMMENT '企业名称',
   `service_email` VARCHAR(100) DEFAULT NULL COMMENT '客服邮箱',
@@ -189,8 +186,8 @@ CREATE TABLE `consultation_feedback` (
 -- ========================================
 
 -- 示例租户
-INSERT INTO `tenant_info` (`tenant_name`, `tenant_code`, `industry_type`, `contact_person`, `contact_phone`, `theme_color`, `welcome_message`) VALUES
-('XX 市政务服务中心', 'gov_demo_001', 'government', '张主任', '13800138000', '#1890ff', '您好，XX 市政务服务中心很高兴为您服务！');
+INSERT INTO `tenant_info` (`tenant_name`, `tenant_code`, `industry_type`, `contact_person`, `contact_phone`) VALUES
+('XX 市政务服务中心', 'gov_demo_001', 'government', '张主任', '13800138000');
 
 -- 示例知识分类
 INSERT INTO `knowledge_category` (`tenant_id`, `category_name`, `parent_id`, `level`) VALUES

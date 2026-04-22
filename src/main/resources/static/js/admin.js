@@ -48,7 +48,7 @@ const app = createApp({
                 currentUser = JSON.parse(userStr);
             }
         } catch (e) {
-            console.error('解析用户信息失败', e);
+            console.error(MESSAGE.ERROR.LOAD_USER_INFO_FAILED, e);
         }
         
         // 使用模块的状态和方法
@@ -59,20 +59,27 @@ const app = createApp({
         
         // 管理员权限判断：tenantId=0 (超级管理员) 或 roleLevel <= 1 (一级/超级管理员)
         const hasAdminPermission = computed(() => {
-            const result = currentUser.tenantId === 0 || (currentUser.roleLevel !== undefined && currentUser.roleLevel <= 1);
-            console.log('【权限调试】hasAdminPermission:', result, 'tenantId:', currentUser.tenantId, 'roleLevel:', currentUser.roleLevel);
+            const result = LEVEL_CODE.isPlatformProvider(currentUser.tenantId) || LEVEL_CODE.hasAdminPermission(currentUser.roleLevel);
+            console.log(formatMessage(MESSAGE.INFO.PERMISSION_DEBUG, {
+                result: result,
+                tenantId: currentUser.tenantId,
+                roleLevel: currentUser.roleLevel
+            }));
             return result;
         });
         
         // 是否为超级管理员（tenantId=0）
         const isSuperAdmin = computed(() => {
-            return currentUser.tenantId === 0;
+            return LEVEL_CODE.isPlatformProvider(currentUser.tenantId);
         });
         
         // ==================== 状态定义 ====================
         // 运营商显示租户管理，租户用户显示数据看板
         const defaultMenu = isSuperAdmin.value ? 'tenants' : 'dashboard';
-        console.log('【菜单调试】defaultMenu:', defaultMenu, 'isSuperAdmin:', isSuperAdmin.value);
+        console.log(formatMessage(MESSAGE.INFO.MENU_DEBUG, {
+            menu: defaultMenu,
+            isAdmin: isSuperAdmin.value
+        }));
         const currentMenu = ref(defaultMenu);
         const renderKey = ref(0);
         
@@ -209,7 +216,7 @@ const app = createApp({
                 if (tenantConfig && tenantConfig.themeColor) {
                     Object.assign(settings, tenantConfig);
                     applyThemeColor(tenantConfig.themeColor);
-                    console.log('✅ 使用登录时返回的租户配置');
+                    console.log(MESSAGE.INFO.USE_LOGIN_TENANT_CONFIG);
                 } else {
                     // 如果登录时没有返回配置，再调用接口
                     const config = await window.loadTenantConfig(currentUser.tenantId || 1);
@@ -219,11 +226,11 @@ const app = createApp({
                             applyThemeColor(config.themeColor);
                         }
                     }
-                    console.log('✅ 使用单独接口加载的租户配置');
+                    console.log(MESSAGE.INFO.USE_SEPARATE_TENANT_CONFIG);
                 }
             } catch (error) {
                 // 静默失败
-                console.warn('⚠️ 加载租户配置失败', error);
+                console.warn(MESSAGE.ERROR.LOAD_TENANT_CONFIG_FAILED, error);
             }
         };
         
@@ -544,7 +551,7 @@ const app = createApp({
                 document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
                     if (unnecessaryCSS.some(css => link.href.includes(css))) {
                         link.remove();
-                        console.log('✅ 已移除不必要的 CSS:', link.href);
+                        console.log(MESSAGE.INFO.REMOVE_UNNECESSARY_CSS, link.href);
                     }
                 });
             }
@@ -559,7 +566,7 @@ const app = createApp({
             // 监听分类变更事件（从分类管理页面触发）
             window.addEventListener('storage', (event) => {
                 if (event.key === 'category_update') {
-                    console.log('【分类变更】检测到分类数据变更，重新加载...');
+                    console.log(MESSAGE.INFO.DETECT_CATEGORY_CHANGE);
                     loadCategories();
                 }
             });

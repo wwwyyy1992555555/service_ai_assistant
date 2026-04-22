@@ -1,6 +1,7 @@
 package com.myproject.service_ai_assistant.controller;
 
 import com.myproject.service_ai_assistant.common.Result;
+import com.myproject.service_ai_assistant.common.ResultCode;
 import com.myproject.service_ai_assistant.common.LevelCode;
 import com.myproject.service_ai_assistant.context.UserContext;
 import com.myproject.service_ai_assistant.dto.UserCreateRequest;
@@ -156,7 +157,7 @@ public class UserController {
         log.info("【批量删除用户】userIds={}, tenantId={}", userIds, tenantId);
         
         if (userIds == null || userIds.isEmpty()) {
-            return Result.error("请选择要删除的用户");
+            return Result.error(ResultCode.FEEDBACK_IDS_REQUIRED.getMessage().replace("反馈", "用户"));
         }
         
         // 去重处理
@@ -167,13 +168,13 @@ public class UserController {
         for (Long userId : uniqueUserIds) {
             UserDTO user = userService.getUserById(userId);
             if (user == null) {
-                return Result.error("用户ID为" + userId + "不存在");
+                return Result.error(String.format(ResultCode.USER_ID_NOT_EXISTS.getMessage(), userId));
             }
             if (!user.getTenantId().equals(tenantId)) {
-                return Result.error("无权删除其他租户的用户");
+                return Result.error(ResultCode.CROSS_TENANT_OPERATION_FORBIDDEN.getMessage());
             }
             if (user.getRoleLevel() == 0) {
-                return Result.error("不允许删除超级管理员");
+                return Result.error(ResultCode.DELETE_SUPER_ADMIN_FORBIDDEN.getMessage());
             }
             
             // 垂直权限校验：获取当前操作用户（超级管理员豁免）
@@ -202,13 +203,13 @@ public class UserController {
         // 校验用户是否属于该租户
         UserDTO user = userService.getUserById(userId);
         if (user == null) {
-            return Result.error("用户不存在");
+            return Result.error(ResultCode.USER_NOT_FOUND.getMessage());
         }
         if (!user.getTenantId().equals(tenantId)) {
-            return Result.error("无权删除其他租户的用户");
+            return Result.error(ResultCode.CROSS_TENANT_OPERATION_FORBIDDEN.getMessage());
         }
         if (user.getRoleLevel() == 0) {
-            return Result.error("不允许删除超级管理员");
+            return Result.error(ResultCode.DELETE_SUPER_ADMIN_FORBIDDEN.getMessage());
         }
         
         userService.deleteUser(userId);

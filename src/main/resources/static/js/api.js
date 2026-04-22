@@ -45,8 +45,8 @@ async function request(url, options = {}) {
         if (!contentType || !contentType.includes('application/json')) {
             // 不是 JSON 响应，可能是 HTML 错误页面
             const text = await response.text();
-            console.error('【API 请求错误】非 JSON 响应：', url, text.substring(0, 200));
-            throw new Error(`服务器返回错误（${response.status}），请稍后重试`);
+            console.error(formatMessage(MESSAGE.ERROR.NON_JSON_RESPONSE, {status: response.status}), url, text.substring(0, 200));
+            throw new Error(formatMessage(MESSAGE.ERROR.NON_JSON_RESPONSE, {status: response.status}));
         }
         
         const data = await response.json();
@@ -59,7 +59,7 @@ async function request(url, options = {}) {
             data.code === 1006) {  // MULTI_LOGIN
             
             // 获取错误消息
-            const errorMsg = data.message || '登录已过期，请重新登录';
+            const errorMsg = data.message || MESSAGE.ERROR.LOGIN_EXPIRED;
             
             // 清除本地存储
             localStorage.removeItem('token');

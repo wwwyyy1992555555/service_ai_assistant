@@ -44,8 +44,8 @@ if (typeof Vue === 'undefined') {
                 const categories = await window.loadCategories();
                 categoryList.value = categories || [];
             } catch (error) {
-                console.error('加载分类失败', error);
-                ElementPlus.ElMessage.error('加载分类失败');
+                console.error(MESSAGE.ERROR.LOAD_CATEGORIES_FAILED, error);
+                ElementPlus.ElMessage.error(MESSAGE.ERROR.LOAD_CATEGORIES_FAILED);
             } finally {
                 loading.value = false;
             }
@@ -66,14 +66,14 @@ if (typeof Vue === 'undefined') {
         // 删除分类
         const deleteCategory = async (id) => {
             try {
-                await ElementPlus.ElMessageBox.confirm('确定要删除这个分类吗？', '提示', {
+                await ElementPlus.ElMessageBox.confirm(MESSAGE.WARNING.CONFIRM_DELETE, MESSAGE.WARNING.UNSUPPORTED_OPERATION, {
                     confirmButtonText: '确定',
                     cancelButtonText: '取消',
                     type: 'warning',
                 });
                 
                 await window.deleteCategory(id);
-                ElementPlus.ElMessage.success('删除成功');
+                ElementPlus.ElMessage.success(MESSAGE.SUCCESS.DELETE);
                 loadCategories();
                 
                 // 触发分类变更事件，通知其他页面刷新
@@ -81,8 +81,8 @@ if (typeof Vue === 'undefined') {
                 localStorage.removeItem('category_update');
             } catch (error) {
                 if (error !== 'cancel') {
-                    console.error('删除失败', error);
-                    ElementPlus.ElMessage.error('删除失败');
+                    console.error(MESSAGE.ERROR.DELETE_CATEGORY_FAILED, error);
+                    ElementPlus.ElMessage.error(MESSAGE.ERROR.DELETE_CATEGORY_FAILED);
                 }
             }
         };
@@ -91,16 +91,16 @@ if (typeof Vue === 'undefined') {
         const saveCategory = async () => {
             try {
                 if (!editingCategory.value.categoryName) {
-                    ElementPlus.ElMessage.warning('请输入分类名称');
+                    ElementPlus.ElMessage.warning(formatMessage(MESSAGE.ERROR.FIELD_REQUIRED, {field: '分类名称'}));
                     return;
                 }
                 
                 if (editingCategory.value.id) {
                     await window.updateCategory(editingCategory.value);
-                    ElementPlus.ElMessage.success('更新成功');
+                    ElementPlus.ElMessage.success(MESSAGE.SUCCESS.UPDATE);
                 } else {
                     await window.addCategory(editingCategory.value);
-                    ElementPlus.ElMessage.success('添加成功');
+                    ElementPlus.ElMessage.success(MESSAGE.SUCCESS.CREATE);
                 }
                 
                 dialogVisible.value = false;
@@ -110,7 +110,7 @@ if (typeof Vue === 'undefined') {
                 localStorage.setItem('category_update', Date.now().toString());
                 localStorage.removeItem('category_update');
             } catch (error) {
-                ElementPlus.ElMessage.error('保存失败');
+                ElementPlus.ElMessage.error(MESSAGE.ERROR.OPERATION_FAILED);
             }
         };
         

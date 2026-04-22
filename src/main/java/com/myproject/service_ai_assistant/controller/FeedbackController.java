@@ -1,6 +1,7 @@
 package com.myproject.service_ai_assistant.controller;
 
 import com.myproject.service_ai_assistant.common.Result;
+import com.myproject.service_ai_assistant.common.ResultCode;
 import com.myproject.service_ai_assistant.common.LevelCode;
 import com.myproject.service_ai_assistant.entity.ConsultationFeedback;
 import com.myproject.service_ai_assistant.service.ConsultationFeedbackService;
@@ -87,7 +88,7 @@ public class FeedbackController {
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
             @RequestBody List<Long> feedbackIds) {
         if (feedbackIds == null || feedbackIds.isEmpty()) {
-            return Result.error("请选择要删除的反馈");
+            return Result.error(ResultCode.FEEDBACK_IDS_REQUIRED.getMessage());
         }
         
         // 验证这些反馈是否都属于该租户
@@ -96,7 +97,7 @@ public class FeedbackController {
                 .ne(com.myproject.service_ai_assistant.entity.ConsultationFeedback::getTenantId, tenantId);
         long count = feedbackService.count(queryWrapper);
         if (count > 0) {
-            return Result.error("无权删除其他租户的反馈");
+            return Result.error(ResultCode.CROSS_TENANT_OPERATION_FORBIDDEN.getMessage());
         }
         
         feedbackService.removeByIds(feedbackIds);
@@ -114,7 +115,7 @@ public class FeedbackController {
             // 校验反馈是否属于该租户
             var existing = feedbackService.getById(id);
             if (existing == null || !existing.getTenantId().equals(tenantId)) {
-                return Result.error("无权删除该反馈");
+                return Result.error(ResultCode.PERMISSION_DENIED.getMessage());
             }
             
             feedbackService.removeById(id);

@@ -90,7 +90,7 @@ if (typeof Vue === 'undefined') {
                 recordsList.value = processedRecords;
                 pageTotal.value = result.total || 0;
             } catch (error) {
-                console.error('加载记录失败', error);
+                console.error(MESSAGE.ERROR.LOAD_RECORDS_FAILED, error);
                 recordsList.value = [];
                 pageTotal.value = 0;
             } finally {

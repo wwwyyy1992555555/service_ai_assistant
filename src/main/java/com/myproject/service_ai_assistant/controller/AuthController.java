@@ -140,7 +140,7 @@ public class AuthController {
             throw new BusinessException(ResultCode.EMAIL_SEND_FAILED);
         }
         
-        return Result.success("验证码已发送至您的邮箱");
+        return Result.success(ResultCode.VERIFY_CODE_SENT.getMessage());
     }
 
     /**
