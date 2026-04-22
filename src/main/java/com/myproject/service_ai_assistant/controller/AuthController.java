@@ -1,18 +1,26 @@
 package com.myproject.service_ai_assistant.controller;
 
 import com.myproject.service_ai_assistant.common.Result;
+import com.myproject.service_ai_assistant.common.ResultCode;
 import com.myproject.service_ai_assistant.dto.LoginRequest;
 import com.myproject.service_ai_assistant.dto.UserDTO;
+import com.myproject.service_ai_assistant.entity.User;
+import com.myproject.service_ai_assistant.exception.BusinessException;
+import com.myproject.service_ai_assistant.mapper.UserMapper;
+import com.myproject.service_ai_assistant.service.EmailService;
 import com.myproject.service_ai_assistant.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 认证控制器
@@ -25,6 +33,18 @@ public class AuthController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private com.myproject.service_ai_assistant.mapper.TenantInfoMapper tenantInfoMapper;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
+    private RedisTemplate<String, String> redisTemplate;
 
     /**
      * 用户登录

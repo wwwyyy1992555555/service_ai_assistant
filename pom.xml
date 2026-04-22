@@ -20,7 +20,10 @@
         <knife4j.version>4.0.0</knife4j.version>
         <hutool.version>5.8.16</hutool.version>
         <fastjson.version>2.0.25</fastjson.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
+
     <dependencies>
         <!-- Spring Boot Web -->
         <dependency>
@@ -136,6 +139,12 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Spring Boot Mail (邮件服务) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <!-- Spring Boot Devtools (热部署) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -169,6 +178,17 @@
                     <source>17</source>
                     <target>17</target>
                     <encoding>UTF-8</encoding>
+                    <compilerArgs>
+                        <arg>-encoding</arg>
+                        <arg>UTF-8</arg>
+                    </compilerArgs>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
             <plugin>

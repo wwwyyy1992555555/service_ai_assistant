@@ -275,12 +275,12 @@ const app = createApp({
     }
 });
 
-// 注册图标
-if (typeof ElementPlusIconsVue !== 'undefined') {
-    for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-        app.component(key, component);
-    }
+// 统一初始化 Element Plus
+if (typeof initElementPlus === 'function') {
+    initElementPlus(app);
+} else if (typeof ElementPlus !== 'undefined') {
+    // 降级处理
+    app.use(ElementPlus, { locale: typeof ElementPlusLocaleZhCn !== 'undefined' ? ElementPlusLocaleZhCn : undefined });
 }
 
-app.use(ElementPlus, { locale: ElementPlusLocaleZhCn });
 app.mount('#app');

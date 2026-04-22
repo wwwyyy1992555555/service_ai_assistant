@@ -32,12 +32,19 @@ public enum ResultCode {
     
     // ========== 租户相关 (2xxx) ==========
     TENANT_NOT_FOUND(2001, "租户不存在"),
-    TENANT_DISABLED(2002, "租户已禁用"),
+    TENANT_DISABLED(2002, "租户未启用"),
     TENANT_EXPIRED(2003, "租户已过期"),
     TENANT_ID_REQUIRED(2004, "租户 ID 不能为空"),
     TENANT_CODE_EXISTS(2005, "租户编码已存在"),
     TENANT_DELETE_FAILED(2006, "只能删除已禁用的租户，请先禁用该租户"),
     TENANT_UPDATE_FAILED(2007, "更新租户信息失败"),
+    TENANT_CREATE_FAILED(2008, "创建租户失败"),
+    
+    // 租户注册相关
+    TENANT_NAME_REGISTERED(2010, "该企业已注册，请联系管理员或找回密码"),
+    EMAIL_REGISTERED(2011, "该邮箱已注册，请更换邮箱或找回密码"),
+    VERIFY_CODE_EXPIRED(2012, "验证码已过期或不存在"),
+    VERIFY_CODE_ERROR(2013, "验证码错误"),
     
     // ========== 业务通用 (3xxx) ==========
     BUSINESS_ERROR(3001, "业务异常"),

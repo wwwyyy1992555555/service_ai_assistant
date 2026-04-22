@@ -134,21 +134,19 @@ if (typeof Vue === 'undefined') {
     }
     });
 
-    // 注册图标
-    if (typeof ElementPlusIconsVue !== 'undefined') {
-        for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-            app.component(key, component);
-        }
-    }
-
-    if (typeof ElementPlus === 'undefined') {
-        renderFatalError('Element Plus 资源未加载（CDN 失败）。');
-    } else {
+    // 统一初始化 Element Plus
+    if (typeof initElementPlus === 'function') {
+        initElementPlus(app);
+    } else if (typeof ElementPlus !== 'undefined') {
+        // 降级处理
         app.use(ElementPlus, { locale: typeof ElementPlusLocaleZhCn !== 'undefined' ? ElementPlusLocaleZhCn : undefined });
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => app.mount('#app'));
-        } else {
-            app.mount('#app');
-        }
+    } else {
+        renderFatalError('Element Plus 资源未加载。');
+    }
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => app.mount('#app'));
+    } else {
+        app.mount('#app');
     }
 }

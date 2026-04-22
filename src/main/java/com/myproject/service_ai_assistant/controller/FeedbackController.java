@@ -6,6 +6,7 @@ import com.myproject.service_ai_assistant.common.LevelCode;
 import com.myproject.service_ai_assistant.entity.ConsultationFeedback;
 import com.myproject.service_ai_assistant.service.ConsultationFeedbackService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -44,28 +45,31 @@ public class FeedbackController {
     @GetMapping("/statistics")
     @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "获取反馈统计", description = "获取所有反馈的统计数据，包括总数、待处理数、平均满意度等")
-    public Result<Map<String, Object>> getStatistics() {
-        return Result.success(feedbackService.getStatistics());
+    public Result<Map<String, Object>> getStatistics(
+            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId) {
+        return Result.success(feedbackService.getStatistics(tenantId));
     }
-
+    
     @GetMapping("/pending")
-    @RequireRole(  minLevel = LevelCode.ROLE_LEVEL_ADMIN)
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "获取待处理反馈", description = "获取待处理的反馈列表，按创建时间倒序排列")
     public Result<List<ConsultationFeedback>> getPendingFeedbacks(
+            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
             @RequestParam(defaultValue = "20") Integer limit) {
-        return Result.success(feedbackService.getPendingFeedbacks(limit));
+        return Result.success(feedbackService.getPendingFeedbacks(tenantId, limit));
     }
 
     @GetMapping("/list")
     @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "获取所有反馈列表", description = "获取所有反馈记录，用于后台管理")
     public Result<Map<String, Object>> getAllFeedbacks(
+            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) Integer satisfaction,
             @RequestParam(required = false) String keyword) {
-        return Result.success(feedbackService.getAllFeedbacks(page, size, status, satisfaction, keyword));
+        return Result.success(feedbackService.getAllFeedbacks(tenantId, page, size, status, satisfaction, keyword));
     }
 
     @PostMapping("/process/{id}")

@@ -6,7 +6,7 @@
     <title>AI 智库企业咨询平台 - 管理后台</title>
     
     <!-- 样式文件（按依赖顺序加载） -->
-    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <link rel="stylesheet" href="lib/element-plus.css">
     <link rel="stylesheet" href="css/common.css">        <!-- 全局公共样式 -->
     <link rel="stylesheet" href="css/modules/dashboard.css">  <!-- 数据看板样式 -->
     <link rel="stylesheet" href="css/modules/categories.css">  <!-- 分类管理样式 -->
@@ -293,13 +293,14 @@
     </div>
 
     <!-- JavaScript 文件（按依赖顺序加载） -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://unpkg.com/element-plus"></script>
-    <script src="https://unpkg.com/@element-plus/icons-vue"></script>
-    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.min.js"></script>
+    <script src="lib/vue.global.js"></script>
+    <script src="lib/element-plus.min.js"></script>
+    <script src="lib/element-plus-icons.min.js"></script>
+    <script src="lib/zh-cn.min.js"></script>
     
-    <script src="js/utils.js"></script>     <!-- 工具函数库 -->
-    <script src="js/api.js"></script>       <!-- API 接口封装 -->
-    <script src="js/admin.js"></script>     <!-- 主应用入口 -->
+    <script src="js/utils.js"></script>              <!-- 工具函数库 -->
+    <script src="js/api.js"></script>                <!-- API 接口封装 -->
+    <script src="js/common-element-config.js"></script> <!-- Element Plus 统一配置 -->
+    <script src="js/admin.js"></script>              <!-- 主应用入口 -->
 </body>
 </html>

@@ -84,13 +84,14 @@ public class KnowledgeController {
     @PostMapping
     @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "新增知识")
-    public Result<Boolean> save(@Valid @RequestBody KnowledgeDTO dto) {
-        log.info("【新增知识】title={}, question={}", dto.getTitle(), dto.getQuestion());
+    public Result<Boolean> save(
+            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
+            @Valid @RequestBody KnowledgeDTO dto
+    ) {
+        log.info("【新增知识】title={}, tenantId={}", dto.getTitle(), tenantId);
         
-        // 强制设置租户 ID 为 1（后续应从用户会话中获取）
-        if (dto.getTenantId() == null) {
-            dto.setTenantId(1L);
-        }
+        // 强制使用路径参数中的租户 ID，防止前端篡改
+        dto.setTenantId(tenantId);
         
         KnowledgeItem item = new KnowledgeItem();
         beanCopy(dto, item);
@@ -102,12 +103,16 @@ public class KnowledgeController {
     @PutMapping
     @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "更新知识")
-    public Result<Boolean> update(@Valid @RequestBody KnowledgeDTO dto) {
-        log.info("【更新知识】id={}, title={}", dto.getId(), dto.getTitle());
+    public Result<Boolean> update(
+            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
+            @Valid @RequestBody KnowledgeDTO dto
+    ) {
+        log.info("【更新知识】id={}, title={}, tenantId={}", dto.getId(), dto.getTitle(), tenantId);
         
-        // 强制设置租户 ID 为 1（后续应从用户会话中获取）
-        if (dto.getTenantId() == null) {
-            dto.setTenantId(1L);
+        // 校验知识条目是否属于该租户
+        KnowledgeItem existing = knowledgeItemService.getById(dto.getId());
+        if (existing == null || !existing.getTenantId().equals(tenantId)) {
+            throw new IllegalArgumentException("无权操作该知识条目");
         }
         
         KnowledgeItem item = new KnowledgeItem();
@@ -120,10 +125,47 @@ public class KnowledgeController {
     @DeleteMapping("/{id}")
     @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "删除知识")
-    public Result<Boolean> delete(@Parameter(description = "知识 ID") @PathVariable Long id) {
-        log.info("【删除知识】id={}", id);
+    public Result<Boolean> delete(
+            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
+            @Parameter(description = "知识 ID") @PathVariable Long id
+    ) {
+        log.info("【删除知识】id={}, tenantId={}", id, tenantId);
+        
+        // 校验知识条目是否属于该租户
+        KnowledgeItem existing = knowledgeItemService.getById(id);
+        if (existing == null || !existing.getTenantId().equals(tenantId)) {
+            throw new IllegalArgumentException("无权删除该知识条目");
+        }
+        
         knowledgeItemService.removeById(id);
         log.info("【删除知识】删除成功：id={}", id);
+        return Result.success(true);
+    }
+    
+    @DeleteMapping("/batch")
+    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
+    @Operation(summary = "批量删除知识")
+    public Result<Boolean> batchDelete(
+            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
+            @Parameter(description = "知识 ID 列表", required = true) @RequestBody List<Long> ids
+    ) {
+        log.info("【批量删除知识】ids={}, tenantId={}", ids, tenantId);
+        
+        if (ids == null || ids.isEmpty()) {
+            throw new IllegalArgumentException("请选择要删除的知识");
+        }
+        
+        // 校验所有知识条目是否属于该租户
+        for (Long id : ids) {
+            KnowledgeItem existing = knowledgeItemService.getById(id);
+            if (existing == null || !existing.getTenantId().equals(tenantId)) {
+                throw new IllegalArgumentException("无权删除ID为" + id + "的知识条目");
+            }
+        }
+        
+        // 批量删除
+        knowledgeItemService.removeByIds(ids);
+        log.info("【批量删除知识】删除成功：count={}", ids.size());
         return Result.success(true);
     }
 
@@ -145,9 +187,11 @@ public class KnowledgeController {
     @GetMapping("/categories")
     @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "查询分类列表")
-    public Result<List<KnowledgeCategory>> getCategories() {
-        log.info("【查询分类列表】tenantId=1");
-        List<KnowledgeCategory> categories = knowledgeCategoryService.queryCategoryList(1L);
+    public Result<List<KnowledgeCategory>> getCategories(
+            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId
+    ) {
+        log.info("【查询分类列表】tenantId={}", tenantId);
+        List<KnowledgeCategory> categories = knowledgeCategoryService.queryCategoryList(tenantId);
         return Result.success(categories);
     }
     
@@ -155,10 +199,10 @@ public class KnowledgeController {
     @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "新增/编辑分类")
     public Result<Boolean> saveCategory(@RequestBody CategoryDTO dto) {
-        log.info("【保存分类】name={}", dto.getCategoryName());
+        log.info("【保存分类】name={}, tenantId={}", dto.getCategoryName(), dto.getTenantId());
         
         if (dto.getTenantId() == null) {
-            dto.setTenantId(1L);
+            throw new IllegalArgumentException("租户 ID 不能为空");
         }
         if (dto.getSortOrder() == null) {
             dto.setSortOrder(0);

@@ -105,6 +105,11 @@ public class TenantValidationInterceptor implements HandlerInterceptor {
             return false;
         }
 
+        // 排除租户注册相关接口
+        if (uri.startsWith("/api/tenant/register/")) {
+            return false;
+        }
+
         // 排除 OPTIONS 请求（CORS 预检）
         if ("OPTIONS".equalsIgnoreCase(method)) {
             return false;

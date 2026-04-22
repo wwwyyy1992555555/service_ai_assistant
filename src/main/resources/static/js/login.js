@@ -122,8 +122,13 @@ const app = createApp({
     }
 });
 
-// 使用 Element Plus
-app.use(ElementPlus);
+// 使用 Element Plus（统一初始化）
+if (typeof initElementPlus === 'function') {
+    initElementPlus(app);
+} else {
+    // 降级处理：如果common-element-config.js未加载
+    app.use(ElementPlus);
+}
 
 // 挂载应用（确保在 DOM 加载后执行）
 if (document.readyState === 'loading') {

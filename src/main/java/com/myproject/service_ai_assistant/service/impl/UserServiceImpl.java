@@ -156,6 +156,19 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(ResultCode.ACCOUNT_DISABLED);
         }
         
+        // 5.1. 检查租户状态（仅校验是否禁用，不校验激活）
+        if (tenantId != null && !tenantId.equals(LevelCode.ROLE_LEVEL_TENANT_ID)) {
+            TenantInfo tenant = tenantInfoMapper.selectById(tenantId);
+            if (tenant == null) {
+                log.warn("【用户登录】租户不存在：tenantId={}", tenantId);
+                throw new BusinessException(ResultCode.TENANT_NOT_FOUND);
+            }
+            if (tenant.getStatus() == 0) {
+                log.warn("【用户登录】租户已被禁用：tenantId={}, tenantCode={}", tenantId, request.getTenantCode());
+                throw new BusinessException(ResultCode.TENANT_DISABLED);
+            }
+        }
+        
         // 6. 更新登录信息（局部事务）
         updateLoginInfo(user.getId());
         
@@ -364,6 +377,9 @@ public class UserServiceImpl implements UserService {
     @Transactional(rollbackFor = Exception.class)
     public UserDTO createUser(UserCreateRequest request) {
         log.info("【创建用户】开始创建，username={}, tenantId={}", request.getUsername(), request.getTenantId());
+        
+        // ✅ 水平越权校验：确保只能在自己租户下创建用户（运营商 tenant_id=0 可跨租户操作）
+        UserContext.validateHorizontalPermission(request.getTenantId());
         
         // 1. 检查用户名是否已存在（MyBatis-Plus 的 @TableLogic 会自动添加 deleted=0 条件）
         User existingUser = userMapper.selectByUsername(request.getTenantId(), request.getUsername());

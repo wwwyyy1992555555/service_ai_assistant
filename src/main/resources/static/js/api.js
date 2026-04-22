@@ -1,4 +1,4 @@
-6/**
+  /**
  * API 接口封装
  * 所有与后端的交互都通过此文件管理
  */
@@ -217,8 +217,9 @@ async function searchKnowledge(keyword, current, size, publishStatus, isTop, cat
  * @returns {Promise<Array>}
  */
 async function loadCategories() {
+    const tenantId = _getTenantId();
     // 后端接口是 /api/knowledge/categories
-    const result = await get(`${API_BASE}/knowledge/categories`);
+    const result = await get(`${API_BASE}/knowledge/categories`, { tenantId });
     return result.data || [];
 }
 
@@ -226,7 +227,8 @@ async function loadCategories() {
  * 添加分类
  */
 async function addCategory(data) {
-    const result = await post(`${API_BASE}/knowledge/category`, data);
+    const payload = { ...data, tenantId: _getTenantId() };
+    const result = await post(`${API_BASE}/knowledge/category`, payload);
     return result.data;
 }
 
@@ -235,7 +237,8 @@ async function addCategory(data) {
  */
 async function updateCategory(data) {
     // 后端使用 POST /category 同时处理新增和编辑
-    const result = await post(`${API_BASE}/knowledge/category`, data);
+    const payload = { ...data, tenantId: _getTenantId() };
+    const result = await post(`${API_BASE}/knowledge/category`, payload);
     return result.data;
 }
 
@@ -254,7 +257,8 @@ async function deleteCategory(id) {
  */
 async function addKnowledge(data) {
     // 后端使用 POST /api/knowledge（@PostMapping）
-    const result = await post(`${API_BASE}/knowledge`, data);
+    const payload = { ...data, tenantId: _getTenantId() };
+    const result = await post(`${API_BASE}/knowledge`, payload);
     return result.data;
 }
 
@@ -263,9 +267,10 @@ async function addKnowledge(data) {
  */
 async function updateKnowledge(data) {
     // 后端使用 PUT /api/knowledge（@PutMapping）
+    const payload = { ...data, tenantId: _getTenantId() };
     const result = await request(`${API_BASE}/knowledge`, {
         method: 'PUT',
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
     });
     return result.data;
 }
@@ -277,6 +282,19 @@ async function deleteKnowledge(id) {
     // 后端使用 DELETE /api/knowledge/{id}（@DeleteMapping("/{id}")）
     const result = await request(`${API_BASE}/knowledge/${id}`, {
         method: 'DELETE',
+    });
+    return result.data;
+}
+
+/**
+ * 批量删除知识
+ * @param {Array<number>} ids - 知识 ID 列表
+ */
+async function batchDeleteKnowledge(ids) {
+    const tenantId = _getTenantId();
+    const result = await request(`${API_BASE}/knowledge/batch?tenantId=${tenantId}`, {
+        method: 'DELETE',
+        body: JSON.stringify(ids),
     });
     return result.data;
 }
@@ -567,6 +585,7 @@ const industryTypeApi = {
  */
 async function loadFeedbackList(page, size, status, satisfaction, keyword) {
     const params = {
+        tenantId: _getTenantId(),
         page,
         size
     };

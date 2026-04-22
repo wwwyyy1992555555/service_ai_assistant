@@ -28,6 +28,7 @@ public class ServiceAiAssistantApplication extends SpringBootServletInitializer 
         log.info("管理后台：http://localhost");
         log.info("聊天页面：http://localhost/chat?tenantId=1");
         log.info("后台登陆：http://localhost/login");
+        log.info("注册：http://localhost/register");
         log.info("====================================");
     }
 

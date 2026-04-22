@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - AI 智库管理平台</title>
-    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <link rel="stylesheet" href="lib/element-plus.css">
     <link rel="stylesheet" href="css/login.css">
     <!-- 关键：v-cloak 必须内联且优先加载，防止页面闪烁 -->
     <style>
@@ -22,64 +22,64 @@
                 </div>
 
                 <div class="login-form">
-                    <div class="form-item">
-                        <el-select
-                            v-model="loginForm.tenantId"
-                            placeholder="请选择登录类型"
-                            size="large"
-                            style="width: 100%;"
+                    <el-form :model="loginForm" :rules="rules" ref="loginFormRef" label-width="0">
+                        <el-form-item prop="tenantId">
+                            <el-select
+                                v-model="loginForm.tenantId"
+                                placeholder="请选择登录类型"
+                                size="default"
+                                style="width: 100%;"
+                            >
+                                <el-option label="租户登录" value="tenant"></el-option>
+                                <el-option label="运营商登录" :value="0"></el-option>
+                            </el-select>
+                        </el-form-item>
+
+                        <el-form-item prop="tenantCode" v-if="loginForm.tenantId === 'tenant'">
+                            <el-input
+                                v-model="loginForm.tenantCode"
+                                placeholder="请输入租户编码"
+                                size="default"
+                                clearable
+                            ></el-input>
+                        </el-form-item>
+
+                        <el-form-item prop="username">
+                            <el-input
+                                v-model="loginForm.username"
+                                placeholder="请输入用户名"
+                                size="default"
+                                clearable
+                            ></el-input>
+                        </el-form-item>
+
+                        <el-form-item prop="password">
+                            <el-input
+                                v-model="loginForm.password"
+                                type="password"
+                                placeholder="请输入密码"
+                                size="default"
+                                show-password
+                                @keyup.enter="handleLogin"
+                            ></el-input>
+                        </el-form-item>
+
+                        <div class="form-links">
+                            <el-link type="primary" href="register.html">立即注册</el-link>
+                            <span class="link-separator"></span>
+                            <el-link type="info" @click="handleForgotPassword">忘记密码?</el-link>
+                        </div>
+
+                        <el-button
+                            type="primary"
+                            :loading="loading"
+                            @click="handleLogin"
+                            size="default"
+                            class="login-button"
                         >
-                            <el-option label="租户登录" value="tenant"></el-option>
-                            <el-option label="运营商登录" :value="0"></el-option>
-                        </el-select>
-                    </div>
-
-                    <div class="form-item" v-if="loginForm.tenantId === 'tenant'">
-                        <el-input
-                            v-model="loginForm.tenantCode"
-                            placeholder="请输入租户编码"
-                            size="large"
-                            clearable
-                        ></el-input>
-                    </div>
-
-                    <div class="form-item">
-                        <el-input
-                            v-model="loginForm.username"
-                            placeholder="请输入用户名"
-                            prefix-icon="User"
-                            size="large"
-                            clearable
-                            :class="{ 'input-error': errors.username }"
-                            @input="clearError('username')"
-                        ></el-input>
-                        <div class="error-text" v-if="errors.username">{{ errors.username }}</div>
-                    </div>
-
-                    <div class="form-item">
-                        <el-input
-                            v-model="loginForm.password"
-                            type="password"
-                            placeholder="请输入密码"
-                            prefix-icon="Lock"
-                            size="large"
-                            show-password
-                            @keyup.enter="handleLogin"
-                            :class="{ 'input-error': errors.password }"
-                            @input="clearError('password')"
-                        ></el-input>
-                        <div class="error-text" v-if="errors.password">{{ errors.password }}</div>
-                    </div>
-
-                    <el-button
-                        type="primary"
-                        :loading="loading"
-                        @click="handleLogin"
-                        size="large"
-                        class="login-button"
-                    >
-                        {{ loading ? '登录中...' : '登 录' }}
-                    </el-button>
+                            {{ loading ? '登录中...' : '登 录' }}
+                        </el-button>
+                    </el-form>
                 </div>
             </div>
 
@@ -90,10 +90,10 @@
     </div>
 
     <!-- 引入 Vue 和 Element Plus（使用和 admin.html 相同的 CDN） -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://unpkg.com/element-plus"></script>
-    <script src="https://unpkg.com/@element-plus/icons-vue"></script>
-    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.min.js"></script>
+    <script src="lib/vue.global.js"></script>
+    <script src="lib/element-plus.min.js"></script>
+    <script src="lib/element-plus-icons.min.js"></script>
+    <script src="lib/zh-cn.min.js"></script>
     
     <!-- 引入 API 封装（包含 login 函数） -->
     <script src="js/api.js"></script>
@@ -131,91 +131,107 @@
                     password: ''
                 });
 
-                const errors = Vue.reactive({
-                    username: '',
-                    password: ''
-                });
-
+                const loginFormRef = Vue.ref(null);
                 const loading = Vue.ref(false);
 
-                // 清除错误信息
-                const clearError = (field) => {
-                    errors[field] = '';
+                // 租户编码验证规则
+                const validateTenantCode = (rule, value, callback) => {
+                    if (loginForm.tenantId === 'tenant' && !value) {
+                        callback(new Error('请输入租户编码'));
+                    } else {
+                        callback();
+                    }
+                };
+
+                const rules = {
+                    tenantCode: [
+                        { validator: validateTenantCode, trigger: 'blur' }
+                    ],
+                    username: [
+                        { required: true, message: '请输入用户名', trigger: 'blur' }
+                    ],
+                    password: [
+                        { required: true, message: '请输入密码', trigger: 'blur' },
+                        { min: 6, message: '密码长度至少 6 位', trigger: 'blur' }
+                    ]
+                };
+
+                // 处理忘记密码
+                const handleForgotPassword = () => {
+                    ElementPlus.ElMessageBox.confirm(
+                        '请联系管理员重置密码，或通过注册页面重新注册',
+                        '忘记密码',
+                        {
+                            confirmButtonText: '我知道了',
+                            cancelButtonText: '取消',
+                            type: 'warning',
+                            distinguishCancelAndClose: true
+                        }
+                    ).catch(() => {});
                 };
 
                 // 处理登录
                 const handleLogin = async () => {
-                    // 清空错误
-                    errors.username = '';
-                    errors.password = '';
+                    if (!loginFormRef.value) return;
 
-                    // 简单验证
-                    if (!loginForm.username) {
-                        errors.username = '请输入用户名';
-                        return;
-                    }
-                    if (!loginForm.password) {
-                        errors.password = '请输入密码';
-                        return;
-                    }
-                    if (loginForm.password.length < 6) {
-                        errors.password = '密码长度至少 6 位';
-                        return;
-                    }
+                    await loginFormRef.value.validate(async (valid) => {
+                        if (!valid) return;
 
-                    loading.value = true;
+                        loading.value = true;
 
-                    try {
-                        // 统一通过 tenantId 和 tenantCode 登录
-                        // tenantId: 运营商传0，租户登录传null(由后端解析tenantCode)
-                        const tenantIdForApi = loginForm.tenantId === 'tenant' ? null : loginForm.tenantId;
-                        
-                        const result = await window.login(
-                            loginForm.username,
-                            loginForm.password,
-                            loginForm.tenantCode || '',
-                            tenantIdForApi
-                        );
-
-                        if (result.code === 200 && result.data) {
-                            const userData = result.data;
+                        try {
+                            // 统一通过 tenantId 和 tenantCode 登录
+                            // tenantId: 运营商传0，租户登录传null(由后端解析tenantCode)
+                            const tenantIdForApi = loginForm.tenantId === 'tenant' ? null : loginForm.tenantId;
                             
-                            // 保存用户信息和 Token
-                            localStorage.setItem('user', JSON.stringify(userData));
-                            localStorage.setItem('token', userData.token);
-                            
-                            // 【新增】保存租户配置到 localStorage（如果后端返回了）
-                            if (userData.tenantThemeColor || userData.tenantLogoUrl || userData.tenantWelcomeMessage) {
-                                const tenantConfig = {
-                                    themeColor: userData.tenantThemeColor || '#1890ff',
-                                    logoUrl: userData.tenantLogoUrl || '',
-                                    welcomeMessage: userData.tenantWelcomeMessage || '您好，请问有什么可以帮您？'
-                                };
-                                localStorage.setItem('tenantConfig', JSON.stringify(tenantConfig));
+                            const result = await window.login(
+                                loginForm.username,
+                                loginForm.password,
+                                loginForm.tenantCode || '',
+                                tenantIdForApi
+                            );
+
+                            if (result.code === 200 && result.data) {
+                                const userData = result.data;
+                                
+                                // 保存用户信息和 Token
+                                localStorage.setItem('user', JSON.stringify(userData));
+                                localStorage.setItem('token', userData.token);
+                                
+                                // 【新增】保存租户配置到 localStorage（如果后端返回了）
+                                if (userData.tenantThemeColor || userData.tenantLogoUrl || userData.tenantWelcomeMessage) {
+                                    const tenantConfig = {
+                                        themeColor: userData.tenantThemeColor || '#1890ff',
+                                        logoUrl: userData.tenantLogoUrl || '',
+                                        welcomeMessage: userData.tenantWelcomeMessage || '您好，请问有什么可以帮您？'
+                                    };
+                                    localStorage.setItem('tenantConfig', JSON.stringify(tenantConfig));
+                                }
+
+                                ElementPlus.ElMessage.success('登录成功！');
+
+                                setTimeout(() => {
+                                    window.location.href = '/admin';
+                                }, 500);
+                            } else {
+                                ElementPlus.ElMessage.error(result.message || '登录失败');
                             }
-
-                            ElementPlus.ElMessage.success('登录成功！');
-
-                            setTimeout(() => {
-                                window.location.href = '/admin';
-                            }, 500);
-                        } else {
-                            ElementPlus.ElMessage.error(result.message || '登录失败');
+                        } catch (error) {
+                            console.error('登录失败:', error);
+                            ElementPlus.ElMessage.error(error.message || '网络错误，请稍后重试');
+                        } finally {
+                            loading.value = false;
                         }
-                    } catch (error) {
-                        console.error('登录失败:', error);
-                        ElementPlus.ElMessage.error(error.message || '网络错误，请稍后重试');
-                    } finally {
-                        loading.value = false;
-                    }
+                    });
                 };
 
                 return {
                     loginForm,
-                    errors,
+                    loginFormRef,
+                    rules,
                     loading,
                     handleLogin,
-                    clearError
+                    handleForgotPassword
                 };
             }
         });

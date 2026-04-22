@@ -597,15 +597,15 @@ const app = createApp({
     }
 });
 
-// 注册所有 Element Plus 图标
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-    app.component(key, component);
+// 统一初始化 Element Plus
+if (typeof initElementPlus === 'function') {
+    initElementPlus(app);
+} else if (typeof ElementPlus !== 'undefined') {
+    // 降级处理
+    app.use(ElementPlus, {
+        locale: typeof ElementPlusLocaleZhCn !== 'undefined' ? ElementPlusLocaleZhCn : undefined
+    });
 }
-
-// 使用 Element Plus（配置中文语言包）
-app.use(ElementPlus, {
-    locale: typeof ElementPlusLocaleZhCn !== 'undefined' ? ElementPlusLocaleZhCn : undefined
-});
 
 // 挂载应用
 app.mount('#app');

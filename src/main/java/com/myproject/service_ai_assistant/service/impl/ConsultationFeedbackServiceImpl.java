@@ -75,21 +75,24 @@ public class ConsultationFeedbackServiceImpl extends ServiceImpl<ConsultationFee
     }
 
     @Override
-    public Map<String, Object> getStatistics() {
+    public Map<String, Object> getStatistics(Long tenantId) {
         Map<String, Object> stats = new HashMap<>();
         
-        // 总反馈数
-        long totalFeedbacks = this.count();
+        // 总反馈数（租户隔离）
+        long totalFeedbacks = this.count(new LambdaQueryWrapper<ConsultationFeedback>()
+                .eq(ConsultationFeedback::getTenantId, tenantId));
         stats.put("totalFeedbacks", totalFeedbacks);
         
         // 待处理反馈数
         long pendingCount = this.count(new LambdaQueryWrapper<ConsultationFeedback>()
+                .eq(ConsultationFeedback::getTenantId, tenantId)
                 .eq(ConsultationFeedback::getIsProcessed, 0));
         stats.put("pendingCount", pendingCount);
         
         // 平均满意度
         Double avgSatisfaction = this.getBaseMapper().selectMaps(
             new LambdaQueryWrapper<ConsultationFeedback>()
+                .eq(ConsultationFeedback::getTenantId, tenantId)
                 .select(ConsultationFeedback::getSatisfaction)
         ).stream()
             .filter(m -> m.get("satisfaction") != null)
@@ -102,6 +105,7 @@ public class ConsultationFeedbackServiceImpl extends ServiceImpl<ConsultationFee
         Map<Integer, Long> satisfactionDistribution = new HashMap<>();
         for (int i = 1; i <= 5; i++) {
             long count = this.count(new LambdaQueryWrapper<ConsultationFeedback>()
+                    .eq(ConsultationFeedback::getTenantId, tenantId)
                     .eq(ConsultationFeedback::getSatisfaction, i));
             satisfactionDistribution.put(i, count);
         }
@@ -114,7 +118,8 @@ public class ConsultationFeedbackServiceImpl extends ServiceImpl<ConsultationFee
         
         while (true) {
             Page<ConsultationFeedback> page = new Page<>(currentPage, pageSize);
-            Page<ConsultationFeedback> feedbackPage = this.page(page, new LambdaQueryWrapper<>());
+            Page<ConsultationFeedback> feedbackPage = this.page(page, new LambdaQueryWrapper<ConsultationFeedback>()
+                    .eq(ConsultationFeedback::getTenantId, tenantId));
             List<ConsultationFeedback> feedbacks = feedbackPage.getRecords();
             
             if (feedbacks.isEmpty()) break;
@@ -150,6 +155,7 @@ public class ConsultationFeedbackServiceImpl extends ServiceImpl<ConsultationFee
         
         // 低满意度问题（1-2 星）- 已有限制
         List<ConsultationFeedback> lowSatisfaction = this.list(new LambdaQueryWrapper<ConsultationFeedback>()
+                .eq(ConsultationFeedback::getTenantId, tenantId)
                 .in(ConsultationFeedback::getSatisfaction, 1, 2)
                 .orderByDesc(ConsultationFeedback::getCreatedTime)
                 .last("LIMIT 10"));
@@ -159,18 +165,20 @@ public class ConsultationFeedbackServiceImpl extends ServiceImpl<ConsultationFee
     }
 
     @Override
-    public List<ConsultationFeedback> getPendingFeedbacks(Integer limit) {
+    public List<ConsultationFeedback> getPendingFeedbacks(Long tenantId, Integer limit) {
         return this.list(new LambdaQueryWrapper<ConsultationFeedback>()
+                .eq(ConsultationFeedback::getTenantId, tenantId)
                 .eq(ConsultationFeedback::getIsProcessed, 0)
                 .orderByDesc(ConsultationFeedback::getCreatedTime)
                 .last("LIMIT " + limit));
     }
 
     @Override
-    public Map<String, Object> getAllFeedbacks(Integer page, Integer size, Integer status, Integer satisfaction, String keyword) {
+    public Map<String, Object> getAllFeedbacks(Long tenantId, Integer page, Integer size, Integer status, Integer satisfaction, String keyword) {
         Page<ConsultationFeedback> pagination = new Page<>(page, size);
         
         LambdaQueryWrapper<ConsultationFeedback> wrapper = new LambdaQueryWrapper<ConsultationFeedback>()
+                .eq(ConsultationFeedback::getTenantId, tenantId)
                 .orderByDesc(ConsultationFeedback::getCreatedTime);
         
         // 添加筛选条件

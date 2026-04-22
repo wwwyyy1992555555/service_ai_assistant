@@ -46,10 +46,13 @@ public class UserController {
     @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "创建用户", description = "租户管理员创建用户")
     public Result<UserDTO> createUser(
+            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
             @Validated @RequestBody UserCreateRequest request
     ) {
-        log.info("【创建用户】请求参数：username={}, tenantId={}", request.getUsername(), request.getTenantId());
+        log.info("【创建用户】请求参数：username={}, tenantId={}", request.getUsername(), tenantId);
         try {
+            // 强制使用路径参数中的租户 ID，防止前端篡改
+            request.setTenantId(tenantId);
             UserDTO userDTO = userService.createUser(request);
             log.info("【创建用户】成功：userId={}, username={}", userDTO.getId(), userDTO.getUsername());
             return Result.success(userDTO);

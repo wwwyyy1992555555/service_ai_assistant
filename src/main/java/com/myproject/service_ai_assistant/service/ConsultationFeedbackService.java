@@ -19,17 +19,17 @@ public interface ConsultationFeedbackService extends IService<ConsultationFeedba
     /**
      * 获取反馈统计
      */
-    Map<String, Object> getStatistics();
+    Map<String, Object> getStatistics(Long tenantId);
 
     /**
      * 获取待处理反馈列表
      */
-    List<ConsultationFeedback> getPendingFeedbacks(Integer limit);
+    List<ConsultationFeedback> getPendingFeedbacks(Long tenantId, Integer limit);
 
     /**
      * 获取所有反馈列表（分页）
      */
-    Map<String, Object> getAllFeedbacks(Integer page, Integer size, Integer status, Integer satisfaction, String keyword);
+    Map<String, Object> getAllFeedbacks(Long tenantId, Integer page, Integer size, Integer status, Integer satisfaction, String keyword);
 
     /**
      * 处理反馈

@@ -33,6 +33,7 @@ if (typeof Vue === 'undefined') {
         const filterIsTop = ref(undefined);
         const filterCategoryId = ref(undefined);  // 新增：分类筛选
         const loading = ref(false);
+        const selectedRows = ref([]);  // 选中的行
 
         // 表格高度（显式设置，避免 iframe/flex 布局导致表格被压扁）
         const tableHeight = ref(520);
@@ -191,6 +192,41 @@ if (typeof Vue === 'undefined') {
             detailVisible.value = true;
         };
         
+        // 处理选择变化
+        const handleSelectionChange = (selection) => {
+            selectedRows.value = selection;
+        };
+        
+        // 批量删除
+        const batchDeleteKnowledge = async () => {
+            if (selectedRows.value.length === 0) {
+                ElementPlus.ElMessage.warning('请先选择要删除的知识');
+                return;
+            }
+            
+            try {
+                await ElementPlus.ElMessageBox.confirm(
+                    `确定要删除选中的 ${selectedRows.value.length} 条知识吗？`,
+                    '提示',
+                    {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning',
+                    }
+                );
+                
+                const ids = selectedRows.value.map(row => row.id);
+                await window.batchDeleteKnowledge(ids);
+                ElementPlus.ElMessage.success('批量删除成功');
+                selectedRows.value = [];
+                loadKnowledgeList();
+            } catch (error) {
+                if (error !== 'cancel') {
+                    ElementPlus.ElMessage.error(error?.message || '批量删除失败');
+                }
+            }
+        };
+        
         onMounted(() => {
             computeTableHeight();
             window.addEventListener('resize', computeTableHeight);
@@ -212,6 +248,7 @@ if (typeof Vue === 'undefined') {
             editingKnowledge,
             selectedKnowledge,
             categoryMap,
+            selectedRows,  // 新增：导出选中行
             loadKnowledgeList,
             loadCategories,
             handleFilterChange,
@@ -223,7 +260,9 @@ if (typeof Vue === 'undefined') {
             editKnowledge,
             deleteKnowledge,
             saveKnowledge,
-            viewKnowledgeDetail
+            viewKnowledgeDetail,
+            handleSelectionChange,  // 新增：导出选择变化处理
+            batchDeleteKnowledge  // 新增：导出批量删除方法
         };
     }
     });
@@ -235,16 +274,21 @@ if (typeof Vue === 'undefined') {
         }
     }
 
-    if (typeof ElementPlus === 'undefined') {
-        renderFatalError('Element Plus 资源未加载（CDN 失败）。');
-    } else {
+    // 统一初始化 Element Plus
+    if (typeof initElementPlus === 'function') {
+        initElementPlus(app);
+    } else if (typeof ElementPlus !== 'undefined') {
+        // 降级处理
         app.use(ElementPlus, {
             locale: typeof ElementPlusLocaleZhCn !== 'undefined' ? ElementPlusLocaleZhCn : undefined
         });
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => app.mount('#app'));
-        } else {
-            app.mount('#app');
-        }
+    } else {
+        renderFatalError('Element Plus 资源未加载。');
+    }
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => app.mount('#app'));
+    } else {
+        app.mount('#app');
     }
 }

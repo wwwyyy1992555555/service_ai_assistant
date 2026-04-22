@@ -18,6 +18,7 @@ CREATE TABLE `tenant_info` (
   `industry_type` VARCHAR(50) NOT NULL COMMENT '行业类型：legal-律所/medical-医院/government-政务/community-社区',
   `contact_person` VARCHAR(50) DEFAULT NULL COMMENT '联系人',
   `contact_phone` VARCHAR(20) DEFAULT NULL COMMENT '联系电话',
+  `contact_email` VARCHAR(100) DEFAULT NULL COMMENT '联系邮箱',
   `logo_url` VARCHAR(500) DEFAULT NULL COMMENT '企业 Logo',
   `theme_color` VARCHAR(20) DEFAULT '#1890ff' COMMENT '主题色',
   `welcome_message` VARCHAR(500) DEFAULT '您好，请问有什么可以帮您？' COMMENT '欢迎语',
@@ -27,7 +28,9 @@ CREATE TABLE `tenant_info` (
   `created_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除 1-已删除',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_tenant_code` (`tenant_code`)
+  UNIQUE KEY `uk_tenant_code` (`tenant_code`),
+  UNIQUE KEY `uk_contact_email_deleted` (`contact_email`, `deleted`),
+  UNIQUE KEY `uk_tenant_name_deleted` (`tenant_name`, `deleted`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='租户信息表';
 
 -- ========================================
@@ -261,3 +264,4 @@ INSERT INTO `user_info` (`tenant_id`, `username`, `password`, `real_name`, `phon
 (0, 'superadmin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '平台管理员', '13900139001', 'superadmin@platform.com', 0, 1),
 (1, 'admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '管理员', '13800138000', 'admin@gov.cn', 1, 1),
 (1, 'operator', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '操作员', '13800138001', 'operator@gov.cn', 2, 1);
+
