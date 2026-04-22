@@ -1,4 +1,4 @@
-package com.myproject.service_ai_assistant.config;
+package com.myproject.service_ai_assistant.interceptor;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -78,6 +78,15 @@ public class AuthInterceptor implements HandlerInterceptor {
         // 7. 将用户信息存入 UserContext（供 Service 层使用）
         UserContext.set(userId, tenantId, roleLevel);
         
+        // 8. 【运营商权限限制】tenant_id=0 只能访问租户管理和用户管理相关接口
+        if (tenantId == 0) {
+            String uri = request.getRequestURI();
+            if (!isProviderAllowedUri(uri)) {
+                log.warn("【权限拒绝】运营商无权访问该接口：userId={}, uri={}", userId, uri);
+                throw new BusinessException(ResultCode.PERMISSION_DENIED);
+            }
+        }
+        
         log.debug("【认证成功】userId={}, tenantId={}, roleLevel={}, uri={}", 
                 userId, tenantId, roleLevel, request.getRequestURI());
         
@@ -88,5 +97,29 @@ public class AuthInterceptor implements HandlerInterceptor {
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
         // 清理 UserContext，防止内存泄漏
         UserContext.clear();
+    }
+    
+    /**
+     * 判断运营商（tenant_id=0）是否有权访问该接口
+     * 运营商只能访问：租户管理、用户管理相关接口
+     */
+    private boolean isProviderAllowedUri(String uri) {
+        // 租户管理接口
+        if (uri.startsWith("/api/tenant/")) {
+            return true;
+        }
+        
+        // 用户管理接口
+        if (uri.startsWith("/api/user/")) {
+            return true;
+        }
+        
+        // 认证相关接口（登录、登出、获取用户信息）
+        if (uri.startsWith("/api/auth/")) {
+            return true;
+        }
+        
+        // 其他接口一律拒绝
+        return false;
     }
 }

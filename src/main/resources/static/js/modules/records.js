@@ -31,6 +31,7 @@ if (typeof Vue === 'undefined') {
         const pageTotal = ref(0);
         const searchKeyword = ref('');
         const loading = ref(false);
+        const selectedRows = ref([]);
 
         // 表格高度（显式设置，避免 iframe/flex 布局导致表格被压扁）
         const tableHeight = ref(520);
@@ -126,12 +127,16 @@ if (typeof Vue === 'undefined') {
         };
         
         // 查看详情（点击行触发）
-        const viewRecordDetail = async (record) => {
-            selectedRecord.value = { ...record };
+        const viewRecordDetail = async (row, column, event) => {
+            // 如果点击的是复选框列，不触发详情查看
+            if (column && column.type === 'selection') {
+                return;
+            }
+            selectedRecord.value = { ...row };
             detailVisible.value = true;
             
             try {
-                const sessionRecords = await window.getSessionDetail(record.sessionId);
+                const sessionRecords = await window.getSessionDetail(row.sessionId);
                 selectedRecord.value.sessionHistory = sessionRecords;
                 
                 if (sessionRecords && sessionRecords.length > 0) {
@@ -147,7 +152,41 @@ if (typeof Vue === 'undefined') {
             }
         };
         
-        // 删除
+        // 处理选择变化
+        const handleSelectionChange = (selection) => {
+            selectedRows.value = selection;
+        };
+        
+        // 批量删除
+        const batchDeleteRecords = async () => {
+            if (selectedRows.value.length === 0) {
+                ElementPlus.ElMessage.warning('请先选择要删除的对话记录');
+                return;
+            }
+            
+            try {
+                await ElementPlus.ElMessageBox.confirm(
+                    `确定要删除选中的 ${selectedRows.value.length} 条对话记录吗？`,
+                    '提示',
+                    {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning',
+                    }
+                );
+                
+                const sessionIds = [...new Set(selectedRows.value.map(row => row.sessionId))];
+                await window.batchDeleteSessions(sessionIds);
+                ElementPlus.ElMessage.success('批量删除成功');
+                selectedRows.value = [];
+                pageCurrent.value = 1;
+                loadRecords();
+            } catch (error) {
+                if (error !== 'cancel') {
+                    ElementPlus.ElMessage.error(error?.message || '批量删除失败');
+                }
+            }
+        };
         const deleteRecord = async (record) => {
             try {
                 await ElementPlus.ElMessageBox.confirm('确定要删除整个会话的所有对话记录吗？', '提示', {
@@ -201,6 +240,7 @@ if (typeof Vue === 'undefined') {
             pageTotal,
             searchKeyword,
             loading,
+            selectedRows,
             tableHeight,
             detailVisible,
             selectedRecord,
@@ -211,6 +251,8 @@ if (typeof Vue === 'undefined') {
             handleCurrentChange,
             viewRecordDetail,
             deleteRecord,
+            handleSelectionChange,
+            batchDeleteRecords,
             formatTime
         };
     }

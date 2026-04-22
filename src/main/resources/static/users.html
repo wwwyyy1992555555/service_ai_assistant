@@ -8,7 +8,6 @@
     <!-- 样式文件 -->
     <link rel="stylesheet" href="lib/element-plus.css">
     <link rel="stylesheet" href="css/common.css">
-    <link rel="stylesheet" href="css/users.css">
     
     <!-- 关键：v-cloak 必须内联且优先加载，防止页面闪烁 -->
     <style>
@@ -38,16 +37,25 @@
                     <el-button type="primary" @click="handleCreateUser">
                         <el-icon><plus /></el-icon> 新增用户
                     </el-button>
+                    <el-button
+                            type="danger"
+                            :disabled="selectedRows.length === 0"
+                            @click="handleBatchDelete">
+                        <el-icon><delete /></el-icon> 批量删除 ({{ selectedRows.length }})
+                    </el-button>
                 </div>
             </div>
             
             <el-table 
                 :data="usersList" 
                 stripe 
+                :height="tableHeight"
                 style="width: 100%" 
                 class="users-table" 
                 v-loading="loading"
-                :row-style="{ cursor: 'pointer' }">
+                :row-style="{ cursor: 'pointer' }"
+                @selection-change="handleSelectionChange">
+                <el-table-column type="selection" width="55" align="center" ></el-table-column>
                 <el-table-column prop="tenantName" label="租户名" min-width="180">
                     <template #default="scope">
                         <span style="font-weight: 500; color: #262626;">{{ scope.row.tenantName || '-' }}</span>
@@ -55,7 +63,7 @@
                 </el-table-column>
                 
                 <!-- 超级管理员显示租户编码 -->
-                <el-table-column v-if="isSuperAdmin" :key="'tenantCode-' + renderKey" prop="tenantCode" label="租户编码" width="150" fixed>
+                <el-table-column v-if="isSuperAdmin" prop="tenantCode" label="租户编码" width="150">
                     <template #default="scope">
                         <span style="color: #606266;">{{ scope.row.tenantCode || '-' }}</span>
                     </template>
@@ -252,7 +260,7 @@
     <!-- 引入 Vue 和 Element Plus -->
     <script src="lib/vue.global.js"></script>
     <script src="lib/element-plus.min.js"></script>
-    <script src="lib/element-plus-icons.min.js"></script>
+    <script src="https://unpkg.com/@element-plus/icons-vue@2.1.0/dist/index.iife.min.js"></script>
     <script src="lib/zh-cn.min.js"></script>
     
     <!-- 引入 API 封装 -->

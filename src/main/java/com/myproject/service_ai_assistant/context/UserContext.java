@@ -56,8 +56,33 @@ public class UserContext {
             return;
         }
         
-        // 3. 普通用户：必须属于同一租户
+        // 3. 普通用户（包括租户内的超级管理员 roleLevel=0）：必须属于同一租户
         if (!currentTenantId.equals(dataTenantId)) {
+            throw new BusinessException(ResultCode.PERMISSION_DENIED);
+        }
+    }
+    
+    /**
+     * 垂直权限校验：确保操作者只能操作等级比自己低的用户
+     * 超级管理员（roleLevel=0）豁免此校验
+     * 
+     * @param operatorRoleLevel 操作者的角色等级
+     * @param targetRoleLevel 目标用户的角色等级
+     * @throws BusinessException 如果操作者无权操作目标用户
+     */
+    public static void validateVerticalPermission(Integer operatorRoleLevel, Integer targetRoleLevel) {
+        // 1. 超级管理员（roleLevel=0）拥有所有权限，跳过校验
+        if (operatorRoleLevel != null && operatorRoleLevel == 0) {
+            return;
+        }
+        
+        // 2. 未获取到操作者等级：拒绝操作
+        if (operatorRoleLevel == null) {
+            throw new BusinessException(ResultCode.PERMISSION_DENIED);
+        }
+        
+        // 3. 操作者只能操作等级比自己低的用户
+        if (targetRoleLevel != null && operatorRoleLevel >= targetRoleLevel) {
             throw new BusinessException(ResultCode.PERMISSION_DENIED);
         }
     }

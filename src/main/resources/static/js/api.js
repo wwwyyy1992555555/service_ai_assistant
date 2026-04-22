@@ -39,6 +39,16 @@ async function request(url, options = {}) {
 
     try {
         const response = await fetch(url, config);
+        
+        // 检查响应类型
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            // 不是 JSON 响应，可能是 HTML 错误页面
+            const text = await response.text();
+            console.error('【API 请求错误】非 JSON 响应：', url, text.substring(0, 200));
+            throw new Error(`服务器返回错误（${response.status}），请稍后重试`);
+        }
+        
         const data = await response.json();
 
         // 认证失败：401 或特定错误码（Token 过期、无效、多设备登录）
@@ -348,6 +358,19 @@ async function deleteSession(sessionId) {
     return true;
 }
 
+/**
+ * 批量删除会话
+ * @param {Array<string>} sessionIds - 会话 ID 列表
+ */
+async function batchDeleteSessions(sessionIds) {
+    const tenantId = _getTenantId();
+    const result = await request(`${API_BASE}/consult/sessions/batch?tenantId=${tenantId}`, {
+        method: 'DELETE',
+        body: JSON.stringify(sessionIds),
+    });
+    return result.data;
+}
+
 // ==================== 认证接口 ====================
 
 /**
@@ -446,16 +469,6 @@ const userApi = {
     },
     
     /**
-     * 删除用户
-     */
-    delete: async function(userId) {
-        const result = await request(`${API_BASE}/user/delete?userId=${userId}`, {
-            method: 'POST',
-        });
-        return result.data;
-    },
-    
-    /**
      * 更新用户状态
      */
     updateStatus: async function(userId, status) {
@@ -468,6 +481,27 @@ const userApi = {
      */
     update: async function(data) {
         const result = await post(`${API_BASE}/user/update`, data);
+        return result.data;
+    },
+    
+    /**
+     * 删除用户
+     * @param {number} tenantId - 租户 ID
+     * @param {number} userId - 用户 ID
+     */
+    delete: async function(tenantId, userId) {
+        const result = await post(`${API_BASE}/user/delete?tenantId=${tenantId}&userId=${userId}`);
+        return result.data;
+    },
+    
+    /**
+     * 批量删除用户
+     */
+    batchDelete: async function(tenantId, userIds) {
+        const result = await request(`${API_BASE}/user/batch-delete?tenantId=${tenantId}`, {
+            method: 'POST',
+            body: JSON.stringify(userIds),
+        });
         return result.data;
     },
     
@@ -560,7 +594,18 @@ const tenantApi = {
             method: 'DELETE',
         });
         return result.data;
+    },
+    
+    // TODO: 租户删除功能暂时禁用（业务风险：数据关联复杂，误删风险高）
+    /*
+    batchDelete: async function(tenantIds) {
+        const result = await request(`${API_BASE}/tenant/batch-delete`, {
+            method: 'POST',
+            body: JSON.stringify(tenantIds),
+        });
+        return result.data;
     }
+    */
 };
 
 // ==================== 行业类型接口 ====================
@@ -620,8 +665,22 @@ async function loadFeedbackStatistics() {
  * 删除反馈
  */
 async function deleteFeedback(id) {
-    const result = await request(`${API_BASE}/consult/feedback/${id}`, {
+    const tenantId = _getTenantId();
+    const result = await request(`${API_BASE}/consult/feedback/${id}?tenantId=${tenantId}`, {
         method: 'DELETE',
+    });
+    return result.data;
+}
+
+/**
+ * 批量删除反馈
+ * @param {Array<number>} feedbackIds - 反馈 ID 列表
+ */
+async function batchDeleteFeedback(feedbackIds) {
+    const tenantId = _getTenantId();
+    const result = await request(`${API_BASE}/consult/feedback/batch?tenantId=${tenantId}`, {
+        method: 'DELETE',
+        body: JSON.stringify(feedbackIds),
     });
     return result.data;
 }
@@ -631,6 +690,26 @@ async function deleteFeedback(id) {
  */
 async function updateFeedback(id, data) {
     const result = await post(`${API_BASE}/consult/feedback/${id}`, data);
+    return result.data;
+}
+
+// ==================== 认证接口 ====================
+
+/**
+ * 发送重置密码验证码
+ */
+async function sendResetPasswordCode(email) {
+    const result = await post(`${API_BASE}/auth/forgot-password/send-code`, {
+        contactEmail: email
+    });
+    return result.data;
+}
+
+/**
+ * 重置密码
+ */
+async function resetPassword(data) {
+    const result = await post(`${API_BASE}/auth/forgot-password/reset`, data);
     return result.data;
 }
 
@@ -650,14 +729,20 @@ window.loadRecordsList = loadRecordsList;
 window.searchRecords = searchRecords;
 window.getSessionDetail = getSessionDetail;
 window.deleteSession = deleteSession;
+window.batchDeleteSessions = batchDeleteSessions;
 window.loadSystemConfig = loadTenantConfig;
 window.saveSystemConfig = saveTenantConfig;
 window.loadFeedbackList = loadFeedbackList;
 window.loadFeedbackStatistics = loadFeedbackStatistics;
 window.deleteFeedback = deleteFeedback;
+window.batchDeleteFeedback = batchDeleteFeedback;
 window.updateFeedback = updateFeedback;
 window.api = {
     user: userApi,
     tenant: tenantApi,
-    industryType: industryTypeApi
+    industryType: industryTypeApi,
+    auth: {
+        sendResetPasswordCode,
+        resetPassword
+    }
 };

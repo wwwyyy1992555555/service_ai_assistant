@@ -1,4 +1,4 @@
-/* 注册页面样式 */
+/* 注册页面样式 - 与登录页保持统一 */
 
 * {
     margin: 0;
@@ -7,7 +7,7 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     display: flex;
@@ -23,25 +23,60 @@ body {
 
 .register-card {
     background: white;
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    padding: 40px;
+    border-radius: 20px; /* 与登录页统一 */
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); /* 与登录页统一 */
+    padding: 40px 36px 48px; /* 与登录页统一 */
+    width: 100%;
+    max-width: 620px; /* 限制最大宽度 */
+    min-width: 320px;
+    box-sizing: border-box;
+    animation: fadeIn 0.5s ease-out; /* 添加淡入动画 */
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .register-header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 28px; /* 与登录页统一 */
+}
+
+.logo {
+    font-size: 42px; /* 与登录页统一 */
+    margin-bottom: 10px;
+    animation: pulse 2s infinite; /* 添加 logo 动画 */
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 .register-header h1 {
     color: #303133;
-    font-size: 28px;
-    margin-bottom: 10px;
+    font-size: 22px; /* 与登录页统一 */
+    margin-bottom: 6px;
+    font-weight: 600;
 }
 
 .register-header p {
     color: #909399;
-    font-size: 14px;
+    font-size: 14px; /* 与登录页统一 */
 }
 
 .form-section {
@@ -60,14 +95,40 @@ body {
 
 .submit-btn {
     width: 100%;
-    margin-top: 20px;
+    margin-top: 8px; /* 与登录页统一 */
+    height: 44px;
+    border-radius: 10px; /* 与登录页统一 */
+    font-size: 15px; /* 与登录页统一 */
+    font-weight: 600;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* 与登录页统一 */
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.submit-btn:active {
+    transform: translateY(0);
 }
 
 .verify-btn {
     width: 100%;
-    margin-top: 20px;
-    height: 48px;
-    font-size: 16px;
+    margin-top: 8px;
+    height: 44px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.verify-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
 }
 
 .form-actions {
@@ -90,7 +151,7 @@ body {
 
 .el-form-item .el-input {
     width: 100%;
-    min-width: 300px;
+    min-width: 280px; /* 与登录页统一 */
 }
 
 .el-form-item .el-input__wrapper {
@@ -100,10 +161,12 @@ body {
     height: 40px;
     display: flex;
     align-items: center;
+    border-radius: 8px; /* 与登录页统一 */
 }
 
 .el-form-item .el-input__inner {
     padding-left: 0;
+    width: 100% !important; /* 与登录页统一 */
 }
 
 .form-item .el-form-item__error {
@@ -162,16 +225,20 @@ body {
     }
 
     .register-card {
-        padding: 24px 20px;
-        border-radius: 8px;
+        padding: 32px 24px; /* 与登录页统一 */
+        border-radius: 20px;
     }
 
     .register-header h1 {
-        font-size: 22px;
+        font-size: 20px; /* 与登录页统一 */
+    }
+
+    .logo {
+        font-size: 40px; /* 与登录页统一 */
     }
 
     .register-header p {
-        font-size: 13px;
+        font-size: 12px;
     }
 
     .section-title {
@@ -180,12 +247,21 @@ body {
 }
 
 @media (max-width: 480px) {
+    .register-container {
+        padding: 10px;
+    }
+    
     .register-card {
-        padding: 20px 16px;
+        padding: 24px 20px; /* 与登录页统一 */
+        min-width: 280px;
     }
 
     .register-header h1 {
-        font-size: 20px;
+        font-size: 20px; /* 与登录页统一 */
+    }
+
+    .logo {
+        font-size: 40px; /* 与登录页统一 */
     }
 
     .register-header p {
@@ -194,6 +270,14 @@ body {
 
     .section-title {
         font-size: 14px;
+    }
+
+    .el-input__wrapper {
+        padding: 10px 14px;
+    }
+    
+    .el-input__inner {
+        font-size: 13px;
     }
 
     .tenant-code-display {

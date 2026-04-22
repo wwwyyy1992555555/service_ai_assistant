@@ -1,7 +1,6 @@
 package com.myproject.service_ai_assistant.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.myproject.service_ai_assistant.annotation.RequireRole;
 import com.myproject.service_ai_assistant.common.Result;
 import com.myproject.service_ai_assistant.common.LevelCode;
 import com.myproject.service_ai_assistant.entity.TenantInfo;
@@ -13,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 租户管理控制器
@@ -30,7 +31,6 @@ public class TenantInfoController {
      * 获取租户列表（分页）
      */
     @GetMapping("/list")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_PROVIDER)
     @Operation(summary = "获取租户列表", description = "分页查询租户列表，支持搜索和筛选")
     public Result<Page<TenantInfo>> getTenantList(
             @Parameter(description = "当前页码", required = false, example = "1") @RequestParam(defaultValue = "1") Integer current,
@@ -54,7 +54,6 @@ public class TenantInfoController {
      * 创建租户
      */
     @PostMapping("/create")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "创建租户", description = "创建新的租户")
     public Result<TenantInfo> createTenant(
             @Validated @RequestBody TenantInfo tenantInfo
@@ -70,31 +69,30 @@ public class TenantInfoController {
         }
     }
 
-    /**
-     * 删除租户
-     */
+    // TODO: 租户删除功能暂时禁用（业务风险：数据关联复杂，误删风险高）
+    // 建议通过“禁用租户”+“到期不续费”代替删除
+    /*
+    @PostMapping("/batch-delete")
+    @Operation(summary = "批量删除租户", description = "批量删除已禁用的租户")
+    public Result<Boolean> batchDeleteTenants(
+            @RequestBody List<Long> tenantIds
+    ) {
+        // ...
+    }
+
     @PostMapping("/delete")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "删除租户", description = "删除指定租户（只能删除已禁用的租户）")
     public Result<Boolean> deleteTenant(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId
     ) {
-        log.info("【删除租户】tenantId={}", tenantId);
-        try {
-            tenantInfoService.deleteTenant(tenantId);
-            log.info("【删除租户成功】tenantId={}", tenantId);
-            return Result.success(true);
-        } catch (Exception e) {
-            log.error("【删除租户失败】{}", e.getMessage(), e);
-            throw e;
-        }
+        // ...
     }
+    */
 
     /**
      * 更新租户状态
      */
     @PostMapping("/update-status")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "更新租户状态", description = "启用或禁用租户")
     public Result<Boolean> updateTenantStatus(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
@@ -115,7 +113,6 @@ public class TenantInfoController {
      * 获取租户详情
      */
     @GetMapping("/{id}")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "获取租户详情", description = "根据ID获取租户详细信息")
     public Result<TenantInfo> getTenantById(
             @Parameter(description = "租户 ID", required = true) @PathVariable Long id
@@ -137,7 +134,6 @@ public class TenantInfoController {
      * 更新租户信息
      */
     @PostMapping("/update")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "更新租户信息", description = "修改租户基本信息")
     public Result<TenantInfo> updateTenant(
             @Validated @RequestBody TenantInfo tenantInfo

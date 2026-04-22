@@ -170,6 +170,7 @@ const app = createApp({
         // 系统设置
         const settings = reactive({
             tenantName: currentUser.tenantName || '未命名租户',
+            tenantCode: currentUser.tenantCode || '',
             welcomeMessage: '您好，很高兴为您服务！',
             themeColor: '#1890ff',
             email: 'service@gov.cn',

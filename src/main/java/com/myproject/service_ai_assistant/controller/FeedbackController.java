@@ -1,6 +1,5 @@
 package com.myproject.service_ai_assistant.controller;
 
-import com.myproject.service_ai_assistant.annotation.RequireRole;
 import com.myproject.service_ai_assistant.common.Result;
 import com.myproject.service_ai_assistant.common.LevelCode;
 import com.myproject.service_ai_assistant.entity.ConsultationFeedback;
@@ -8,6 +7,7 @@ import com.myproject.service_ai_assistant.service.ConsultationFeedbackService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +17,7 @@ import java.util.Map;
 /**
  * 咨询反馈控制器
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/consult/feedback")
 @Tag(name = "咨询反馈管理")
@@ -43,7 +44,6 @@ public class FeedbackController {
     }
 
     @GetMapping("/statistics")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "获取反馈统计", description = "获取所有反馈的统计数据，包括总数、待处理数、平均满意度等")
     public Result<Map<String, Object>> getStatistics(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId) {
@@ -51,7 +51,6 @@ public class FeedbackController {
     }
     
     @GetMapping("/pending")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "获取待处理反馈", description = "获取待处理的反馈列表，按创建时间倒序排列")
     public Result<List<ConsultationFeedback>> getPendingFeedbacks(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
@@ -60,7 +59,6 @@ public class FeedbackController {
     }
 
     @GetMapping("/list")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "获取所有反馈列表", description = "获取所有反馈记录，用于后台管理")
     public Result<Map<String, Object>> getAllFeedbacks(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
@@ -73,7 +71,6 @@ public class FeedbackController {
     }
 
     @PostMapping("/process/{id}")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "处理反馈", description = "管理员处理用户反馈，填写处理备注并标记为已处理")
     public Result<Void> processFeedback(
             @PathVariable Long id,
@@ -84,16 +81,52 @@ public class FeedbackController {
         return Result.success();
     }
 
-    @DeleteMapping("/{id}")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
-    @Operation(summary = "删除反馈", description = "删除指定的反馈记录")
-    public Result<Void> deleteFeedback(@PathVariable Long id) {
-        feedbackService.removeById(id);
+    @DeleteMapping("/batch")
+    @Operation(summary = "批量删除反馈", description = "批量删除指定的反馈记录")
+    public Result<Void> batchDeleteFeedbacks(
+            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
+            @RequestBody List<Long> feedbackIds) {
+        if (feedbackIds == null || feedbackIds.isEmpty()) {
+            return Result.error("请选择要删除的反馈");
+        }
+        
+        // 验证这些反馈是否都属于该租户
+        var queryWrapper = new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.myproject.service_ai_assistant.entity.ConsultationFeedback>()
+                .in(com.myproject.service_ai_assistant.entity.ConsultationFeedback::getId, feedbackIds)
+                .ne(com.myproject.service_ai_assistant.entity.ConsultationFeedback::getTenantId, tenantId);
+        long count = feedbackService.count(queryWrapper);
+        if (count > 0) {
+            return Result.error("无权删除其他租户的反馈");
+        }
+        
+        feedbackService.removeByIds(feedbackIds);
         return Result.success();
     }
 
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除反馈", description = "删除指定的反馈记录")
+    public Result<Void> deleteFeedback(
+            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
+            @PathVariable Long id) {
+        log.info("【删除反馈】id={}, tenantId={}", id, tenantId);
+        
+        try {
+            // 校验反馈是否属于该租户
+            var existing = feedbackService.getById(id);
+            if (existing == null || !existing.getTenantId().equals(tenantId)) {
+                return Result.error("无权删除该反馈");
+            }
+            
+            feedbackService.removeById(id);
+            log.info("【删除反馈】删除成功：id={}", id);
+            return Result.success();
+        } catch (Exception e) {
+            log.error("【删除反馈】失败：{}", e.getMessage(), e);
+            throw e;
+        }
+    }
+
     @PostMapping("/{id}")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "更新反馈", description = "更新反馈记录信息")
     public Result<Void> updateFeedback(
             @PathVariable Long id,

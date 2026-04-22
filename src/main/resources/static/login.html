@@ -92,7 +92,7 @@
     <!-- 引入 Vue 和 Element Plus（使用和 admin.html 相同的 CDN） -->
     <script src="lib/vue.global.js"></script>
     <script src="lib/element-plus.min.js"></script>
-    <script src="lib/element-plus-icons.min.js"></script>
+
     <script src="lib/zh-cn.min.js"></script>
     
     <!-- 引入 API 封装（包含 login 函数） -->
@@ -158,16 +158,7 @@
 
                 // 处理忘记密码
                 const handleForgotPassword = () => {
-                    ElementPlus.ElMessageBox.confirm(
-                        '请联系管理员重置密码，或通过注册页面重新注册',
-                        '忘记密码',
-                        {
-                            confirmButtonText: '我知道了',
-                            cancelButtonText: '取消',
-                            type: 'warning',
-                            distinguishCancelAndClose: true
-                        }
-                    ).catch(() => {});
+                    window.location.href = 'forgot-password.html';
                 };
 
                 // 处理登录

@@ -154,6 +154,7 @@ CREATE TABLE `user_info` (
   `deleted` TINYINT DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_tenant_username` (`tenant_id`, `username`, `deleted`),
+  UNIQUE KEY `uk_email_deleted` (`email`, `deleted`),
   KEY `idx_tenant_id` (`tenant_id`),
   KEY `idx_phone` (`phone`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户信息表';

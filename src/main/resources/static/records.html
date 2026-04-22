@@ -23,12 +23,17 @@
     <div id="app" class="app-container" v-cloak>
         <div class="table-container">
             <div class="table-header" style="padding: 16px 24px; border-bottom: 2px solid #f0f0f0; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
-                <div class="table-title" style="color: #262626; font-size: 16px; font-weight: 600;">💬 对话记录</div>
+                <div>
+                    <div class="table-title" style="color: #262626; font-size: 16px; font-weight: 600;">💬 对话记录</div>
+                    <div style="margin-top: 6px; font-size: 12px; color: #8c8c8c;">
+                        共 {{ pageTotal || 0 }} 条，当前显示 {{ recordsList.length || 0 }} 条
+                    </div>
+                </div>
                 <div class="toolbar" style="display: flex; gap: 12px; align-items: center;">
                     <el-input
                         v-model="searchKeyword"
                         placeholder="搜索问题、用户姓名或手机号"
-                        style="width: 400px;"
+                        style="width: 350px;"
                         clearable
                         @clear="handleClearSearch"
                         @keyup.enter="handleSearch"
@@ -39,12 +44,29 @@
                             </el-button>
                         </template>
                     </el-input>
+                    <el-button 
+                        type="danger" 
+                        :disabled="selectedRows.length === 0"
+                        @click="batchDeleteRecords"
+                    >
+                        <el-icon><delete /></el-icon> 批量删除 ({{ selectedRows.length }})
+                    </el-button>
                 </div>
             </div>
             
-            <el-table :data="recordsList" :height="tableHeight" stripe style="width: 100%" v-loading="loading" :empty-text="searchKeyword && searchKeyword.trim() ? '' : undefined"
-                      :row-style="{ cursor: 'pointer' }"
-                      @row-click="viewRecordDetail">
+            <el-table 
+                ref="recordsTableRef"
+                :data="recordsList" 
+                :height="tableHeight" 
+                stripe 
+                style="width: 100%" 
+                v-loading="loading" 
+                :empty-text="searchKeyword && searchKeyword.trim() ? '' : undefined"
+                :row-style="{ cursor: 'pointer' }"
+                @row-click="viewRecordDetail"
+                @selection-change="handleSelectionChange"
+            >
+                <el-table-column type="selection" width="55" align="center"></el-table-column>
                 <el-table-column prop="userName" label="姓名" width="100">
                     <template #default="scope">
                         <span v-if="scope.row.userName" style="font-weight: 500; color: #262626;">{{ scope.row.userName }}</span>
@@ -155,7 +177,7 @@
     <!-- 脚本文件 -->
     <script src="lib/vue.global.js"></script>
     <script src="lib/element-plus.min.js"></script>
-    <script src="lib/element-plus-icons.min.js"></script>
+
     <script src="lib/zh-cn.min.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/api.js"></script>

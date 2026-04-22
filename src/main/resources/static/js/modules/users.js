@@ -11,6 +11,8 @@ if (!userStr) {
     setTimeout(() => {
         window.top.location.replace('/login');
     }, 300);
+    // 防止后续代码继续执行导致报错
+    throw new Error('User not logged in');
 }
 
 const currentUser = JSON.parse(userStr);
@@ -91,6 +93,14 @@ const app = createApp({
         const usersList = Vue.ref([]);
         const loading = Vue.ref(false);
         const searchKeyword = Vue.ref('');
+        const selectedRows = Vue.ref([]); // 选中的行
+        
+        // 表格高度（显式设置，避免 iframe/flex 布局导致表格被压扁）
+        const tableHeight = Vue.ref(520);
+        const computeTableHeight = () => {
+            const reserved = 260;
+            tableHeight.value = Math.max(320, window.innerHeight - reserved);
+        };
         
         // 分页相关
         const page = Vue.reactive({
@@ -234,6 +244,63 @@ const app = createApp({
                     tenantSearchLoading.value = false;
                 }
             }, 300); // 300ms 防抖
+        };
+        
+        // 处理选择变化
+        const handleSelectionChange = (selection) => {
+            selectedRows.value = selection;
+        };
+        
+        // 批量删除用户
+        const handleBatchDelete = async () => {
+            if (selectedRows.value.length === 0) {
+                ElementPlus.ElMessage.warning('请先选择要删除的用户');
+                return;
+            }
+            
+            // 前端预检：过滤出无权删除的用户
+            const invalidUsers = selectedRows.value.filter(user => !canDeleteUser(user));
+            if (invalidUsers.length > 0) {
+                const usernames = invalidUsers.map(u => u.username).join('、');
+                ElementPlus.ElMessage.error(`无权删除以下用户：${usernames}`);
+                return;
+            }
+            
+            try {
+                const confirmMessage = `
+                    <div style="text-align: left; line-height: 1.8;">
+                        <p><strong>即将删除 ${selectedRows.value.length} 个用户</strong></p>
+                        <p style="color: #f56c6c; margin-top: 12px; font-size: 14px;">
+                            <strong>⚠️ 此操作不可恢复，确定要删除吗？</strong>
+                        </p>
+                    </div>
+                `;
+                
+                await ElementPlus.ElMessageBox.confirm(
+                    confirmMessage,
+                    '批量删除确认',
+                    {
+                        confirmButtonText: '确定删除',
+                        cancelButtonText: '取消',
+                        type: 'warning',
+                        dangerouslyUseHTMLString: true,
+                    }
+                );
+                
+                const userIds = selectedRows.value.map(row => row.id);
+                // 超级管理员使用被删除用户所在租户的ID，普通管理员使用自身租户ID
+                const tenantId = isSuperAdmin.value ? selectedRows.value[0].tenantId : _getCurrentTenantId();
+                
+                await window.api.user.batchDelete(tenantId, userIds);
+                ElementPlus.ElMessage.success('批量删除成功');
+                selectedRows.value = [];
+                page.current = 1;
+                loadUsers();
+            } catch (error) {
+                if (error !== 'cancel') {
+                    ElementPlus.ElMessage.error(error?.message || '批量删除失败');
+                }
+            }
         };
         
         // 加载用户列表
@@ -433,7 +500,9 @@ const app = createApp({
                     }
                 );
 
-                await window.api.user.delete(user.id);
+                // 获取被删除用户所在的租户ID（超级管理员跨租户操作时使用）
+                const tenantId = isSuperAdmin.value ? user.tenantId : _getCurrentTenantId();
+                await window.api.user.delete(tenantId, user.id);
                 ElementPlus.ElMessage.success('用户删除成功');
                 loadUsers();
             } catch (error) {
@@ -582,7 +651,13 @@ const app = createApp({
         
         // 初始化
         onMounted(() => {
+            computeTableHeight();
+            window.addEventListener('resize', computeTableHeight);
             loadUsers();
+        });
+        
+        onUnmounted(() => {
+            window.removeEventListener('resize', computeTableHeight);
         });
         
         return {
@@ -592,6 +667,8 @@ const app = createApp({
             usersList,
             loading,
             searchKeyword,
+            selectedRows,
+            tableHeight,
             page,
             dialogVisible,
             dialogType,
@@ -610,6 +687,8 @@ const app = createApp({
             
             handleSearch,
             handleClearSearch,
+            handleSelectionChange,
+            handleBatchDelete,
             // 【保留】查看/编辑功能待后续实现，请勿删除
             // handleView,
             handleCreateUser,
@@ -628,7 +707,8 @@ const app = createApp({
             canResetPassword,
             getResetPasswordDisabledReason,
             searchTenants,
-            currentUserRoleLevel
+            currentUserRoleLevel,
+            tableHeight
         };
     }
 });

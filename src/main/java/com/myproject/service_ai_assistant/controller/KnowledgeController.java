@@ -1,10 +1,8 @@
-   package com.myproject.service_ai_assistant.controller;
+package com.myproject.service_ai_assistant.controller;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.myproject.service_ai_assistant.annotation.RequireRole;
 import com.myproject.service_ai_assistant.common.Result;
-import com.myproject.service_ai_assistant.common.LevelCode;
 import com.myproject.service_ai_assistant.dto.CategoryDTO;
 import com.myproject.service_ai_assistant.dto.KnowledgeDTO;
 import com.myproject.service_ai_assistant.entity.KnowledgeCategory;
@@ -37,7 +35,6 @@ public class KnowledgeController {
     private KnowledgeCategoryService knowledgeCategoryService;
 
     @GetMapping("/list")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "分页查询知识列表")
     public Result<Page<KnowledgeItem>> list(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
@@ -68,7 +65,6 @@ public class KnowledgeController {
     }
 
     @GetMapping("/{id}")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "获取知识详情")
     public Result<KnowledgeItem> getById(@Parameter(description = "知识 ID") @PathVariable Long id) {
         log.info("【知识详情】查询 ID: {}", id);
@@ -82,7 +78,6 @@ public class KnowledgeController {
     }
 
     @PostMapping
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "新增知识")
     public Result<Boolean> save(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
@@ -101,7 +96,6 @@ public class KnowledgeController {
     }
 
     @PutMapping
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "更新知识")
     public Result<Boolean> update(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
@@ -121,29 +115,8 @@ public class KnowledgeController {
         log.info("【更新知识】更新成功：id={}", dto.getId());
         return Result.success(true);
     }
-
-    @DeleteMapping("/{id}")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
-    @Operation(summary = "删除知识")
-    public Result<Boolean> delete(
-            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
-            @Parameter(description = "知识 ID") @PathVariable Long id
-    ) {
-        log.info("【删除知识】id={}, tenantId={}", id, tenantId);
-        
-        // 校验知识条目是否属于该租户
-        KnowledgeItem existing = knowledgeItemService.getById(id);
-        if (existing == null || !existing.getTenantId().equals(tenantId)) {
-            throw new IllegalArgumentException("无权删除该知识条目");
-        }
-        
-        knowledgeItemService.removeById(id);
-        log.info("【删除知识】删除成功：id={}", id);
-        return Result.success(true);
-    }
     
     @DeleteMapping("/batch")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "批量删除知识")
     public Result<Boolean> batchDelete(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
@@ -169,6 +142,25 @@ public class KnowledgeController {
         return Result.success(true);
     }
 
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除知识")
+    public Result<Boolean> delete(
+            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
+            @Parameter(description = "知识 ID") @PathVariable Long id
+    ) {
+        log.info("【删除知识】id={}, tenantId={}", id, tenantId);
+        
+        // 校验知识条目是否属于该租户
+        KnowledgeItem existing = knowledgeItemService.getById(id);
+        if (existing == null || !existing.getTenantId().equals(tenantId)) {
+            throw new IllegalArgumentException("无权删除该知识条目");
+        }
+        
+        knowledgeItemService.removeById(id);
+        log.info("【删除知识】删除成功：id={}", id);
+        return Result.success(true);
+    }
+
     private void beanCopy(KnowledgeDTO dto, KnowledgeItem item) {
         item.setId(dto.getId());
         item.setTenantId(dto.getTenantId());
@@ -185,7 +177,6 @@ public class KnowledgeController {
     }
 
     @GetMapping("/categories")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "查询分类列表")
     public Result<List<KnowledgeCategory>> getCategories(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId
@@ -196,7 +187,6 @@ public class KnowledgeController {
     }
     
     @PostMapping("/category")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "新增/编辑分类")
     public Result<Boolean> saveCategory(@RequestBody CategoryDTO dto) {
         log.info("【保存分类】name={}, tenantId={}", dto.getCategoryName(), dto.getTenantId());
@@ -224,7 +214,6 @@ public class KnowledgeController {
     }
     
     @DeleteMapping("/category/{id}")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "删除分类")
     public Result<Boolean> deleteCategory(@Parameter(description = "分类 ID") @PathVariable Long id) {
         log.info("【删除分类】id={}", id);

@@ -134,9 +134,22 @@ public class TenantInfoServiceImpl extends ServiceImpl<TenantInfoMapper, TenantI
             throw new BusinessException(ResultCode.TENANT_DELETE_FAILED);
         }
         
-        // 3. 逻辑删除租户
+        // 3. 逻辑删除租户（MyBatis-Plus 自动设置 deleted=1）
         this.removeById(tenantId);
-        log.info("【删除租户】删除成功：tenantId={}", tenantId);
+        log.info("【删除租户】租户逻辑删除成功：tenantId={}", tenantId);
+        
+        // 4. 清除 Redis 缓存
+        String cacheKey = TENANT_STATUS_CACHE_PREFIX + tenantId;
+        redisTemplate.delete(cacheKey);
+        log.info("【删除租户】缓存已清除：tenantId={}", tenantId);
+        
+        // 5. 关联数据处理说明（软删除模式下保留数据）：
+        // - 用户数据 (user_info): 保留，通过 tenant.status=0 控制不可登录
+        // - 租户配置 (tenant_config): 保留，便于恢复租户时复用
+        // - 知识库/对话记录/反馈: 保留，作为历史数据审计追溯
+        // 注意：所有查询接口已通过 MyBatis-Plus 的 @TableLogic 自动过滤 deleted=1 的租户
+        
+        log.info("【删除租户】完成：tenantId={}", tenantId);
     }
 
     @Override
@@ -248,7 +261,7 @@ public class TenantInfoServiceImpl extends ServiceImpl<TenantInfoMapper, TenantI
             log.info("【发送注册验证码】验证码已存入Redis：key={}", redisKey);
         } catch (Exception e) {
             log.error("【发送注册验证码】Redis存储失败", e);
-            throw new BusinessException(ResultCode.OPERATION_FAILED.getCode(), "验证码存储失败，请检查Redis服务");
+            throw new BusinessException(ResultCode.REDIS_OPERATION_FAILED);
         }
             
         // 4. 发送邮件
@@ -258,7 +271,7 @@ public class TenantInfoServiceImpl extends ServiceImpl<TenantInfoMapper, TenantI
             log.info("【发送注册验证码】邮件发送成功：contactEmail={}, verifyCode={}", contactEmail, verifyCode);
         } catch (Exception e) {
             log.error("【发送注册验证码】邮件发送失败：contactEmail={}, error={}", contactEmail, e.getMessage(), e);
-            throw new BusinessException(ResultCode.OPERATION_FAILED.getCode(), "验证码发送失败，请稍后重试");
+            throw new BusinessException(ResultCode.EMAIL_SEND_FAILED);
         }
     }
     
@@ -286,13 +299,13 @@ public class TenantInfoServiceImpl extends ServiceImpl<TenantInfoMapper, TenantI
     
         // 3. 校验用户名格式
         if (adminUsername == null || adminUsername.trim().isEmpty()) {
-            throw new BusinessException(ResultCode.PARAM_VALIDATION_ERROR.getCode(), "用户名不能为空");
+            throw new BusinessException(ResultCode.USERNAME_EMPTY);
         }
         if (adminUsername.length() < 3 || adminUsername.length() > 20) {
-            throw new BusinessException(ResultCode.PARAM_VALIDATION_ERROR.getCode(), "用户名长度必须为 3-20 位");
+            throw new BusinessException(ResultCode.USERNAME_LENGTH_INVALID);
         }
         if (!adminUsername.matches("^[a-zA-Z0-9_]+$")) {
-            throw new BusinessException(ResultCode.PARAM_VALIDATION_ERROR.getCode(), "用户名只能包含字母、数字和下划线");
+            throw new BusinessException(ResultCode.USERNAME_FORMAT_INVALID);
         }
     
         // 4. 生成唯一的 tenant_code（格式：TENANT_时间戳_4 位随机数）
@@ -333,8 +346,6 @@ public class TenantInfoServiceImpl extends ServiceImpl<TenantInfoMapper, TenantI
         adminUser.setUsername(adminUsername);
         adminUser.setPassword(PasswordUtil.encrypt(adminPassword));
         adminUser.setRealName(contactPerson);
-        adminUser.setPhone(contactPhone);
-        adminUser.setEmail(contactEmail);
         adminUser.setRoleLevel(LevelCode.ROLE_LEVEL_ADMIN); // 普通管理员
         adminUser.setStatus(1);
         adminUser.setCreatedTime(LocalDateTime.now());

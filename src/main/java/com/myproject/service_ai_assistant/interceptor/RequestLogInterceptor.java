@@ -1,4 +1,4 @@
-package com.myproject.service_ai_assistant.config;
+package com.myproject.service_ai_assistant.interceptor;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;

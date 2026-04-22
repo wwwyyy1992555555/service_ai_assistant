@@ -1,5 +1,7 @@
 package com.myproject.service_ai_assistant.config;
 
+import com.myproject.service_ai_assistant.interceptor.AuthInterceptor;
+import com.myproject.service_ai_assistant.interceptor.RequestLogInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -48,6 +50,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/consult/parse-user-input",
                         "/api/consult/feedback/submit",
                         "/api/settings/get",
+                        "/api/industry-type/**",
                         "/api/doc.html",
                         "/swagger-ui/**",
                         "/v3/api-docs/**",

@@ -16,6 +16,7 @@ const app = createApp({
         const feedbackList = ref([]);
         const loading = ref(false);
         const tableHeight = ref(0);
+        const selectedRows = ref([]);
         
         // 分页
         const pageCurrent = ref(1);
@@ -142,10 +143,55 @@ const app = createApp({
         /**
          * 查看详情
          */
-        function viewDetail(row) {
+        function viewDetail(row, column, event) {
+            // 如果点击的是复选框列，不触发详情查看
+            if (column && column.type === 'selection') {
+                return;
+            }
             selectedFeedback.value = { ...row };
             processRemark.value = '';
             detailDialogVisible.value = true;
+        }
+
+        /**
+         * 处理选择变化
+         */
+        function handleSelectionChange(selection) {
+            selectedRows.value = selection;
+        }
+
+        /**
+         * 批量删除反馈
+         */
+        async function batchDeleteFeedback() {
+            if (selectedRows.value.length === 0) {
+                ElementPlus.ElMessage.warning('请先选择要删除的反馈');
+                return;
+            }
+            
+            ElementPlus.ElMessageBox.confirm(
+                `确定要删除选中的 ${selectedRows.value.length} 条反馈吗？`,
+                '删除确认',
+                {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning',
+                }
+            ).then(async () => {
+                try {
+                    const ids = selectedRows.value.map(row => row.id);
+                    await window.batchDeleteFeedback(ids);
+                    ElementPlus.ElMessage.success('批量删除成功');
+                    selectedRows.value = [];
+                    pageCurrent.value = 1;
+                    loadFeedbackList();
+                    loadStatistics();
+                } catch (error) {
+                    ElementPlus.ElMessage.error(error?.message || '批量删除失败');
+                }
+            }).catch(() => {
+                // 用户取消
+            });
         }
 
         /**
@@ -252,6 +298,7 @@ const app = createApp({
             feedbackList,
             loading,
             tableHeight,
+            selectedRows,
             filterForm,
             detailDialogVisible,
             selectedFeedback,
@@ -266,6 +313,8 @@ const app = createApp({
             parseFeedbackReasons,
             formatDate,
             viewDetail,
+            handleSelectionChange,
+            batchDeleteFeedback,
             saveFeedbackEdit,
             deleteFeedback,
             processFeedback,

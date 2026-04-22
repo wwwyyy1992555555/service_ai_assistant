@@ -64,7 +64,14 @@ public enum ResultCode {
     USER_UPDATE_FAILED(3108, "更新用户状态失败"),
     USER_DELETE_FAILED(3109, "删除用户失败"),
     DELETE_SUPER_ADMIN_FORBIDDEN(3110, "不允许删除超级管理员账号"),
-    PERMISSION_DENIED(3111, "您没有权限访问用户管理"),
+    PERMISSION_DENIED(3111, "权限不足，无法执行此操作"),
+    PERMISSION_DENIED_USER_MANAGEMENT(3112, "您的角色等级不足以访问用户管理模块，请联系超级管理员"),
+    PERMISSION_DENIED_DELETE_USER(3113, "无权删除等级大于或等于您的用户（用户名：%s）"),
+    
+    // ========== 参数校验相关 (32xx) ==========
+    USERNAME_EMPTY(3201, "用户名不能为空"),
+    USERNAME_LENGTH_INVALID(3202, "用户名长度必须为 3-20 位"),
+    USERNAME_FORMAT_INVALID(3203, "用户名只能包含字母、数字和下划线"),
     
     // ========== 知识库相关 (4xxx) ==========
     KNOWLEDGE_NOT_FOUND(4001, "知识条目不存在"),
@@ -79,6 +86,10 @@ public enum ResultCode {
     FILE_UPLOAD_ERROR(6001, "文件上传失败"),
     FILE_TYPE_NOT_SUPPORTED(6002, "不支持的文件类型"),
     FILE_SIZE_EXCEEDED(6003, "文件大小超出限制"),
+    
+    // ========== Redis 相关 (61xx) ==========
+    REDIS_OPERATION_FAILED(6101, "验证码存储失败，请检查 Redis 服务"),
+    EMAIL_SEND_FAILED(6102, "验证码发送失败，请稍后重试"),
     
     // ========== AI 服务相关 (7xxx) ==========
     AI_SERVICE_ERROR(7001, "AI 服务调用失败"),

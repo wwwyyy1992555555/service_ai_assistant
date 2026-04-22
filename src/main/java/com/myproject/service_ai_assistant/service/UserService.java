@@ -71,6 +71,12 @@ public interface UserService {
     void deleteUser(Long userId);
     
     /**
+     * 批量删除用户
+     * @param userIds 用户 ID 列表
+     */
+    void batchDeleteUsers(java.util.List<Long> userIds);
+    
+    /**
      * 检查用户名在租户下是否已存在
      * @param tenantId 租户 ID
      * @param username 用户名

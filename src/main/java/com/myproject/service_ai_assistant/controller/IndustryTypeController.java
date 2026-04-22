@@ -1,6 +1,5 @@
 package com.myproject.service_ai_assistant.controller;
 
-import com.myproject.service_ai_assistant.annotation.RequireRole;
 import com.myproject.service_ai_assistant.common.Result;
 import com.myproject.service_ai_assistant.common.LevelCode;
 import com.myproject.service_ai_assistant.entity.IndustryType;
@@ -31,7 +30,6 @@ public class IndustryTypeController {
      * 获取所有启用的行业类型列表
      */
     @GetMapping("/list")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "获取行业类型列表")
     public Result<List<IndustryType>> getIndustryTypeList() {
         List<IndustryType> types = industryTypeService.getActiveTypes();

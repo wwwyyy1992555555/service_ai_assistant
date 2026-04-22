@@ -42,12 +42,12 @@ public class User implements Serializable {
     private String realName;
 
     /**
-     * 手机号
+     * 手机号（保留字段）
      */
     private String phone;
 
     /**
-     * 邮箱
+     * 邮箱（保留字段）
      */
     private String email;
 

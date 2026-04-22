@@ -1,7 +1,6 @@
 package com.myproject.service_ai_assistant.controller;
 
 import cn.hutool.core.util.StrUtil;
-import com.myproject.service_ai_assistant.annotation.RequireRole;
 import com.myproject.service_ai_assistant.common.Result;
 import com.myproject.service_ai_assistant.common.LevelCode;
 import com.myproject.service_ai_assistant.common.SimilarityUtil;
@@ -272,7 +271,6 @@ public class ConsultController {
     }
     
     @GetMapping("/list")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "分页查询对话记录", description = "分页查询对话记录列表")
     public Result<com.baomidou.mybatisplus.extension.plugins.pagination.Page<ConsultationRecord>> listRecords(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
@@ -289,7 +287,6 @@ public class ConsultController {
     }
 
     @DeleteMapping("/session/{sessionId}")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "删除会话", description = "删除整个会话的所有对话记录")
     public Result<Void> deleteSession(@Parameter(description = "会话 ID", required = true) @PathVariable String sessionId) {
         log.info("【删除会话】sessionId={}", sessionId);
@@ -316,9 +313,46 @@ public class ConsultController {
             return Result.error(500, "删除失败");
         }
     }
+    
+    @DeleteMapping("/sessions/batch")
+    @Operation(summary = "批量删除会话", description = "批量删除多个会话的所有对话记录")
+    public Result<Boolean> batchDeleteSessions(
+            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
+            @Parameter(description = "会话 ID 列表", required = true) @RequestBody List<String> sessionIds
+    ) {
+        log.info("【批量删除会话】sessionIds={}, tenantId={}", sessionIds, tenantId);
+        
+        if (sessionIds == null || sessionIds.isEmpty()) {
+            throw new IllegalArgumentException("请选择要删除的会话");
+        }
+        
+        // 去重处理
+        List<String> uniqueSessionIds = sessionIds.stream().distinct().toList();
+        log.info("【批量删除会话】去重后会话数：{}", uniqueSessionIds.size());
+        
+        // 校验所有会话是否属于该租户
+        for (String sessionId : uniqueSessionIds) {
+            var checkWrapper = new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ConsultationRecord>()
+                    .eq(ConsultationRecord::getSessionId, sessionId)
+                    .eq(ConsultationRecord::getTenantId, tenantId)
+                    .last("LIMIT 1");
+            
+            long count = consultationRecordService.count(checkWrapper);
+            if (count == 0) {
+                throw new IllegalArgumentException("无权删除会话ID为" + sessionId + "的记录");
+            }
+        }
+        
+        // 批量删除
+        var deleteWrapper = new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ConsultationRecord>()
+                .in(ConsultationRecord::getSessionId, uniqueSessionIds);
+        
+        boolean success = consultationRecordService.remove(deleteWrapper);
+        log.info("【批量删除会话】删除成功：count={}", uniqueSessionIds.size());
+        return Result.success(true);
+    }
 
     @GetMapping("/session/{sessionId}")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "查询会话详情", description = "根据会话 ID 查询完整的对话历史")
     public Result<List<ConsultationRecord>> getSessionDetail(@Parameter(description = "会话 ID", required = true) @PathVariable String sessionId) {
         log.info("【会话详情】sessionId={}", sessionId);

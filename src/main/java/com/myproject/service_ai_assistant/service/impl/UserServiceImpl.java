@@ -191,14 +191,15 @@ public class UserServiceImpl implements UserService {
             userDTO.setTenantId(LevelCode.ROLE_LEVEL_TENANT_ID);
             userDTO.setTenantName("平台管理端");
         } else {
-            // 租户用户 - 从 tenant_info 获取租户名称
+            // 租户用户 - 从 tenant_info 获取租户名称和编码
             try {
                 TenantInfo tenantInfo = tenantInfoMapper.selectById(user.getTenantId());
                 if (tenantInfo != null) {
                     userDTO.setTenantName(tenantInfo.getTenantName());
+                    userDTO.setTenantCode(tenantInfo.getTenantCode());
                 }
             } catch (Exception e) {
-                log.warn("【用户登录】获取租户名称失败：tenantId={}", user.getTenantId(), e);
+                log.warn("【用户登录】获取租户信息失败：tenantId={}", user.getTenantId(), e);
             }
             log.info("【用户登录】租户用户登录成功：username={}, tenantId={}", request.getUsername(), user.getTenantId());
         }
@@ -381,6 +382,11 @@ public class UserServiceImpl implements UserService {
         // ✅ 水平越权校验：确保只能在自己租户下创建用户（运营商 tenant_id=0 可跨租户操作）
         UserContext.validateHorizontalPermission(request.getTenantId());
         
+        // ✅ 垂直权限校验：获取当前操作用户，只能创建等级比自己低的用户（超级管理员豁免）
+        Long operatorId = UserContext.getUserId();
+        User operator = userMapper.selectById(operatorId);
+        UserContext.validateVerticalPermission(operator.getRoleLevel(), request.getRoleLevel());
+        
         // 1. 检查用户名是否已存在（MyBatis-Plus 的 @TableLogic 会自动添加 deleted=0 条件）
         User existingUser = userMapper.selectByUsername(request.getTenantId(), request.getUsername());
         
@@ -465,6 +471,11 @@ public class UserServiceImpl implements UserService {
         // ✅ 水平越权校验：确保操作的是当前租户的数据（运营商 tenant_id=0 可跨租户操作）
         UserContext.validateHorizontalPermission(user.getTenantId());
         
+        // ✅ 垂直权限校验：获取当前操作用户，只能操作等级比自己低的用户（超级管理员豁免）
+        Long operatorId = UserContext.getUserId();
+        User operator = userMapper.selectById(operatorId);
+        UserContext.validateVerticalPermission(operator.getRoleLevel(), user.getRoleLevel());
+        
         // 2. 校验新密码强度
         try {
             PasswordUtil.validateStrongPassword(newPassword);
@@ -503,6 +514,11 @@ public class UserServiceImpl implements UserService {
         // ✅ 水平越权校验：确保操作的是当前租户的数据（运营商 tenant_id=0 可跨租户操作）
         UserContext.validateHorizontalPermission(user.getTenantId());
         
+        // ✅ 垂直权限校验：获取当前操作用户，只能操作等级比自己低的用户（超级管理员豁免）
+        Long operatorId = UserContext.getUserId();
+        User operator = userMapper.selectById(operatorId);
+        UserContext.validateVerticalPermission(operator.getRoleLevel(), user.getRoleLevel());
+        
         // 2. 更新状态
         user.setStatus(status);
         user.setUpdatedTime(LocalDateTime.now());
@@ -533,7 +549,12 @@ public class UserServiceImpl implements UserService {
         // ✅ 水平越权校验：确保操作的是当前租户的数据（运营商 tenant_id=0 可跨租户操作）
         UserContext.validateHorizontalPermission(user.getTenantId());
         
-        // 2. 不允许删除运营商（tenant_id=0）
+        // ✅ 垂直权限校验：获取当前操作用户，只能删除等级比自己低的用户（超级管理员豁免）
+        Long operatorId = UserContext.getUserId();
+        User operator = userMapper.selectById(operatorId);
+        UserContext.validateVerticalPermission(operator.getRoleLevel(), user.getRoleLevel());
+        
+        // 2. 不允许删除超级管理员（tenant_id=0）
         if (user.getRoleLevel() != null && user.getTenantId() == LevelCode.ROLE_LEVEL_TENANT_ID) {
             log.warn("【删除用户】不允许删除超级管理员：userId={}, username={}", userId, user.getUsername());
             throw new BusinessException(ResultCode.DELETE_SUPER_ADMIN_FORBIDDEN);
@@ -580,6 +601,23 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void batchDeleteUsers(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return;
+        }
+        
+        log.info("【批量删除用户】开始：userIds={}", userIds);
+        
+        // 严格模式：循环调用 deleteUser，任一失败则事务回滚
+        for (Long userId : userIds) {
+            deleteUser(userId);
+        }
+        
+        log.info("【批量删除用户】完成：count={}", userIds.size());
+    }
+
     /**
      * 根据租户 ID 获取用户列表（支持分页和搜索）
      */
@@ -589,9 +627,9 @@ public class UserServiceImpl implements UserService {
                 tenantId, current, size, keyword, currentUserRoleLevel);
         
         // 权限校验：操作员(roleLevel=2)无权访问用户管理
-        if (currentUserRoleLevel != null && currentUserRoleLevel > 1) {
-            log.warn("【获取用户列表】权限不足：currentUserRoleLevel={}", currentUserRoleLevel);
-            throw new BusinessException(ResultCode.PERMISSION_DENIED);
+        if (currentUserRoleLevel != null && currentUserRoleLevel > LevelCode.ROLE_LEVEL_ADMIN) {
+            log.warn("【获取用户列表】权限不足：当前角色等级为{}，需要管理员(1)或超级管理员(0)及以上", currentUserRoleLevel);
+            throw new BusinessException(ResultCode.PERMISSION_DENIED_USER_MANAGEMENT);
         }
         
         // 创建 MyBatis-Plus 的 Page 对象

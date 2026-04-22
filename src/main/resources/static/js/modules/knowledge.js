@@ -31,14 +31,13 @@ if (typeof Vue === 'undefined') {
         const searchKeyword = ref('');
         const filterPublishStatus = ref(undefined);
         const filterIsTop = ref(undefined);
-        const filterCategoryId = ref(undefined);  // 新增：分类筛选
+        const filterCategoryId = ref(undefined);
         const loading = ref(false);
-        const selectedRows = ref([]);  // 选中的行
+        const selectedRows = ref([]);
 
         // 表格高度（显式设置，避免 iframe/flex 布局导致表格被压扁）
         const tableHeight = ref(520);
         const computeTableHeight = () => {
-            // 预留：顶部工具栏 + 分页 + padding 等
             const reserved = 260;
             tableHeight.value = Math.max(320, window.innerHeight - reserved);
         };
@@ -56,12 +55,11 @@ if (typeof Vue === 'undefined') {
         const loadKnowledgeList = async () => {
             loading.value = true;
             try {
-                // 处理分类筛选：undefined=全部，null=其他（无分类），其他值=指定分类
                 let categoryIdParam = filterCategoryId.value;
                 if (categoryIdParam === null) {
-                    categoryIdParam = -1;  // 特殊值：表示筛选无分类的数据
+                    categoryIdParam = -1;
                 } else if (categoryIdParam === undefined) {
-                    categoryIdParam = null;  // 不筛选
+                    categoryIdParam = null;
                 }
                 
                 const result = await window.loadKnowledgeList(
@@ -91,7 +89,6 @@ if (typeof Vue === 'undefined') {
             try {
                 const categories = await window.loadCategories();
                 categoryList.value = categories || [];
-                // 构建分类字典，用于显示
                 const map = {};
                 categoryList.value.forEach(cat => {
                     map[cat.id] = cat.categoryName;
@@ -103,31 +100,30 @@ if (typeof Vue === 'undefined') {
             }
         };
 
-        // 筛选处理 - 统一使用 loadKnowledgeList
+        // 筛选处理
         let filterTimer = null;
         const handleFilterChange = () => {
             if (filterTimer) clearTimeout(filterTimer);
             filterTimer = setTimeout(() => {
-                page.current = 1;  // 重置到第一页
-                loadKnowledgeList();  // 使用统一入口，保持搜索关键词
+                page.current = 1;
+                loadKnowledgeList();
             }, 300);
         };
 
-        // 搜索处理 - 统一使用 loadKnowledgeList
+        // 搜索处理
         let searchTimer = null;
         const handleSearch = () => {
             if (searchTimer) clearTimeout(searchTimer);
             searchTimer = setTimeout(() => {
-                page.current = 1;  // 重置到第一页
-                loadKnowledgeList();  // 使用统一入口，保持筛选条件
+                page.current = 1;
+                loadKnowledgeList();
             }, 300);
         };
 
-        // 清除搜索 - 重置搜索关键词并刷新列表
+        // 清除搜索
         const handleClearSearch = () => {
-            searchKeyword.value = '';  // 清空搜索框
-            page.current = 1;  // 重置到第一页
-            // 注意：不清空筛选条件，只清除搜索关键词
+            searchKeyword.value = '';
+            page.current = 1;
             loadKnowledgeList();
             ElementPlus.ElMessage.success('已清除搜索条件');
         };
@@ -135,13 +131,13 @@ if (typeof Vue === 'undefined') {
         // 分页 - 每页条数变化
         const handleSizeChange = (size) => {
             page.size = size;
-            page.current = 1;  // 重置到第一页
-            loadKnowledgeList();  // 使用统一入口，保持搜索和筛选条件
+            page.current = 1;
+            loadKnowledgeList();
         };
 
         // 分页 - 页码变化
         const handleCurrentChange = async () => {
-            loadKnowledgeList();  // 使用统一入口，保持搜索和筛选条件
+            loadKnowledgeList();
         };
         
         // 操作
@@ -187,8 +183,12 @@ if (typeof Vue === 'undefined') {
             }
         };
         
-        const viewKnowledgeDetail = (knowledge) => {
-            selectedKnowledge.value = knowledge;
+        const viewKnowledgeDetail = (row, column, event) => {
+            // 如果点击的是复选框列，不触发详情查看
+            if (column && column.type === 'selection') {
+                return;
+            }
+            selectedKnowledge.value = row;
             detailVisible.value = true;
         };
         
@@ -219,6 +219,7 @@ if (typeof Vue === 'undefined') {
                 await window.batchDeleteKnowledge(ids);
                 ElementPlus.ElMessage.success('批量删除成功');
                 selectedRows.value = [];
+                page.current = 1;
                 loadKnowledgeList();
             } catch (error) {
                 if (error !== 'cancel') {
@@ -240,7 +241,7 @@ if (typeof Vue === 'undefined') {
             searchKeyword,
             filterPublishStatus,
             filterIsTop,
-            filterCategoryId,  // 新增：导出分类筛选
+            filterCategoryId,
             loading,
             tableHeight,
             dialogVisible,
@@ -248,7 +249,7 @@ if (typeof Vue === 'undefined') {
             editingKnowledge,
             selectedKnowledge,
             categoryMap,
-            selectedRows,  // 新增：导出选中行
+            selectedRows,
             loadKnowledgeList,
             loadCategories,
             handleFilterChange,
@@ -261,8 +262,8 @@ if (typeof Vue === 'undefined') {
             deleteKnowledge,
             saveKnowledge,
             viewKnowledgeDetail,
-            handleSelectionChange,  // 新增：导出选择变化处理
-            batchDeleteKnowledge  // 新增：导出批量删除方法
+            handleSelectionChange,
+            batchDeleteKnowledge
         };
     }
     });
@@ -278,7 +279,6 @@ if (typeof Vue === 'undefined') {
     if (typeof initElementPlus === 'function') {
         initElementPlus(app);
     } else if (typeof ElementPlus !== 'undefined') {
-        // 降级处理
         app.use(ElementPlus, {
             locale: typeof ElementPlusLocaleZhCn !== 'undefined' ? ElementPlusLocaleZhCn : undefined
         });

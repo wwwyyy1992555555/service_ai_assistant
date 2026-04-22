@@ -1,8 +1,8 @@
 package com.myproject.service_ai_assistant.controller;
 
-import com.myproject.service_ai_assistant.annotation.RequireRole;
 import com.myproject.service_ai_assistant.common.Result;
 import com.myproject.service_ai_assistant.common.LevelCode;
+import com.myproject.service_ai_assistant.context.UserContext;
 import com.myproject.service_ai_assistant.dto.UserCreateRequest;
 import com.myproject.service_ai_assistant.dto.UserDTO;
 import com.myproject.service_ai_assistant.entity.TenantInfo;
@@ -43,7 +43,6 @@ public class UserController {
      * 创建用户（需要管理员权限）
      */
     @PostMapping("/create")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "创建用户", description = "租户管理员创建用户")
     public Result<UserDTO> createUser(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
@@ -66,7 +65,6 @@ public class UserController {
      * 重置用户密码（需要管理员权限）
      */
     @PostMapping("/reset-password")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "重置用户密码", description = "管理员重置用户密码")
     public Result<Boolean> resetPassword(
             @Parameter(description = "用户 ID", required = true) @RequestParam Long userId,
@@ -87,7 +85,6 @@ public class UserController {
      * 更新用户状态（需要管理员权限）
      */
     @PostMapping("/update-status")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "更新用户状态", description = "启用/禁用用户")
     public ResponseEntity<?> updateUserStatus(
             @Parameter(description = "用户 ID", required = true) @RequestParam Long userId,
@@ -148,23 +145,75 @@ public class UserController {
     }
     
     /**
+     * 批量删除用户（需要管理员权限）
+     */
+    @PostMapping("/batch-delete")
+    @Operation(summary = "批量删除用户", description = "批量删除指定用户")
+    public Result<Boolean> batchDeleteUsers(
+            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
+            @RequestBody List<Long> userIds
+    ) {
+        log.info("【批量删除用户】userIds={}, tenantId={}", userIds, tenantId);
+        
+        if (userIds == null || userIds.isEmpty()) {
+            return Result.error("请选择要删除的用户");
+        }
+        
+        // 去重处理
+        List<Long> uniqueUserIds = userIds.stream().distinct().toList();
+        log.info("【批量删除用户】去重后用户数：{}", uniqueUserIds.size());
+        
+        // 预检：验证所有用户是否可删除
+        for (Long userId : uniqueUserIds) {
+            UserDTO user = userService.getUserById(userId);
+            if (user == null) {
+                return Result.error("用户ID为" + userId + "不存在");
+            }
+            if (!user.getTenantId().equals(tenantId)) {
+                return Result.error("无权删除其他租户的用户");
+            }
+            if (user.getRoleLevel() == 0) {
+                return Result.error("不允许删除超级管理员");
+            }
+            
+            // 垂直权限校验：获取当前操作用户（超级管理员豁免）
+            Long operatorId = UserContext.getUserId();
+            UserDTO operator = userService.getUserById(operatorId);
+            UserContext.validateVerticalPermission(operator.getRoleLevel(), user.getRoleLevel());
+        }
+        
+        // 批量删除（严格模式：任一失败则全部回滚）
+        userService.batchDeleteUsers(uniqueUserIds);
+        log.info("【批量删除用户】删除成功：count={}", uniqueUserIds.size());
+        return Result.success(true);
+    }
+
+    /**
      * 删除用户（需要管理员权限）
      */
     @PostMapping("/delete")
-    @RequireRole(minLevel = LevelCode.ROLE_LEVEL_ADMIN)
     @Operation(summary = "删除用户", description = "删除指定用户")
     public Result<Boolean> deleteUser(
+            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
             @Parameter(description = "用户 ID", required = true) @RequestParam Long userId
     ) {
-        log.info("【删除用户】开始：userId={}", userId);
-        try {
-            userService.deleteUser(userId);
-            log.info("【删除用户】成功：userId={}", userId);
-            return Result.success(true);
-        } catch (Exception e) {
-            log.error("【删除用户】失败：{}", e.getMessage(), e);
-            throw e;
+        log.info("【删除用户】userId={}, tenantId={}", userId, tenantId);
+        
+        // 校验用户是否属于该租户
+        UserDTO user = userService.getUserById(userId);
+        if (user == null) {
+            return Result.error("用户不存在");
         }
+        if (!user.getTenantId().equals(tenantId)) {
+            return Result.error("无权删除其他租户的用户");
+        }
+        if (user.getRoleLevel() == 0) {
+            return Result.error("不允许删除超级管理员");
+        }
+        
+        userService.deleteUser(userId);
+        log.info("【删除用户】删除成功：userId={}", userId);
+        return Result.success(true);
     }
     
     /**
