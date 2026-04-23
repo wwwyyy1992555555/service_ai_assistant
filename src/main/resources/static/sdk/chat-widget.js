@@ -15,6 +15,14 @@
 
     // 从 data-tenant-code 属性获取租户编码
     const TENANT_CODE = currentScript.getAttribute('data-tenant-code');
+    
+    // 读取全局配置对象
+    const config = window.ChatWidgetConfig || {};
+    
+    // 优先级：配置对象 > script 属性 > 默认值
+    const NO_BUTTON = config.noButton || (currentScript.getAttribute('data-no-button') === 'true');
+    const WINDOW_WIDTH = config.width || currentScript.getAttribute('data-width');
+    const WINDOW_HEIGHT = config.height || currentScript.getAttribute('data-height');
 
     if (!TENANT_CODE) {
         console.warn('[Chat Widget] 未找到 data-tenant-code 属性');
@@ -84,6 +92,19 @@
      */
     function getWindowSize() {
         const isMobile = window.innerWidth <= 768;
+        
+        // 优先使用配置的尺寸
+        if (WINDOW_WIDTH || WINDOW_HEIGHT) {
+            return {
+                width: WINDOW_WIDTH || (isMobile ? '100%' : '400px'),
+                height: WINDOW_HEIGHT || (isMobile ? '100%' : '600px'),
+                right: isMobile ? '0' : '20px',
+                bottom: isMobile ? '0' : '10px',
+                borderRadius: isMobile ? '0' : '12px'
+            };
+        }
+        
+        // 默认尺寸
         return {
             width: isMobile ? '100%' : '400px',
             height: isMobile ? '100%' : '600px',
@@ -139,6 +160,39 @@
             closeWindow();
         });
 
+        // 外部链接按钮（新标签页打开）
+        const externalBtn = document.createElement('div');
+        externalBtn.innerHTML = '↗';
+        externalBtn.style.cssText = `
+            position: absolute;
+            top: 10px;
+            right: 45px;
+            width: 30px;
+            height: 30px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 100000;
+            font-size: 16px;
+            color: #666;
+        `;
+
+        externalBtn.addEventListener('mouseenter', function() {
+            this.style.background = 'rgba(0, 0, 0, 0.2)';
+        });
+
+        externalBtn.addEventListener('mouseleave', function() {
+            this.style.background = 'rgba(0, 0, 0, 0.1)';
+        });
+
+        externalBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            openInNewTab();
+        });
+
         // iframe
         const iframe = document.createElement('iframe');
         iframe.id = 'chat-widget-iframe';
@@ -166,8 +220,21 @@
         };
 
         win.appendChild(closeBtn);
+        win.appendChild(externalBtn);
         win.appendChild(iframe);
         document.body.appendChild(win);
+    }
+
+    /**
+     * 在新标签页打开
+     */
+    function openInNewTab() {
+        const iframe = document.getElementById('chat-widget-iframe');
+        if (iframe && iframe.src) {
+            window.open(iframe.src, '_blank');
+        } else {
+            console.warn('[Chat Widget] 窗口尚未加载，无法打开新标签页');
+        }
     }
 
     /**
@@ -231,6 +298,8 @@
      */
     function adjustButtonPosition(height) {
         const btn = document.getElementById('chat-widget-button');
+        if (!btn) return; // 自定义模式下没有按钮
+        
         const isMobile = window.innerWidth <= 768;
         
         if (isMobile) {
@@ -281,8 +350,15 @@
 
     // 初始化
     function init() {
-        createButton();
-        createWindow();
+        // 如果不使用内置按钮，只创建窗口
+        if (NO_BUTTON) {
+            createWindow();
+            console.log('[Chat Widget] 自定义模式：租户需自行创建按钮并调用 ChatWidget.open()');
+        } else {
+            // 默认模式：创建内置按钮和窗口
+            createButton();
+            createWindow();
+        }
     }
 
     // 等待 DOM 加载完成后初始化
