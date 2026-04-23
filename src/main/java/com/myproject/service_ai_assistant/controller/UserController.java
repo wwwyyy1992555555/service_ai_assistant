@@ -148,7 +148,7 @@ public class UserController {
     /**
      * 批量删除用户（需要管理员权限）
      */
-    @PostMapping("/batch-delete")
+    @DeleteMapping("/batch-delete")
     @Operation(summary = "批量删除用户", description = "批量删除指定用户")
     public Result<Boolean> batchDeleteUsers(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
@@ -192,7 +192,7 @@ public class UserController {
     /**
      * 删除用户（需要管理员权限）
      */
-    @PostMapping("/delete")
+    @DeleteMapping("/delete")
     @Operation(summary = "删除用户", description = "删除指定用户")
     public Result<Boolean> deleteUser(
             @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,

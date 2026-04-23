@@ -135,7 +135,7 @@ public class ConsultController {
             answer = item.getAnswer();
             matchedKnowledgeId = item.getId();
             knowledgeTitle = item.getTitle();
-            categoryName = getCategoryName(item.getCategoryId());
+            categoryName = item.getCategoryName();
             viewCount = item.getViewCount() + 1;
             
             log.info("【智能问答】使用知识库答案：id={}, title={}", item.getId(), item.getTitle());
@@ -688,17 +688,6 @@ public class ConsultController {
         }
         
         return false;
-    }
-    
-    /**
-     * 获取分类名称
-     */
-    private String getCategoryName(Long categoryId) {
-        if (categoryId == null) {
-            return null;
-        }
-        // TODO: 从缓存或服务中获取分类名称
-        return "分类" + categoryId;
     }
     
     /**

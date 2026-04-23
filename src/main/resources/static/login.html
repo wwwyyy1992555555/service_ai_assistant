@@ -65,7 +65,7 @@
                         </el-form-item>
 
                         <div class="form-links">
-                            <el-link type="primary" href="register.html">立即注册</el-link>
+                            <el-link type="primary" href="/register">立即注册</el-link>
                             <span class="link-separator"></span>
                             <el-link type="info" @click="handleForgotPassword">忘记密码?</el-link>
                         </div>
@@ -159,7 +159,7 @@
 
                 // 处理忘记密码
                 const handleForgotPassword = () => {
-                    window.location.href = 'forgot-password.html';
+                    window.location.href = '/forgot-password';
                 };
 
                 // 处理登录

@@ -411,7 +411,9 @@ public class LlmServiceImpl implements LlmService {
         
         // 添加信息收集规则
         sb.append("\n\n【回复要求】\n");
-        sb.append("1. 结合历史对话和参考资料回答\n");
+        sb.append("1. 先判断用户意图：\n");
+        sb.append("   - 如果是提问（怎么、如何、什么等），直接回答\n");
+        sb.append("   - 如果是陈述需求（找某人、想咨询、需要帮助等），先确认具体咨询内容\n");
         sb.append("2. 如果用户提供了姓名和手机号，在末尾添加：[INFO_COLLECTED]姓名:XXX,手机:138XXXXXXXX[/INFO_COLLECTED]\n");
         sb.append("3. 使用中文，语气友好专业\n");
         

@@ -30,4 +30,11 @@ public interface TenantConfigService extends IService<TenantConfig> {
      * @return 是否成功
      */
     boolean saveConfig(Long tenantId, TenantConfigDTO configDTO);
+    
+    /**
+     * 根据租户编码查询租户信息
+     * @param tenantCode 租户编码
+     * @return 租户信息，不存在返回 null
+     */
+    com.myproject.service_ai_assistant.entity.TenantInfo getTenantByCode(String tenantCode);
 }

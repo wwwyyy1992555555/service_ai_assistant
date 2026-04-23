@@ -79,7 +79,7 @@
                 </div>
 
                 <div class="form-footer">
-                    <el-link type="primary" href="login.html">已有账号？立即登录</el-link>
+                    <el-link type="primary" href="/login">已有账号？立即登录</el-link>
                 </div>
                 </el-form>
             </div>
@@ -99,7 +99,7 @@
                 </div>
                 <div class="tip-text">
                     <strong>📌 重要提示：</strong><br>
-                    1. 请使用管理员账号登录后台：<a href="login.html" class="success-dialog-link">点击跳转</a><br>
+                    1. 请使用管理员账号登录后台：<a href="/login" class="success-dialog-link">点击跳转</a><br>
                     2. 租户编码：{{ tenantCode }}<br>
                     3. 在后台可以自定义 Logo、主题色、欢迎语等配置
                 </div>
@@ -294,7 +294,7 @@
                 };
         
                 const goToLogin = () => {
-                    window.location.href = 'login.html';
+                    window.location.href = '/login';
                 };
         
                 return {

@@ -407,7 +407,10 @@ async function loadTenantConfig(tenantId) {
  */
 async function saveTenantConfig(tenantId, config) {
     // tenantId 需要作为 URL 参数传递，而不是放在 body 中
-    const result = await post(`${API_BASE}/settings/save?tenantId=${tenantId}`, config);
+    const result = await request(`${API_BASE}/settings/save?tenantId=${tenantId}`, {
+        method: 'PUT',
+        body: JSON.stringify(config),
+    });
     return result.data;
 }
 
@@ -490,7 +493,9 @@ const userApi = {
      * @param {number} userId - 用户 ID
      */
     delete: async function(tenantId, userId) {
-        const result = await post(`${API_BASE}/user/delete?tenantId=${tenantId}&userId=${userId}`);
+        const result = await request(`${API_BASE}/user/delete?tenantId=${tenantId}&userId=${userId}`, {
+            method: 'DELETE',
+        });
         return result.data;
     },
     
@@ -499,7 +504,7 @@ const userApi = {
      */
     batchDelete: async function(tenantId, userIds) {
         const result = await request(`${API_BASE}/user/batch-delete?tenantId=${tenantId}`, {
-            method: 'POST',
+            method: 'DELETE',
             body: JSON.stringify(userIds),
         });
         return result.data;
@@ -574,7 +579,10 @@ const tenantApi = {
      * 更新租户
      */
     update: async function(data) {
-        const result = await post(`${API_BASE}/tenant/update`, data);
+        const result = await request(`${API_BASE}/tenant/update`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
         return result.data;
     },
     
@@ -665,8 +673,7 @@ async function loadFeedbackStatistics() {
  * 删除反馈
  */
 async function deleteFeedback(id) {
-    const tenantId = _getTenantId();
-    const result = await request(`${API_BASE}/consult/feedback/${id}?tenantId=${tenantId}`, {
+    const result = await request(`${API_BASE}/consult/feedback/${id}`, {
         method: 'DELETE',
     });
     return result.data;
@@ -677,8 +684,7 @@ async function deleteFeedback(id) {
  * @param {Array<number>} feedbackIds - 反馈 ID 列表
  */
 async function batchDeleteFeedback(feedbackIds) {
-    const tenantId = _getTenantId();
-    const result = await request(`${API_BASE}/consult/feedback/batch?tenantId=${tenantId}`, {
+    const result = await request(`${API_BASE}/consult/feedback/batch`, {
         method: 'DELETE',
         body: JSON.stringify(feedbackIds),
     });
@@ -689,7 +695,10 @@ async function batchDeleteFeedback(feedbackIds) {
  * 更新反馈
  */
 async function updateFeedback(id, data) {
-    const result = await post(`${API_BASE}/consult/feedback/${id}`, data);
+    const result = await request(`${API_BASE}/consult/feedback/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
     return result.data;
 }
 

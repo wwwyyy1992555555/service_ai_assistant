@@ -84,9 +84,10 @@ public class FeedbackController {
 
     @DeleteMapping("/batch")
     @Operation(summary = "批量删除反馈", description = "批量删除指定的反馈记录")
-    public Result<Void> batchDeleteFeedbacks(
-            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
-            @RequestBody List<Long> feedbackIds) {
+    public Result<Void> batchDeleteFeedbacks(@RequestBody List<Long> feedbackIds) {
+        // 从 UserContext 获取当前用户的 tenantId
+        Long tenantId = com.myproject.service_ai_assistant.context.UserContext.getTenantId();
+        
         if (feedbackIds == null || feedbackIds.isEmpty()) {
             return Result.error(ResultCode.FEEDBACK_IDS_REQUIRED.getMessage());
         }
@@ -106,9 +107,9 @@ public class FeedbackController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除反馈", description = "删除指定的反馈记录")
-    public Result<Void> deleteFeedback(
-            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
-            @PathVariable Long id) {
+    public Result<Void> deleteFeedback(@PathVariable Long id) {
+        // 从 UserContext 获取当前用户的 tenantId
+        Long tenantId = com.myproject.service_ai_assistant.context.UserContext.getTenantId();
         log.info("【删除反馈】id={}, tenantId={}", id, tenantId);
         
         try {
@@ -127,7 +128,7 @@ public class FeedbackController {
         }
     }
 
-    @PostMapping("/{id}")
+    @PutMapping("/{id}")
     @Operation(summary = "更新反馈", description = "更新反馈记录信息")
     public Result<Void> updateFeedback(
             @PathVariable Long id,

@@ -7,9 +7,11 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.myproject.service_ai_assistant.common.ResultCode;
 import com.myproject.service_ai_assistant.common.SimilarityUtil;
 import com.myproject.service_ai_assistant.context.UserContext;
+import com.myproject.service_ai_assistant.entity.KnowledgeCategory;
 import com.myproject.service_ai_assistant.entity.KnowledgeItem;
 import com.myproject.service_ai_assistant.exception.BusinessException;
 import com.myproject.service_ai_assistant.mapper.KnowledgeItemMapper;
+import com.myproject.service_ai_assistant.service.KnowledgeCategoryService;
 import com.myproject.service_ai_assistant.service.KnowledgeItemService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,12 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class KnowledgeItemServiceImpl extends ServiceImpl<KnowledgeItemMapper, KnowledgeItem> implements KnowledgeItemService {
+
+    private final KnowledgeCategoryService knowledgeCategoryService;
+    
+    public KnowledgeItemServiceImpl(KnowledgeCategoryService knowledgeCategoryService) {
+        this.knowledgeCategoryService = knowledgeCategoryService;
+    }
 
     @Override
     public List<KnowledgeItem> searchKnowledge(Long tenantId, String keyword) {
@@ -76,7 +84,12 @@ public class KnowledgeItemServiceImpl extends ServiceImpl<KnowledgeItemMapper, K
         scoredList.sort((a, b) -> Double.compare(b.score, a.score));
         log.debug("【知识搜索】最终返回数量：{}", scoredList.size());
 
-        // 5. 返回排序后的结果
+        // 5. 批量填充分类名称
+        fillCategoryNames(scoredList.stream()
+                .map(KnowledgeItemWithScore::getItem)
+                .collect(Collectors.toList()));
+        
+        // 6. 返回排序后的结果
         return scoredList.stream()
                 .map(KnowledgeItemWithScore::getItem)
                 .collect(Collectors.toList());
@@ -116,6 +129,39 @@ public class KnowledgeItemServiceImpl extends ServiceImpl<KnowledgeItemMapper, K
         log.debug("【知识搜索（带筛选分页）】total={}", result.getTotal());
 
         return result;
+    }
+
+    /**
+     * 批量填充分类名称
+     */
+    private void fillCategoryNames(List<KnowledgeItem> items) {
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+        
+        // 收集所有分类 ID
+        Set<Long> categoryIds = items.stream()
+                .map(KnowledgeItem::getCategoryId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        
+        if (categoryIds.isEmpty()) {
+            return;
+        }
+        
+        // 批量查询分类
+        List<KnowledgeCategory> categories = knowledgeCategoryService.listByIds(categoryIds);
+        Map<Long, String> categoryMap = categories.stream()
+                .collect(Collectors.toMap(KnowledgeCategory::getId, KnowledgeCategory::getCategoryName));
+        
+        // 填充分类名称
+        for (KnowledgeItem item : items) {
+            if (item.getCategoryId() != null && categoryMap.containsKey(item.getCategoryId())) {
+                item.setCategoryName(categoryMap.get(item.getCategoryId()));
+            }
+        }
+        
+        log.debug("【填充分类名称】填充数量：{}", items.size());
     }
 
     /**

@@ -2,30 +2,12 @@
  * 聊天页面业务逻辑模块
  */
 
-/**
- * 从 URL 参数获取租户 ID
- * 支持访问方式：
- * - /chat.html?tenantId=1
- * - /chat.html (默认租户 ID=1)
- */
-function getTenantIdFromUrl() {
-    const params = new URLSearchParams(window.location.search);
-    const tenantId = params.get('tenantId');
-    return tenantId ? parseInt(tenantId) : 1; // 默认为 1
-}
-
-const API_BASE_URL = 'http://localhost:8080/api';
-// 获取当前租户 ID（全局变量）
-const CURRENT_TENANT_ID = getTenantIdFromUrl();
-
-// 导出到全局作用域，供 HTML 中的 Vue 代码使用
+// API 基础地址（支持从 SDK 传递）
+const API_BASE_URL = window.SDK_API_BASE_URL || 'http://localhost:8080/api';
 window.API_BASE_URL = API_BASE_URL;
-window.CURRENT_TENANT_ID = CURRENT_TENANT_ID;
 
-// 调试日志：确认变量已正确导出
 console.log(MESSAGE.INFO.CHAT_JS_LOADED);
 console.log(formatMessage(MESSAGE.INFO.API_BASE_URL, {url: window.API_BASE_URL}));
-console.log(formatMessage(MESSAGE.INFO.CURRENT_TENANT_ID, {id: window.CURRENT_TENANT_ID}));
 
 // 生成会话 ID
 function generateSessionId() {
@@ -46,9 +28,9 @@ function scrollToBottom(container) {
 }
 
 // 发送消息到 AI
-async function sendMessageToAI(sessionId, question) {
+async function sendMessageToAI(sessionId, question, tenantId) {
     try {
-        const response = await fetch(`${API_BASE_URL}/consult/ask`, {
+        const response = await fetch(`${API_BASE_URL}/consult/ask?tenantId=${tenantId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -56,7 +38,6 @@ async function sendMessageToAI(sessionId, question) {
             body: JSON.stringify({
                 sessionId: sessionId,
                 question: question,
-                tenantId: CURRENT_TENANT_ID, // 使用动态租户 ID
                 deviceType: 'web'
             })
         });
@@ -67,6 +48,7 @@ async function sendMessageToAI(sessionId, question) {
             return {
                 success: true,
                 answer: result.data.answer,
+                consultationId: result.data.consultationId,
                 matchScore: result.data.matchScore || 0,
                 knowledgeTitle: result.data.knowledgeTitle,
                 categoryName: result.data.categoryName,
@@ -100,9 +82,9 @@ async function submitSatisfaction(messageId, satisfaction) {
 }
 
 // 加载热门问题
-async function loadHotQuestions(limit = 4) {
+async function loadHotQuestions(tenantId, limit = 4) {
     try {
-        const response = await fetch(`${API_BASE_URL}/consult/hot-questions?tenantId=${CURRENT_TENANT_ID}&limit=${limit}`);
+        const response = await fetch(`${API_BASE_URL}/consult/hot-questions?tenantId=${tenantId}&limit=${limit}`);
         const result = await response.json();
         
         if (result.code === 200 && result.data && result.data.length > 0) {

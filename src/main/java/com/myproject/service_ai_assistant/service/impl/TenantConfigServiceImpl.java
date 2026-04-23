@@ -146,4 +146,17 @@ public class TenantConfigServiceImpl extends ServiceImpl<TenantConfigMapper, Ten
         dto.setServiceTime("工作时间：周一至周日 9:00-17:00");
         return dto;
     }
+    
+    @Override
+    public com.myproject.service_ai_assistant.entity.TenantInfo getTenantByCode(String tenantCode) {
+        if (tenantCode == null || tenantCode.trim().isEmpty()) {
+            return null;
+        }
+        
+        return tenantInfoMapper.selectOne(
+            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.myproject.service_ai_assistant.entity.TenantInfo>()
+                .eq(com.myproject.service_ai_assistant.entity.TenantInfo::getTenantCode, tenantCode.trim())
+                .eq(com.myproject.service_ai_assistant.entity.TenantInfo::getDeleted, 0)
+        );
+    }
 }

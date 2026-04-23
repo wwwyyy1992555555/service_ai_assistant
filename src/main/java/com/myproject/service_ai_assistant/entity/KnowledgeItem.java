@@ -33,6 +33,12 @@ public class KnowledgeItem implements Serializable {
      * 分类 ID
      */
     private Long categoryId;
+    
+    /**
+     * 分类名称（非数据库字段，用于关联查询）
+     */
+    @TableField(exist = false)
+    private String categoryName;
 
     /**
      * 标题

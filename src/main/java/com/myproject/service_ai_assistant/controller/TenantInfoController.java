@@ -133,7 +133,7 @@ public class TenantInfoController {
     /**
      * 更新租户信息
      */
-    @PostMapping("/update")
+    @PutMapping("/update")
     @Operation(summary = "更新租户信息", description = "修改租户基本信息")
     public Result<TenantInfo> updateTenant(
             @Validated @RequestBody TenantInfo tenantInfo

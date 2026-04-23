@@ -50,6 +50,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/consult/parse-user-input",
                         "/api/consult/feedback/submit",
                         "/api/settings/get",
+                        "/api/chat/init",
                         "/api/industry-type/**",
                         "/api/doc.html",
                         "/swagger-ui/**",
@@ -65,9 +66,10 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/api/**")
                 .excludePathPatterns(
                         "/api/auth/**",
-                        "/api/consult/ask",
-                        "/api/consult/hot-questions",
-                        "/api/consult/feedback/submit",
+                        "/api/chat/init",         // Chat 页面初始化接口，匿名访问
+                        "/api/consult/**",         // 匿名 Chat 接口，通过请求体传递 tenantId
+                        "/api/settings/get",       // 匿名获取配置接口
+                        "/api/industry-type/**",   // 行业类型接口
                         "/api/doc.html",
                         "/swagger-ui/**",
                         "/v3/api-docs/**"
