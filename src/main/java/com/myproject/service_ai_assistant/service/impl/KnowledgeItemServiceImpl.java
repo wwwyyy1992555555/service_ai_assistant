@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.myproject.service_ai_assistant.common.ExcelUtil;
 import com.myproject.service_ai_assistant.common.ResultCode;
 import com.myproject.service_ai_assistant.common.SimilarityUtil;
 import com.myproject.service_ai_assistant.context.UserContext;
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -330,5 +332,99 @@ public class KnowledgeItemServiceImpl extends ServiceImpl<KnowledgeItemMapper, K
         UserContext.validateHorizontalPermission(item.getTenantId());
         
         return super.removeById(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Map<String, Object> importKnowledgeFromExcel(InputStream inputStream, Long tenantId) {
+        log.info("【批量导入】开始从 Excel 导入知识条目，tenantId={}", tenantId);
+        
+        // 使用工具类解析 Excel 文件
+        List<Map<String, Object>> knowledgeDataList = ExcelUtil.importKnowledgeFromExcel(inputStream, tenantId);
+        
+        int successCount = 0;
+        int failCount = 0;
+        List<String> errorMessages = new ArrayList<>();
+        List<KnowledgeItem> batchToSave = new ArrayList<>();
+        
+        // 第一阶段：解析和验证所有数据
+        for (int i = 0; i < knowledgeDataList.size(); i++) {
+            try {
+                Map<String, Object> knowledgeData = knowledgeDataList.get(i);
+                
+                // 创建知识条目实体
+                KnowledgeItem knowledgeItem = new KnowledgeItem();
+                knowledgeItem.setTenantId(tenantId);
+                knowledgeItem.setTitle((String) knowledgeData.get("title"));
+                knowledgeItem.setQuestion((String) knowledgeData.get("question"));
+                knowledgeItem.setAnswer((String) knowledgeData.get("answer"));
+                knowledgeItem.setKeywords((String) knowledgeData.get("keywords"));
+                knowledgeItem.setPublishStatus((Integer) knowledgeData.get("publishStatus"));
+                knowledgeItem.setIsTop((Integer) knowledgeData.get("isTop"));
+                
+                // 处理分类名称到分类ID的转换
+                String categoryName = (String) knowledgeData.get("categoryName");
+                if (StrUtil.isNotBlank(categoryName)) {
+                    Long categoryId = findCategoryIdByName(tenantId, categoryName);
+                    if (categoryId != null) {
+                        knowledgeItem.setCategoryId(categoryId);
+                    } else {
+                        log.warn("【批量导入】第 {} 条：未找到分类 '{}'，将不设置分类", i + 1, categoryName);
+                    }
+                }
+                
+                // 添加到批量保存列表
+                batchToSave.add(knowledgeItem);
+                successCount++;
+                log.debug("【批量导入】第 {} 条验证通过：{}", i + 1, knowledgeItem.getTitle());
+                
+            } catch (Exception e) {
+                failCount++;
+                String errorMsg = String.format("第 %d 条验证失败: %s", i + 1, e.getMessage());
+                errorMessages.add(errorMsg);
+                log.error("【批量导入】{}", errorMsg, e);
+            }
+        }
+        
+        // 第二阶段：批量保存（要么全部成功，要么全部回滚）
+        if (!batchToSave.isEmpty()) {
+            try {
+                this.saveBatch(batchToSave);
+                log.info("【批量导入】批量保存成功，共 {} 条", batchToSave.size());
+            } catch (Exception e) {
+                log.error("【批量导入】批量保存失败，将回滚所有数据", e);
+                // 抛出异常触发事务回滚
+                throw new RuntimeException("批量保存失败：" + e.getMessage(), e);
+            }
+        }
+        
+        // 构建返回结果
+        Map<String, Object> result = new HashMap<>();
+        result.put("successCount", successCount);
+        result.put("failCount", failCount);
+        result.put("totalCount", knowledgeDataList.size());
+        result.put("errorMessages", errorMessages);
+        
+        log.info("【批量导入】导入完成，总数: {}, 成功: {}, 失败: {}", 
+                knowledgeDataList.size(), successCount, failCount);
+        
+        return result;
+    }
+    
+    /**
+     * 根据分类名称查找分类ID
+     */
+    private Long findCategoryIdByName(Long tenantId, String categoryName) {
+        if (StrUtil.isBlank(categoryName)) {
+            return null;
+        }
+        
+        LambdaQueryWrapper<KnowledgeCategory> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(KnowledgeCategory::getTenantId, tenantId)
+               .eq(KnowledgeCategory::getCategoryName, categoryName.trim())
+               .last("LIMIT 1");
+        
+        KnowledgeCategory category = knowledgeCategoryService.getOne(wrapper);
+        return category != null ? category.getId() : null;
     }
 }

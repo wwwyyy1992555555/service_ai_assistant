@@ -44,7 +44,7 @@ CREATE TABLE `tenant_info` (
   `contact_person` VARCHAR(50) DEFAULT NULL COMMENT '联系人',
   `contact_phone` VARCHAR(20) DEFAULT NULL COMMENT '联系电话',
   `contact_email` VARCHAR(100) DEFAULT NULL COMMENT '联系邮箱',
-  `status` TINYINT DEFAULT 1 COMMENT '状态：0-禁用 1-启用',
+  `status` TINYINT DEFAULT 1 COMMENT '状态：0-禁用 1-启用', 
   `expire_time` DATETIME DEFAULT NULL COMMENT '过期时间（NULL 表示永久有效）',
   `remark` VARCHAR(1000) DEFAULT NULL COMMENT '备注',
   `created_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

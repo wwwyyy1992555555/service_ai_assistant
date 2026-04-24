@@ -43,6 +43,11 @@ app:
     path: /data/uploads/ai-think-tank
     domain: http://localhost:8080
   
+  # 注意：知识库导入限制已在代码中硬编码，以保证性能和安全
+  # - 文件大小限制：5MB
+  # - 单次导入数量：200条
+  # 如需调整，请修改 KnowledgeController.importKnowledge 方法
+  
   # 大模型配置（可选）
   llm:
     # 是否启用大模型（true=启用，false=关闭）

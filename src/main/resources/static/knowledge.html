@@ -69,6 +69,20 @@
                     <el-button type="primary" @click="showAddKnowledgeDialog">
                         <el-icon><plus /></el-icon> 新增知识
                     </el-button>
+                    <el-button type="success" @click="downloadTemplate">
+                        <el-icon><download /></el-icon> 下载模板
+                    </el-button>
+                    <el-upload
+                        action="#"
+                        :auto-upload="false"
+                        :show-file-list="false"
+                        :on-change="importKnowledge"
+                        accept=".xlsx,.xls"
+                    >
+                        <el-button type="warning">
+                            <el-icon><upload /></el-icon> 批量导入
+                        </el-button>
+                    </el-upload>
                     <el-button 
                         type="danger" 
                         :disabled="selectedRows.length === 0"
@@ -213,9 +227,9 @@
     <script src="lib/element-plus.min.js"></script>
 
     <script src="lib/zh-cn.min.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/message-constants.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/modules/knowledge.js"></script>
+    <script src="js/utils.js?v=20260424"></script>
+    <script src="js/message-constants.js?v=20260424"></script>
+    <script src="js/api.js?v=20260424"></script>
+    <script src="js/modules/knowledge.js?v=20260424"></script>
 </body>
 </html>

@@ -309,6 +309,81 @@ async function batchDeleteKnowledge(ids) {
     return result.data;
 }
 
+/**
+ * 下载知识库导入模板
+ */
+async function downloadKnowledgeTemplate() {
+    const tenantId = _getTenantId();
+    const token = localStorage.getItem('token');
+    
+    const response = await fetch(`${API_BASE}/knowledge/template?tenantId=${tenantId}`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        },
+    });
+    
+    if (!response.ok) {
+        throw new Error('下载模板失败');
+    }
+    
+    // 获取文件名
+    const contentDisposition = response.headers.get('content-disposition');
+    let filename = '知识库导入模板.xlsx';
+    if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch && filenameMatch[1]) {
+            filename = decodeURIComponent(filenameMatch[1].replace(/['"]|UTF-8/g, ''));
+        }
+    }
+    
+    // 创建 blob 并触发下载
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+}
+
+/**
+ * 批量导入知识条目
+ * @param {File} file - Excel 文件
+ */
+async function importKnowledgeFromExcel(file) {
+    const tenantId = _getTenantId();
+    const token = localStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // 文件上传不能使用 request 函数，因为会自动设置 Content-Type: application/json
+    // 文件上传需要浏览器自动设置为 multipart/form-data
+    const response = await fetch(`${API_BASE}/knowledge/import?tenantId=${tenantId}`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+    });
+    
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(`服务器返回错误 (${response.status})，请稍后重试`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.code !== 200) {
+        throw new Error(data.message || '导入失败');
+    }
+    
+    return data.data;
+}
+
 // ==================== 对话记录接口 ====================
 
 /**
@@ -734,6 +809,9 @@ window.deleteCategory = deleteCategory;
 window.addKnowledge = addKnowledge;
 window.updateKnowledge = updateKnowledge;
 window.deleteKnowledge = deleteKnowledge;
+window.batchDeleteKnowledge = batchDeleteKnowledge;
+window.downloadKnowledgeTemplate = downloadKnowledgeTemplate;
+window.importKnowledgeFromExcel = importKnowledgeFromExcel;
 window.loadRecordsList = loadRecordsList;
 window.searchRecords = searchRecords;
 window.getSessionDetail = getSessionDetail;

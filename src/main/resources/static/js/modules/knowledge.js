@@ -228,6 +228,128 @@ if (typeof Vue === 'undefined') {
             }
         };
         
+        // 下载模板
+        const downloadTemplate = async () => {
+            try {
+                await window.downloadKnowledgeTemplate();
+                ElementPlus.ElMessage.success('模板下载成功');
+            } catch (error) {
+                ElementPlus.ElMessage.error(error?.message || '模板下载失败');
+            }
+        };
+        
+        // 批量导入（由 el-upload 组件触发）
+        const importKnowledge = async (uploadFile) => {
+            // uploadFile 是 el-upload 组件传递的文件对象
+            const file = uploadFile.raw || uploadFile;
+            
+            if (!file) {
+                ElementPlus.ElMessage.error('未选择文件');
+                return;
+            }
+            
+            // 验证文件类型
+            const fileName = file.name;
+            if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
+                ElementPlus.ElMessage.error('只支持 Excel 文件格式(.xlsx, .xls)');
+                return;
+            }
+            
+            // 验证文件大小（5MB）
+            const maxSize = 5 * 1024 * 1024;
+            if (file.size > maxSize) {
+                ElementPlus.ElMessage.error(`文件大小超过限制（最大5MB），当前文件${(file.size / 1024 / 1024).toFixed(2)}MB`);
+                return;
+            }
+            
+            let loadingInstance = null;
+            let isCancelled = false;
+            
+            try {
+                // 显示加载动画，锁定整个页面
+                loadingInstance = ElementPlus.ElLoading.service({
+                    lock: true,
+                    text: `正在导入 ${fileName}...`,
+                    background: 'rgba(0, 0, 0, 0.8)',
+                    customClass: 'import-loading',
+                    fullscreen: true
+                });
+                
+                // 禁用所有面板切换和交互
+                document.body.style.pointerEvents = 'none';
+                
+                // 添加取消按钮
+                setTimeout(() => {
+                    const loadingEl = document.querySelector('.import-loading');
+                    if (loadingEl) {
+                        loadingEl.style.pointerEvents = 'auto';
+                        
+                        const cancelBtn = document.createElement('button');
+                        cancelBtn.textContent = '取消导入';
+                        cancelBtn.style.cssText = `
+                            margin-top: 20px;
+                            padding: 10px 30px;
+                            background: #f56c6c;
+                            color: white;
+                            border: none;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-size: 14px;
+                            font-weight: bold;
+                        `;
+                        cancelBtn.onclick = () => {
+                            isCancelled = true;
+                            document.body.style.pointerEvents = 'auto';
+                            if (loadingInstance) {
+                                loadingInstance.close();
+                            }
+                            ElementPlus.ElMessage.info('已取消导入');
+                        };
+                        loadingEl.appendChild(cancelBtn);
+                    }
+                }, 100);
+                
+                const result = await window.importKnowledgeFromExcel(file);
+                
+                document.body.style.pointerEvents = 'auto';
+                
+                if (loadingInstance) {
+                    loadingInstance.close();
+                }
+                
+                if (isCancelled) {
+                    return;
+                }
+                
+                if (result.failCount > 0) {
+                    ElementPlus.ElMessageBox.alert(
+                        `导入完成！\n总数: ${result.totalCount} 条\n成功: ${result.successCount} 条\n失败: ${result.failCount} 条` +
+                        (result.errorMessages && result.errorMessages.length > 0 ? '\n\n错误详情:\n' + result.errorMessages.join('\n') : ''),
+                        '导入结果',
+                        {
+                            confirmButtonText: '确定',
+                            type: result.successCount > 0 ? 'success' : 'warning',
+                        }
+                    );
+                } else {
+                    ElementPlus.ElMessage.success(`导入成功！共导入 ${result.successCount} 条知识`);
+                }
+                
+                // 刷新列表
+                page.current = 1;
+                loadKnowledgeList();
+            } catch (error) {
+                document.body.style.pointerEvents = 'auto';
+                
+                if (loadingInstance) {
+                    loadingInstance.close();
+                }
+                if (!isCancelled) {
+                    ElementPlus.ElMessage.error(error?.message || '导入失败');
+                }
+            }
+        };
+        
         onMounted(() => {
             computeTableHeight();
             window.addEventListener('resize', computeTableHeight);
@@ -263,7 +385,9 @@ if (typeof Vue === 'undefined') {
             saveKnowledge,
             viewKnowledgeDetail,
             handleSelectionChange,
-            batchDeleteKnowledge
+            batchDeleteKnowledge,
+            downloadTemplate,
+            importKnowledge
         };
     }
     });

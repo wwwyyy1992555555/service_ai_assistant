@@ -71,4 +71,12 @@ public interface KnowledgeItemService extends IService<KnowledgeItem> {
      * @return 已发布数量
      */
     long countPublished(Long tenantId);
+
+    /**
+     * 从 Excel 文件批量导入知识条目
+     * @param inputStream Excel 文件输入流
+     * @param tenantId 租户 ID
+     * @return 导入结果（包含成功和失败数量）
+     */
+    java.util.Map<String, Object> importKnowledgeFromExcel(java.io.InputStream inputStream, Long tenantId);
 }

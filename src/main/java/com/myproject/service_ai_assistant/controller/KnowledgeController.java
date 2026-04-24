@@ -2,6 +2,7 @@ package com.myproject.service_ai_assistant.controller;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.myproject.service_ai_assistant.common.ExcelUtil;
 import com.myproject.service_ai_assistant.common.Result;
 import com.myproject.service_ai_assistant.dto.CategoryDTO;
 import com.myproject.service_ai_assistant.dto.KnowledgeDTO;
@@ -14,10 +15,18 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 知识库管理控制器
@@ -219,5 +228,77 @@ public class KnowledgeController {
         log.info("【删除分类】id={}", id);
         knowledgeCategoryService.removeById(id);
         return Result.success(true);
+    }
+
+    @GetMapping("/template")
+    @Operation(summary = "下载知识库导入模板")
+    public ResponseEntity<byte[]> downloadTemplate() {
+        log.info("【下载模板】开始生成知识库导入模板");
+        
+        try {
+            // 生成模板并返回字节数组
+            byte[] bytes = ExcelUtil.generateKnowledgeTemplate();
+            
+            // 设置响应头
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            String fileName = URLEncoder.encode("知识库导入模板.xlsx", StandardCharsets.UTF_8.toString());
+            headers.setContentDispositionFormData("attachment", fileName);
+            headers.setContentLength(bytes.length);
+            
+            log.info("【下载模板】模板生成成功，大小: {} bytes", bytes.length);
+            return new ResponseEntity<>(bytes, headers, org.springframework.http.HttpStatus.OK);
+        } catch (Exception e) {
+            log.error("【下载模板】生成模板失败", e);
+            throw new RuntimeException("生成模板失败: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/import")
+    @Operation(summary = "批量导入知识条目")
+    public Result<Map<String, Object>> importKnowledge(
+            @Parameter(description = "租户 ID", required = true) @RequestParam Long tenantId,
+            @Parameter(description = "Excel 文件", required = true) @RequestParam("file") MultipartFile file
+    ) {
+        log.info("【批量导入】开始导入知识条目，tenantId={}, fileName={}, fileSize={}KB", 
+                tenantId, file.getOriginalFilename(), file.getSize() / 1024);
+        
+        // 验证文件
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("上传文件不能为空");
+        }
+        
+        // 验证文件大小（限制为5MB，防止大文件占用过多内存）
+        long maxSize = 5 * 1024 * 1024; // 5MB
+        if (file.getSize() > maxSize) {
+            throw new IllegalArgumentException(String.format("文件大小超过限制（最大%dMB），当前文件%.2fMB", 
+                    maxSize / 1024 / 1024, file.getSize() / 1024.0 / 1024.0));
+        }
+        
+        String fileName = file.getOriginalFilename();
+        if (fileName == null || (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls"))) {
+            throw new IllegalArgumentException("只支持 Excel 文件格式(.xlsx, .xls)");
+        }
+        
+        try {
+            // 调用服务层进行导入
+            Map<String, Object> result = knowledgeItemService.importKnowledgeFromExcel(file.getInputStream(), tenantId);
+            
+            // 验证导入数量限制（单次最多200条，防止一次性处理过多数据）
+            int totalCount = (int) result.getOrDefault("totalCount", 0);
+            if (totalCount > 200) {
+                throw new IllegalArgumentException("单次导入数量不能超过200条，当前文件包含" + totalCount + "条数据。请分批导入。");
+            }
+            
+            log.info("【批量导入】导入完成，总数: {}, 成功: {}, 失败: {}", 
+                    totalCount, result.get("successCount"), result.get("failCount"));
+            return Result.success(result);
+        } catch (IOException e) {
+            log.error("【批量导入】读取文件失败", e);
+            throw new RuntimeException("读取文件失败: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("【批量导入】导入失败", e);
+            throw new RuntimeException("导入失败: " + e.getMessage());
+        }
     }
 }
