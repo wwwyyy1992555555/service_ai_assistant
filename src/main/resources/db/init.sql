@@ -8,14 +8,39 @@ CREATE DATABASE IF NOT EXISTS ai_think_tank DEFAULT CHARACTER SET utf8mb4 COLLAT
 USE ai_think_tank;
 
 -- ========================================
--- 1. 租户表（多企业隔离）
+-- 1. 租户行业类型字典表
+-- ========================================
+DROP TABLE IF EXISTS `tenant_industry_type`;
+CREATE TABLE `tenant_industry_type` (
+  `id` INT NOT NULL AUTO_INCREMENT COMMENT '类型ID',
+  `type_name` VARCHAR(50) NOT NULL COMMENT '类型名称',
+  `type_code` VARCHAR(50) NOT NULL COMMENT '类型编码',
+  `sort_order` INT DEFAULT 0 COMMENT '排序',
+  `status` TINYINT DEFAULT 1 COMMENT '状态：0-禁用 1-启用',
+  `created_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_type_code` (`type_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='租户行业类型字典表';
+
+-- 插入行业类型初始数据
+INSERT INTO `tenant_industry_type` (`type_name`, `type_code`, `sort_order`, `status`) VALUES
+('律所', 'legal', 1, 1),
+('医院', 'medical', 2, 1),
+('政务', 'government', 3, 1),
+('社区', 'community', 4, 1),
+('教育', 'education', 5, 1),
+('企业', 'enterprise', 6, 1),
+('其他', 'others', 7, 1);
+
+-- ========================================
+-- 2. 租户表（多企业隔离）
 -- ========================================
 DROP TABLE IF EXISTS `tenant_info`;
 CREATE TABLE `tenant_info` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '租户 ID',
   `tenant_name` VARCHAR(100) NOT NULL COMMENT '企业名称',
   `tenant_code` VARCHAR(50) NOT NULL COMMENT '企业编码（唯一标识）',
-  `industry_type` VARCHAR(50) NOT NULL COMMENT '行业类型：legal-律所/medical-医院/government-政务/community-社区',
+  `industry_type` INT NOT NULL DEFAULT 0 COMMENT '行业类型 ID（关联 tenant_industry_type 表）',
   `contact_person` VARCHAR(50) DEFAULT NULL COMMENT '联系人',
   `contact_phone` VARCHAR(20) DEFAULT NULL COMMENT '联系电话',
   `contact_email` VARCHAR(100) DEFAULT NULL COMMENT '联系邮箱',
@@ -31,7 +56,7 @@ CREATE TABLE `tenant_info` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='租户信息表';
 
 -- ========================================
--- 2. 知识库分类表（多级分类）
+-- 3. 知识库分类表（多级分类）
 -- ========================================
 DROP TABLE IF EXISTS `knowledge_category`;
 CREATE TABLE `knowledge_category` (
@@ -51,7 +76,7 @@ CREATE TABLE `knowledge_category` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='知识库分类表';
 
 -- ========================================
--- 3. 知识条目表（核心知识库）
+-- 4. 知识条目表（核心知识库）
 -- ========================================
 DROP TABLE IF EXISTS `knowledge_item`;
 CREATE TABLE `knowledge_item` (
@@ -79,7 +104,7 @@ CREATE TABLE `knowledge_item` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='知识条目表';
 
 -- ========================================
--- 4. 对话记录表
+-- 5. 对话记录表
 -- ========================================
 DROP TABLE IF EXISTS `consultation_record`;
 CREATE TABLE `consultation_record` (
@@ -108,7 +133,7 @@ CREATE TABLE `consultation_record` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='咨询对话记录表';
 
 -- ========================================
--- 5. 租户配置表
+-- 6. 租户配置表
 -- ========================================
 DROP TABLE IF EXISTS `tenant_config`;
 CREATE TABLE `tenant_config` (
@@ -130,7 +155,7 @@ CREATE TABLE `tenant_config` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='租户系统配置表';
 
 -- ========================================
--- 6. 用户信息表
+-- 7. 用户信息表
 -- ========================================
 DROP TABLE IF EXISTS `user_info`;
 CREATE TABLE `user_info` (
@@ -157,7 +182,7 @@ CREATE TABLE `user_info` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户信息表';
 
 -- ========================================
--- 7. 咨询反馈表
+-- 8. 咨询反馈表
 -- ========================================
 DROP TABLE IF EXISTS `consultation_feedback`;
 CREATE TABLE `consultation_feedback` (
@@ -185,9 +210,9 @@ CREATE TABLE `consultation_feedback` (
 -- 插入示例数据（政务服务场景）
 -- ========================================
 
--- 示例租户
+-- 示例租户（industry_type 对应 tenant_industry_type 表的 id）
 INSERT INTO `tenant_info` (`tenant_name`, `tenant_code`, `industry_type`, `contact_person`, `contact_phone`) VALUES
-('XX 市政务服务中心', 'gov_demo_001', 'government', '张主任', '13800138000');
+('XX 市政务服务中心', 'gov_demo_001', 3, '张主任', '13800138000');
 
 -- 示例知识分类
 INSERT INTO `knowledge_category` (`tenant_id`, `category_name`, `parent_id`, `level`) VALUES
