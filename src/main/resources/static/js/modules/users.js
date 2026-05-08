@@ -715,22 +715,31 @@ const app = createApp({
     }
 });
 
-// 注册图标
-if (typeof ElementPlusIconsVue !== 'undefined') {
-    for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-        app.component(key, component);
+// 统一初始化 Element Plus（异步）
+async function setupApp() {
+    if (typeof ElementPlus === 'undefined') {
+        console.error('Element Plus 资源未加载（CDN 失败）。');
+        return;
     }
+    
+    if (typeof initElementPlus === 'function') {
+        await initElementPlus(app);
+    } else {
+        app.use(ElementPlus, {
+            locale: typeof ElementPlusLocaleZhCn !== 'undefined' ? ElementPlusLocaleZhCn : undefined
+        });
+        // 降级：直接注册图标
+        if (typeof ElementPlusIconsVue !== 'undefined') {
+            for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+                app.component(key, component);
+            }
+        }
+    }
+    
+    app.mount('#app');
 }
 
-if (typeof ElementPlus === 'undefined') {
-    console.error('Element Plus 资源未加载（CDN 失败）。');
-} else {
-    app.use(ElementPlus, {
-        locale: typeof ElementPlusLocaleZhCn !== 'undefined' ? ElementPlusLocaleZhCn : undefined
-    });
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => app.mount('#app'));
-    } else {
-        app.mount('#app');
-    }
-}
+setupApp().catch(err => {
+    console.error('应用初始化失败:', err);
+    app.mount('#app');
+});

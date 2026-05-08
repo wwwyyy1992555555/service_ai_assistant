@@ -22,9 +22,9 @@
 <body class="module-page">
     <div id="app" class="app-container" v-cloak>
         <div class="table-container">
-            <div class="table-header" style="padding: 16px 24px; border-bottom: 2px solid #f0f0f0; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
-                <div class="table-title" style="color: #262626; font-size: 16px; font-weight: 600;">📂 分类管理</div>
-                <div class="toolbar" style="display: flex; gap: 12px; align-items: center;">
+            <div class="table-header">
+                <div class="table-title">📂 分类管理</div>
+                <div class="toolbar">
                     <el-button type="primary" @click="showAddCategoryDialog">
                         <el-icon><plus /></el-icon> 新增分类
                     </el-button>
@@ -70,7 +70,7 @@
     <!-- 脚本文件 -->
     <script src="lib/vue.global.js"></script>
     <script src="lib/element-plus.min.js"></script>
-
+    <script src="lib/element-plus-icons.iife.min.js"></script>
     <script src="lib/zh-cn.min.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/message-constants.js"></script>

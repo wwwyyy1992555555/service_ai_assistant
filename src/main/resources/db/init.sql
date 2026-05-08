@@ -212,7 +212,7 @@ CREATE TABLE `consultation_feedback` (
 
 -- 示例租户（industry_type 对应 tenant_industry_type 表的 id）
 INSERT INTO `tenant_info` (`tenant_name`, `tenant_code`, `industry_type`, `contact_person`, `contact_phone`) VALUES
-('XX 市政务服务中心', 'gov_demo_001', 3, '张主任', '13800138000');
+('XX 市政务服务中心', '111', 3, '张主任', '13800138000');
 
 -- 示例知识分类
 INSERT INTO `knowledge_category` (`tenant_id`, `category_name`, `parent_id`, `level`) VALUES

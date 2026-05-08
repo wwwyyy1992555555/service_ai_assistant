@@ -37,6 +37,39 @@ body {
     overflow: hidden;
 }
 
+/* ===== 通用表格头部 ===== */
+.table-header,
+.module-page .table-header {
+    padding: 24px;
+    border-bottom: 2px solid #f0f0f0;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* ===== 通用表格标题 ===== */
+.table-title,
+.module-page .table-title {
+    color: #262626;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* ===== 通用工具栏 ===== */
+.toolbar,
+.module-page .toolbar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+/* ===== 通用表单容器 ===== */
+.form-container,
+.module-page .form-container {
+    padding: 0 24px 24px;
+}
+
 /* ===== 滚动条美化 ===== */
 ::-webkit-scrollbar {
     width: 8px;

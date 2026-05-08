@@ -6,20 +6,16 @@
 /**
  * 初始化 Element Plus（包含中文语言包和图标注册）
  * @param {Object} app - Vue 应用实例
+ * @returns {Promise}
  */
-function initElementPlus(app) {
+async function initElementPlus(app) {
     // 配置 Element Plus，使用中文语言包（带容错）
     app.use(ElementPlus, { 
         locale: typeof ElementPlusLocaleZhCn !== 'undefined' ? ElementPlusLocaleZhCn : undefined 
     });
     
-    // 注册所有图标（带容错）
-    // 本地lib文件将图标直接挂载到window上，而非ElementPlusIconsVue对象
-    const iconsToRegister = typeof ElementPlusIconsVue !== 'undefined' 
-        ? ElementPlusIconsVue 
-        : window; // 本地lib导出方式：图标直接在全局作用域
-    
-    // 常见图标名称列表（用于从window中筛选）
+    // 注册图标（使用本地图标库）
+    // 本地图标库已将图标挂载到 ElementPlusIconsVue 对象
     const iconNames = [
         'Search', 'Plus', 'Delete', 'Edit', 'Close', 'Check', 'ArrowDown', 
         'ArrowUp', 'ArrowLeft', 'ArrowRight', 'User', 'Setting', 'Home',
@@ -31,8 +27,9 @@ function initElementPlus(app) {
     ];
     
     for (const iconName of iconNames) {
-        if (iconsToRegister[iconName]) {
-            app.component(iconName, iconsToRegister[iconName]);
+        // 从 ElementPlusIconsVue 中查找图标
+        if (window.ElementPlusIconsVue && window.ElementPlusIconsVue[iconName]) {
+            app.component(iconName, window.ElementPlusIconsVue[iconName]);
         }
     }
 }

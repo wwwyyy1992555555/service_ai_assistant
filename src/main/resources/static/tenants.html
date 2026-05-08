@@ -22,13 +22,13 @@
 <body class="module-page">
     <div id="app" class="app-container" v-cloak>
         <div class="table-container">
-            <div class="table-header" style="padding: 16px 24px; border-bottom: 2px solid #f0f0f0; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
-                <div class="table-title" style="color: #262626; font-size: 16px; font-weight: 600;">🏢 租户管理</div>
-                <div class="toolbar" style="display: flex; gap: 12px; align-items: center;">
+            <div class="table-header">
+                <div class="table-title">🏢 租户管理</div>
+                <div class="toolbar">
                     <el-input
                             v-model="searchKeyword"
                             placeholder="搜索租户编码、名称"
-                            style="width: 250px;"
+                            style="width: 300px;"
                             clearable
                             @clear="handleClearSearch"
                             @keyup.enter="handleSearch"
@@ -207,7 +207,7 @@
     <!-- 引入 Vue 和 Element Plus -->
     <script src="lib/vue.global.js"></script>
     <script src="lib/element-plus.min.js"></script>
-
+    <script src="lib/element-plus-icons.iife.min.js"></script>
     <script src="lib/zh-cn.min.js"></script>
     
     <!-- 引入 API 封装 -->

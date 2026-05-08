@@ -324,12 +324,18 @@ const app = createApp({
     }
 });
 
-// 统一初始化 Element Plus
-if (typeof initElementPlus === 'function') {
-    initElementPlus(app);
-} else if (typeof ElementPlus !== 'undefined') {
-    // 降级处理
-    app.use(ElementPlus, { locale: typeof ElementPlusLocaleZhCn !== 'undefined' ? ElementPlusLocaleZhCn : undefined });
+// 统一初始化 Element Plus（异步）
+async function setupApp() {
+    if (typeof initElementPlus === 'function') {
+        await initElementPlus(app);
+    } else if (typeof ElementPlus !== 'undefined') {
+        // 降级处理
+        app.use(ElementPlus, { locale: typeof ElementPlusLocaleZhCn !== 'undefined' ? ElementPlusLocaleZhCn : undefined });
+    }
+    app.mount('#app');
 }
 
-app.mount('#app');
+setupApp().catch(err => {
+    console.error('应用初始化失败:', err);
+    app.mount('#app');
+});

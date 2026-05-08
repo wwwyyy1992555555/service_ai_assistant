@@ -258,19 +258,35 @@ if (typeof Vue === 'undefined') {
     }
     });
 
-    // 统一初始化 Element Plus
-    if (typeof initElementPlus === 'function') {
-        initElementPlus(app);
-    } else if (typeof ElementPlus !== 'undefined') {
-        // 降级处理
-        app.use(ElementPlus, { locale: typeof ElementPlusLocaleZhCn !== 'undefined' ? ElementPlusLocaleZhCn : undefined });
-    } else {
-        renderFatalError('Element Plus 资源未加载。');
-    }
-    
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => app.mount('#app'));
-    } else {
+    // 统一初始化 Element Plus（异步）
+    async function setupApp() {
+        if (typeof initElementPlus === 'function') {
+            await initElementPlus(app);
+        } else if (typeof ElementPlus !== 'undefined') {
+            // 降级处理
+            app.use(ElementPlus, { 
+                locale: typeof ElementPlusLocaleZhCn !== 'undefined' ? ElementPlusLocaleZhCn : undefined 
+            });
+            
+            // 使用本地图标库注册图标
+            if (typeof window.ElementPlusIconsVue !== 'undefined') {
+                const iconNames = ['Search', 'Delete', 'Plus', 'Edit', 'Close', 'Check'];
+                for (const iconName of iconNames) {
+                    if (window.ElementPlusIconsVue[iconName]) {
+                        app.component(iconName, window.ElementPlusIconsVue[iconName]);
+                    }
+                }
+            }
+        } else {
+            renderFatalError('Element Plus 资源未加载。');
+            return;
+        }
+        
         app.mount('#app');
     }
+
+    setupApp().catch(err => {
+        console.error('应用初始化失败:', err);
+        app.mount('#app');
+    });
 }

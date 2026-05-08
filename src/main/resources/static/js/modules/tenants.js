@@ -278,7 +278,10 @@ const app = createApp({
     }
 });
 
-// 使用公共的 Element Plus 配置
-initElementPlus(app);
-
-app.mount('#app');
+// 使用公共的 Element Plus 配置（异步）
+initElementPlus(app).then(() => {
+    app.mount('#app');
+}).catch(err => {
+    console.error('Element Plus 初始化失败:', err);
+    app.mount('#app');
+});

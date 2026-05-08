@@ -190,10 +190,12 @@
                 </div>
 
                 <!-- 系统设置 -->
-                <div v-if="currentMenu === 'settings'">
+                <div v-if="currentMenu === 'settings'" class="module-page" style="padding: 20px;">
                     <div class="table-container">
-                        <div class="table-title" style="margin-bottom: 24px;">⚙️ 系统设置</div>
-                        <el-form :model="settings" label-width="120px">
+                        <div class="table-header">
+                            <div class="table-title">⚙️ 系统设置</div>
+                        </div>
+                        <el-form :model="settings" label-width="120px" class="form-container">
                             <el-form-item label="租户名称">
                                 <el-input v-model="settings.tenantName" placeholder="请输入租户名称" disabled />
                                 <div style="color: #999; font-size: 12px; margin-top: 5px;">注：租户名称请在"租户管理"中修改</div>
