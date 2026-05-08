@@ -1,5 +1,6 @@
 package com.myproject.service_ai_assistant.interceptor;
 
+import com.myproject.service_ai_assistant.common.IpUtil;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -67,14 +68,7 @@ public class RequestLogInterceptor implements HandlerInterceptor {
      * 获取客户端真实 IP
      */
     private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("X-Real-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        return ip;
+        return IpUtil.getClientIp(request);
     }
 
     /**

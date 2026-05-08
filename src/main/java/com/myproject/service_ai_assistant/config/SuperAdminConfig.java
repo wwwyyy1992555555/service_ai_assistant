@@ -21,4 +21,9 @@ public class SuperAdminConfig {
      * 超级管理员密码
      */
     private String password;
+    
+    /**
+     * 超级管理员真实姓名
+     */
+    private String realName;
 }

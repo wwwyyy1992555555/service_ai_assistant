@@ -3,6 +3,7 @@ package com.myproject.service_ai_assistant.service.impl;
 import cn.hutool.crypto.digest.BCrypt;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.myproject.service_ai_assistant.common.IpUtil;
 import com.myproject.service_ai_assistant.common.PasswordUtil;
 import com.myproject.service_ai_assistant.common.LevelCode;
 import com.myproject.service_ai_assistant.context.UserContext;
@@ -17,12 +18,15 @@ import com.myproject.service_ai_assistant.mapper.UserMapper;
 import com.myproject.service_ai_assistant.service.TenantConfigService;
 import com.myproject.service_ai_assistant.service.UserService;
 import com.myproject.service_ai_assistant.mapper.TenantInfoMapper;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -278,11 +282,23 @@ public class UserServiceImpl implements UserService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void updateLoginInfo(Long userId) {
+        String clientIp = "unknown";
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                clientIp = IpUtil.getClientIp(request);
+            }
+        } catch (Exception e) {
+            log.warn("【更新登录信息】获取客户端IP失败，使用默认值", e);
+        }
+        
         User user = new User();
         user.setId(userId);
         user.setLastLoginTime(LocalDateTime.now());
-        user.setLastLoginIp("127.0.0.1");
+        user.setLastLoginIp(clientIp);
         userMapper.updateById(user);
+        log.info("【更新登录信息】userId={}, ip={}", userId, clientIp);
     }
 
     @Override

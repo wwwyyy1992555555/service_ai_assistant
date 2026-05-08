@@ -1,15 +1,16 @@
 package com.myproject.service_ai_assistant.service.impl;
 
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.myproject.service_ai_assistant.entity.KnowledgeCategory;
 import com.myproject.service_ai_assistant.mapper.KnowledgeCategoryMapper;
 import com.myproject.service_ai_assistant.service.KnowledgeCategoryService;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 知识库分类服务实现类

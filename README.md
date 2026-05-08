@@ -147,12 +147,43 @@ spring:
     username: root          # 修改为你的数据库用户名
     password: your_password # 修改为你的数据库密码
   
-  redis:
-    host: localhost         # 修改为你的 Redis 地址
-    port: 6379
+  data:
+    redis:
+      host: localhost         # 修改为你的 Redis 地址
+      port: 6379
 ```
 
-### 3. 启动项目
+### 3. 配置超级管理员账号（可选）
+
+首次启动时，系统会自动创建超级管理员账号。您可以通过以下方式自定义：
+
+**方式一：修改 application.yml**
+```yaml
+app:
+  super-admin:
+    username: platform_admin        # 超级管理员用户名
+    password: Admin@2024#Secure     # 超级管理员密码（建议使用强密码）
+    real-name: 平台超级管理员       # 真实姓名
+```
+
+**方式二：设置环境变量（推荐生产环境使用）**
+```bash
+export SUPER_ADMIN_USERNAME=platform_admin
+export SUPER_ADMIN_PASSWORD=Admin@2024#Secure
+export SUPER_ADMIN_REAL_NAME=平台超级管理员
+```
+
+> **安全提示**：生产环境务必修改默认密码，建议使用环境变量或密钥管理服务存储敏感信息。
+
+### 4. 初始化数据库
+
+执行 `src/main/resources/db/init.sql` 脚本创建数据库表和初始数据：
+
+```bash
+mysql -u root -p < src/main/resources/db/init.sql
+```
+
+### 5. 启动项目
 
 ```bash
 # 编译打包
@@ -165,7 +196,7 @@ java -jar target/service_ai_assistant-0.0.1-SNAPSHOT.war
 mvn spring-boot:run
 ```
 
-### 4. 访问系统
+### 6. 访问系统
 
 启动成功后，访问以下地址：
 
@@ -173,7 +204,7 @@ mvn spring-boot:run
 - **用户聊天界面**: http://localhost:8080/static/chat.html
 - **API 文档**: http://localhost:8080/swagger-ui.html
 
-### 5. 测试接口
+### 7. 测试接口
 
 使用 Postman 或 API 文档测试智能问答接口：
 

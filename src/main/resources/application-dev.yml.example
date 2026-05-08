@@ -1,6 +1,8 @@
 # =====================================
-# AI 智库企业咨询平台 - 开发环境配置
+# AI 智库企业咨询平台 - 开发环境配置示例
 # =====================================
+# 注意：此文件仅作为模板，请勿填入真实敏感信息
+# 实际使用时请复制为 application-dev.yml 并填写真实配置
 
 server:
   port: 8080
@@ -20,15 +22,15 @@ spring:
   # 数据库初始化配置（禁用 Spring Boot 自动执行）
   sql:
     init:
-      mode: never
+      mode: never  # 生产环境建议设为 never，手动控制数据库初始化
       # continue-on-error: false
 
   # 数据源配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/ai_think_tank?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: 123456
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:ai_think_tank}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:your-password-here}  # 请修改为真实密码
     druid:
       initial-size: 5
       min-idle: 5
@@ -46,10 +48,10 @@ spring:
     redis:
       # 是否启用 Redis（true=启用，false=禁用）
       enabled: true
-      host: localhost
-      port: 6379
-      password:
-      database: 0
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
       timeout: 5000ms
       # Redis 5.0 使用 Lettuce 连接池
       lettuce:
@@ -82,10 +84,10 @@ spring:
 
   # 邮件服务配置
   mail:
-    host: smtp.qq.com
-    port: 465
-    username: 814218101@qq.com  # 邮箱账号
-    password: lljqsbnhppgtbfhf  # 授权码（非登录密码）
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:your-email@qq.com}  # 请修改为真实邮箱
+    password: ${MAIL_PASSWORD:your-auth-code}  # 请修改为真实授权码（非登录密码）
     properties:
       mail:
         smtp:
@@ -131,19 +133,25 @@ logging:
 
 # 大模型配置(可选)
 app:
+  # 超级管理员配置（首次启动时自动创建）
+  super-admin:
+    username: ${SUPER_ADMIN_USERNAME:platform_admin}
+    password: ${SUPER_ADMIN_PASSWORD:Admin@2024#Secure}  # 生产环境请修改为强密码
+    real-name: ${SUPER_ADMIN_REAL_NAME:平台超级管理员}
+  
   llm:
     # 是否启用大模型(true=启用,false=关闭)
     enabled: true
     # 大模型服务商(目前支持:aliyun, baidu, kimi, zhipu)
-    provider: zhipu
+    provider: ${LLM_PROVIDER:zhipu}
     # API Key(从服务商获取)
-    api-key: ${LLM_API_KEY:086732e37f814fbc88673bfbf3de9312.PuYogwojyujj8yQr}
+    api-key: ${LLM_API_KEY:your-api-key-here}  # 请修改为真实 API Key
     # API Secret(从服务商获取,智谱不需要)
     api-secret: ${LLM_API_SECRET:}
     # 模型名称(glm-4-flash-250414最快免费,qwen-turbo低价)
-    model: glm-4-flash-250414
+    model: ${LLM_MODEL:glm-4-flash-250414}
     # API地址(根据服务商配置对应地址)
-    api-url: https://open.bigmodel.cn/api/paas/v4/chat/completions
+    api-url: ${LLM_API_URL:https://open.bigmodel.cn/api/paas/v4/chat/completions}
     # 超时时间(秒)
     timeout: 30
     # 是否使用知识库增强(true=基于知识库回答,false=自由回答)

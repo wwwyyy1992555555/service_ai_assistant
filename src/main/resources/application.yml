@@ -37,6 +37,12 @@ app:
   jwt:
     secret: your-secret-key-here-ai-think-tank-2024
     expire-time: 86400000  # 24 小时
+  
+  # 超级管理员配置（首次启动时自动创建）
+  super-admin:
+    username: ${SUPER_ADMIN_USERNAME:platform_admin}
+    password: ${SUPER_ADMIN_PASSWORD:Admin@2024#Secure}
+    real-name: ${SUPER_ADMIN_REAL_NAME:平台超级管理员}
 
   # 文件存储路径
   upload:

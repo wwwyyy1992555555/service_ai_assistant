@@ -282,9 +282,15 @@ ON DUPLICATE KEY UPDATE
 -- 加密方式：BCrypt.hashpw("123456", BCrypt.gensalt())
 -- 注意：tenant_id=0 表示超级管理员，不属于任何租户，通过用户名区分不同的超级管理员
 -- 安全说明：生产环境请修改默认密码，并启用密码强度校验
+-- 初始租户用户数据（密码统一为: 123456）
+-- BCrypt 哈希值验证: BCrypt.checkpw("123456", "$2a$10$JSPIZK395cEZMmJg7XZkd.yQT3ZnaZmeGZgNOYjLXoGmrY25eaUT2") = true
+-- 注意：超级管理员账号通过 application.yml 配置，首次启动时自动创建，无需在此处插入
 INSERT INTO `user_info` (`tenant_id`, `username`, `password`, `real_name`, `phone`, `email`, `role_level`, `status`) VALUES
-(0, 'admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '超级管理员', '13900139000', 'admin@platform.com', 0, 1),
-(0, 'superadmin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '平台管理员', '13900139001', 'superadmin@platform.com', 0, 1),
-(1, 'admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '管理员', '13800138000', 'admin@gov.cn', 1, 1),
-(1, 'operator', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '操作员', '13800138001', 'operator@gov.cn', 2, 1);
+(1, 'admin', '$2a$10$JSPIZK395cEZMmJg7XZkd.yQT3ZnaZmeGZgNOYjLXoGmrY25eaUT2', '管理员', '13800138000', 'admin@gov.cn', 1, 1),
+(1, 'operator', '$2a$10$JSPIZK395cEZMmJg7XZkd.yQT3ZnaZmeGZgNOYjLXoGmrY25eaUT2', '操作员', '13800138001', 'operator@gov.cn', 2, 1);
+
+-- 登录说明:
+-- 1. 超级管理员: tenantId=0 或 tenantCode 留空, username/platform_admin (可在 application.yml 中配置), password/Admin@2024#Secure (可在 application.yml 中配置)
+-- 2. 租户管理员: tenantCode=租户编码(如 gov), username=admin, password=123456
+-- 3. 租户操作员: tenantCode=租户编码(如 gov), username=operator, password=123456
 
