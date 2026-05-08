@@ -15,13 +15,15 @@ const app = createApp({
         // 反馈列表
         const feedbackList = ref([]);
         const loading = ref(false);
-        const tableHeight = ref(0);
         const selectedRows = ref([]);
         
         // 分页
         const pageCurrent = ref(1);
         const pageSize = ref(10);
         const pageTotal = ref(0);
+        
+        // 表格高度
+        const tableHeight = ref(400);
 
         // 筛选条件
         const filterForm = reactive({
@@ -297,7 +299,6 @@ const app = createApp({
             stats,
             feedbackList,
             loading,
-            tableHeight,
             selectedRows,
             filterForm,
             detailDialogVisible,
@@ -307,6 +308,7 @@ const app = createApp({
             pageCurrent,
             pageSize,
             pageTotal,
+            tableHeight,
             loadFeedbackList,
             resetFilter,
             formatFeedbackReasons,

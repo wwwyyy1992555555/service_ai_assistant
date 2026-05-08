@@ -565,6 +565,13 @@ const app = createApp({
                     loadCategories();
                 }
             });
+            
+            // 监听窗口大小变化：当从移动端切换到 PC 端时自动展开侧边栏
+            window.addEventListener('resize', () => {
+                if (window.innerWidth >= 768 && sidebarCollapsed.value) {
+                    sidebarCollapsed.value = false;
+                }
+            });
         });
         
         watch(currentMenu, async (newVal, oldVal) => {

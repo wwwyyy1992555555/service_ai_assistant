@@ -22,6 +22,7 @@ const app = createApp({
         const searchKeyword = Vue.ref('');
         const filterStatus = Vue.ref(null); // 状态筛选
         const filterIndustryType = Vue.ref(null); // 行业类型筛选
+        const isInitialized = Vue.ref(false); // 新增：防止初始化时触发筛选
         
         // 行业类型列表
         const industryTypeList = Vue.ref([]);
@@ -114,6 +115,8 @@ const app = createApp({
         
         // 筛选变化处理
         const handleFilterChange = () => {
+            // 防止初始化时触发
+            if (!isInitialized.value) return;
             page.current = 1;
             loadTenants();
         };
@@ -243,9 +246,12 @@ const app = createApp({
         };
         
         // 组件挂载时加载数据
-        onMounted(() => {
-            loadIndustryTypes();
-            loadTenants();
+        onMounted(async () => {
+            // 先加载行业类型，再加载租户列表（串行加载）
+            await loadIndustryTypes();
+            await loadTenants();
+            // 标记初始化完成
+            isInitialized.value = true;
         });
         
         return {

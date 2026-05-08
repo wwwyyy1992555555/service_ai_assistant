@@ -34,6 +34,7 @@ if (typeof Vue === 'undefined') {
         const filterCategoryId = ref(undefined);
         const loading = ref(false);
         const selectedRows = ref([]);
+        const isInitialized = ref(false); // 防止初始化时触发筛选
 
         // 表格高度（显式设置，避免 iframe/flex 布局导致表格被压扁）
         const tableHeight = ref(520);
@@ -58,16 +59,20 @@ if (typeof Vue === 'undefined') {
                 let categoryIdParam = filterCategoryId.value;
                 if (categoryIdParam === null) {
                     categoryIdParam = -1;
-                } else if (categoryIdParam === undefined) {
+                } else if (categoryIdParam === undefined || categoryIdParam === '') {
                     categoryIdParam = null;
                 }
+                
+                // 将空字符串转换为 null，避免后端类型转换错误
+                const publishStatusParam = filterPublishStatus.value === '' ? null : filterPublishStatus.value;
+                const isTopParam = filterIsTop.value === '' ? null : filterIsTop.value;
                 
                 const result = await window.loadKnowledgeList(
                     page.current,
                     page.size,
                     searchKeyword.value || '',
-                    filterPublishStatus.value ?? null,
-                    filterIsTop.value ?? null,
+                    publishStatusParam,
+                    isTopParam,
                     categoryIdParam
                 );
                 knowledgeList.value = result.records || [];
@@ -103,6 +108,9 @@ if (typeof Vue === 'undefined') {
         // 筛选处理
         let filterTimer = null;
         const handleFilterChange = () => {
+            // 防止初始化时触发
+            if (!isInitialized.value) return;
+            
             if (filterTimer) clearTimeout(filterTimer);
             filterTimer = setTimeout(() => {
                 page.current = 1;
@@ -350,10 +358,16 @@ if (typeof Vue === 'undefined') {
             }
         };
         
-        onMounted(() => {
+        onMounted(async () => {
             computeTableHeight();
             window.addEventListener('resize', computeTableHeight);
-            Promise.all([loadKnowledgeList(), loadCategories()]);
+            
+            // 先加载分类，再加载知识列表（串行加载）
+            await loadCategories();
+            await loadKnowledgeList();
+            
+            // 标记初始化完成
+            isInitialized.value = true;
         });
         
         return {

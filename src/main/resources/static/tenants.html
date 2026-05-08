@@ -23,12 +23,17 @@
     <div id="app" class="app-container" v-cloak>
         <div class="table-container">
             <div class="table-header">
-                <div class="table-title">🏢 租户管理</div>
+                <div>
+                    <div class="table-title">🏢 租户管理</div>
+                    <div style="margin-top: 6px; font-size: 12px; color: #8c8c8c;">
+                        共 {{ page.total || 0 }} 条，当前显示 {{ tenantsList.length || 0 }} 条
+                    </div>
+                </div>
                 <div class="toolbar">
                     <el-input
                             v-model="searchKeyword"
                             placeholder="搜索租户编码、名称"
-                            style="width: 300px;"
+                            style="width: 320px;"
                             clearable
                             @clear="handleClearSearch"
                             @keyup.enter="handleSearch"
@@ -39,11 +44,11 @@
                             </el-button>
                         </template>
                     </el-input>
-                    <el-select v-model="filterStatus" placeholder="状态筛选" style="width: 120px;" clearable @change="handleFilterChange">
+                    <el-select v-model="filterStatus" placeholder="状态筛选" style="width: 130px;" clearable @change="handleFilterChange">
                         <el-option label="启用" :value="1"></el-option>
                         <el-option label="禁用" :value="0"></el-option>
                     </el-select>
-                    <el-select v-model="filterIndustryType" placeholder="行业类型" style="width: 150px;" clearable @change="handleFilterChange">
+                    <el-select v-model="filterIndustryType" placeholder="行业类型" style="width: 180px;" clearable @change="handleFilterChange">
                         <el-option 
                             v-for="item in industryTypeList" 
                             :key="item.id" 

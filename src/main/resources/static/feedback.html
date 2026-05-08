@@ -19,7 +19,7 @@
         html, body { height: 100%; overflow: auto; }
     </style>
 </head>
-<body class="module-page">
+<body class="module-page feedback-page">
     <div id="app" class="app-container" v-cloak>
         <div class="table-container">
             <div class="table-header">
@@ -36,19 +36,19 @@
                         clearable
                         @clear="resetFilter"
                         @keyup.enter="loadFeedbackList"
-                        style="width: 200px;"
+                        style="width: 320px;"
                     >
                         <template #append>
                             <el-button type="primary" @click="loadFeedbackList">
-                                <el-icon><search /></el-icon> 搜索
+                                <el-icon><search /></el-icon> 
                             </el-button>
                         </template>
                     </el-input>
-                    <el-select v-model="filterForm.status" placeholder="全部状态" clearable style="width: 120px;" @change="loadFeedbackList">
+                    <el-select v-model="filterForm.status" placeholder="状态" clearable style="width: 130px;" @change="loadFeedbackList">
                         <el-option label="待处理" :value="0"></el-option>
                         <el-option label="已处理" :value="1"></el-option>
                     </el-select>
-                    <el-select v-model="filterForm.satisfaction" placeholder="全部星级" clearable style="width: 120px;" @change="loadFeedbackList">
+                    <el-select v-model="filterForm.satisfaction" placeholder="星级" clearable style="width: 130px;" @change="loadFeedbackList">
                         <el-option label="1 星" :value="1"></el-option>
                         <el-option label="2 星" :value="2"></el-option>
                         <el-option label="3 星" :value="3"></el-option>
@@ -68,7 +68,6 @@
             <el-table
                 ref="feedbackTableRef"
                 :data="feedbackList" 
-                :height="tableHeight"
                 stripe 
                 style="width: 100%"
                 v-loading="loading"

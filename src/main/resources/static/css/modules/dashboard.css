@@ -1,7 +1,8 @@
 /* ===== 数据看板模块样式 ===== */
 
-/* 统计卡片 */
+/* 统计卡片 - 与 table-container 保持一致的固定宽度 */
 .dashboard-cards {
+    min-width: 1500px;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 24px;
@@ -126,53 +127,4 @@
     border: 1px solid #d9ecff;
 }
 
-/* ===== 移动端适配 ===== */
-@media screen and (max-width: 768px) {
-    /* 统计卡片改为双列布局 */
-    .dashboard-cards {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-        margin-bottom: 15px;
-    }
-    
-    .stat-card {
-        padding: 15px;
-    }
-    
-    .stat-title {
-        font-size: 12px;
-    }
-    
-    .stat-value {
-        font-size: 24px;
-    }
-    
-    .stat-footer {
-        font-size: 11px;
-    }
-    
-    /* 表格字体调小 */
-    .hot-questions-table .el-table {
-        font-size: 12px;
-    }
-    
-    .hot-questions-table .el-table th {
-        font-size: 12px;
-        padding: 10px 0;
-    }
-    
-    .hot-questions-table .el-table__cell {
-        padding: 8px 0;
-    }
-    
-    /* 排名字体调小 */
-    .hot-questions-table .ranking-cell {
-        font-size: 14px;
-    }
-    
-    /* 问题单元格允许换行 */
-    .hot-questions-table .question-cell {
-        white-space: normal;
-        line-height: 1.4;
-    }
-}
+

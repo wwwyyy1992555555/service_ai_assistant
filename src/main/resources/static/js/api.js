@@ -736,7 +736,9 @@ async function loadFeedbackList(page, size, status, satisfaction, keyword) {
  * 获取反馈统计
  */
 async function loadFeedbackStatistics() {
-    const result = await get(`${API_BASE}/consult/feedback/statistics`);
+    const result = await get(`${API_BASE}/consult/feedback/statistics`, {
+        tenantId: _getTenantId()
+    });
     return result.data || {
         totalFeedbacks: 0,
         pendingCount: 0,
