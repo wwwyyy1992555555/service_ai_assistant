@@ -22,6 +22,14 @@ body {
     min-height: 100vh;
 }
 
+/* 模块页面（iframe 内部）- 确保内容不被侧边栏遮挡 */
+body.module-page {
+    min-width: calc(100% - 240px) !important;
+    padding-left: 240px !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+}
+
 /* 仅后台主框架使用 flex 布局 */
 .admin-page .app-container {
     display: flex;
@@ -62,6 +70,8 @@ body {
     display: flex;
     gap: 12px;
     align-items: center;
+    overflow-x: auto;
+    white-space: nowrap;
 }
 
 /* ===== 通用表单容器 ===== */
@@ -117,4 +127,246 @@ body {
 
 .el-table a {
     color: var(--theme-color);
+}
+
+/* ===== 移动端适配 - 全局最小宽度 ===== */
+
+/* 主容器最小宽度 - 防止内容过度挤压 */
+.app-container {
+    min-width: 1024px;
+}
+
+/* ===== 关键组件最小宽度设置 ===== */
+
+/* 1. 侧边栏导航菜单 - 固定宽度，不压缩 */
+.admin-page .sidebar {
+    min-width: 240px;
+    max-width: 240px;
+    width: 240px !important;
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+}
+
+/* 2. Dashboard 数据卡片容器 */
+.dashboard-cards {
+    min-width: 900px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+}
+
+/* 3. 表格容器最小宽度 - 根据内容估算 */
+.table-container,
+.module-page .table-container {
+    min-width: 1200px;
+}
+
+/* 3.1 知识库管理 - 包含多个操作按钮，需要更大最小宽度 */
+.knowledge-page .table-container {
+    min-width: 1400px;
+}
+
+/* 3.2 用户管理 - 包含状态、操作等多列 */
+.users-page .table-container {
+    min-width: 1300px;
+}
+
+/* 3.3 租户管理 - 包含行业类型、状态等多列 */
+.tenants-page .table-container {
+    min-width: 1350px;
+}
+
+/* 对话框最小宽度 */
+.el-dialog {
+    min-width: 500px !important;
+}
+
+/* 聊天窗口最小宽度 */
+.chat-container {
+    min-width: 960px;
+}
+
+/* 工具栏最小宽度 - 防止按钮挤压 */
+.toolbar,
+.module-page .toolbar {
+    min-width: 600px;
+}
+
+/* ===== 响应式布局方案 ===== */
+
+/* 大屏幕桌面端 (1920px+) */
+@media screen and (min-width: 1920px) {
+    .dashboard-cards {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 30px;
+    }
+}
+
+/* 中等屏幕 (1280px - 1440px) */
+@media screen and (max-width: 1440px) {
+    .app-container {
+        min-width: 1024px;
+    }
+    
+    .table-container,
+    .module-page .table-container {
+        min-width: 1100px;
+    }
+    
+    .knowledge-page .table-container {
+        min-width: 1300px;
+    }
+    
+    .dashboard-cards {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+    
+    /* 搜索框缩小 */
+    .toolbar input,
+    .toolbar select,
+    .module-page .toolbar input,
+    .module-page .toolbar select {
+        width: 250px !important;
+    }
+}
+
+/* 小屏幕桌面端/平板横屏 (1024px - 1280px) */
+@media screen and (max-width: 1280px) {
+    .app-container {
+        min-width: 960px;
+    }
+    
+    .table-container,
+    .module-page .table-container {
+        min-width: 1000px;
+    }
+    
+    .knowledge-page .table-container {
+        min-width: 1200px;
+    }
+    
+    .users-page .table-container,
+    .tenants-page .table-container {
+        min-width: 1150px;
+    }
+    
+    .dashboard-cards {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+    }
+    
+    .toolbar input,
+    .toolbar select,
+    .module-page .toolbar input,
+    .module-page .toolbar select {
+        width: 220px !important;
+    }
+}
+
+/* 平板竖屏/小笔记本 (768px - 1024px) */
+@media screen and (max-width: 1024px) {
+    .app-container {
+        min-width: 800px;
+    }
+    
+    .table-container,
+    .module-page .table-container {
+        min-width: 900px;
+    }
+    
+    .knowledge-page .table-container {
+        min-width: 1100px;
+    }
+    
+    .dashboard-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+    
+    /* 对话框宽度自适应 */
+    .el-dialog {
+        width: 85% !important;
+        max-width: 85% !important;
+    }
+}
+
+/* 移动端 (<= 768px) */
+@media screen and (max-width: 768px) {
+    /* 小屏幕强制横向滚动 */
+    body {
+        overflow-x: auto;
+    }
+    
+    .app-container {
+        min-width: 720px;
+    }
+    
+    .table-container,
+    .module-page .table-container {
+        min-width: 850px;
+        overflow-x: auto;
+    }
+    
+    .knowledge-page .table-container {
+        min-width: 1000px;
+    }
+    
+    .dashboard-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    
+    /* 对话框占满屏幕 */
+    .el-dialog {
+        width: 95% !important;
+        max-width: 95% !important;
+        height: 90% !important;
+        max-height: 90% !important;
+    }
+    
+    /* 侧边栏优化 */
+    .admin-page .sidebar {
+        position: fixed;
+        z-index: 1000;
+        overflow-y: auto;
+    }
+    
+    /* 主内容区适配 */
+    .main-content {
+        margin-left: 240px;
+        min-width: calc(100% - 240px);
+    }
+}
+
+/* 小屏手机 (<= 480px) */
+@media screen and (max-width: 480px) {
+    .app-container {
+        min-width: 640px;
+    }
+    
+    .table-container,
+    .module-page .table-container {
+        min-width: 750px;
+    }
+    
+    .knowledge-page .table-container {
+        min-width: 900px;
+    }
+    
+    .dashboard-cards {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+}
+
+/* ===== 触摸设备优化 ===== */
+@media (hover: none) {
+    .menu-item:hover {
+        background: transparent;
+    }
+    
+    .menu-item:active {
+        background: rgba(255,255,255,0.2);
+    }
 }

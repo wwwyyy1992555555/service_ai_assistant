@@ -25,7 +25,6 @@
     const WINDOW_HEIGHT = config.height || currentScript.getAttribute('data-height');
 
     if (!TENANT_CODE) {
-        console.warn('[Chat Widget] 未找到 data-tenant-code 属性');
         return;
     }
 
@@ -38,13 +37,6 @@
     
     // Chat 页面地址（使用运营商服务器地址）
     const CHAT_PAGE_URL = operatorDomain + '/chat';
-    
-    // 调试：打印路径信息
-    console.log('[Chat Widget] 调试信息:');
-    console.log('  - 脚本路径 (scriptSrc):', scriptSrc);
-    console.log('  - SDK 目录 (baseUrl):', baseUrl);
-    console.log('  - 运营商服务器 (operatorDomain):', operatorDomain);
-    console.log('  - Chat 页面地址 (CHAT_PAGE_URL):', CHAT_PAGE_URL);
 
     /**
      * 创建悬浮按钮
@@ -204,19 +196,7 @@
         `;
         
         // 调试：监听 iframe 加载事件
-        iframe.onload = function() {
-            console.log('[Chat Widget] iframe 加载完成');
-            console.log('  - iframe.src:', iframe.src);
-            console.log('  - iframe.getAttribute("src"):', iframe.getAttribute('src'));
-            try {
-                console.log('  - iframe.contentDocument:', iframe.contentDocument);
-            } catch(e) {
-                console.log('  - 无法访问 iframe.contentDocument（跨域限制）:', e.message);
-            }
-        };
-        
         iframe.onerror = function() {
-            console.error('[Chat Widget] iframe 加载失败');
         };
 
         win.appendChild(closeBtn);
@@ -267,22 +247,18 @@
                         // 验证通过，拼接 URL 加载 chat 页面
                         const chatUrl = operatorDomain + '/chat?tenantId=' + result.data.tenantId;
                         iframe.src = chatUrl;
-                        console.log('✅ 验证通过，加载 chat 页面:', chatUrl);
                         
                         // 显示窗口
                         win.style.display = 'block';
                         adjustButtonPosition(size.height);
                     } else {
-                        console.error('❌ 验证失败:', result.message);
                         alert('租户验证失败：' + (result.message || '未知错误'));
                     }
                 })
                 .catch(error => {
-                    console.error('❌ 请求失败:', error);
                     alert('网络错误，请稍后重试');
                 });
             } else {
-                console.log('  - iframe.src 已存在，直接显示窗口');
                 win.style.display = 'block';
                 adjustButtonPosition(size.height);
             }

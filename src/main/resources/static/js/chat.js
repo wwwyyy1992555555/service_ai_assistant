@@ -6,9 +6,6 @@
 const API_BASE_URL = window.SDK_API_BASE_URL || 'http://localhost:8080/api';
 window.API_BASE_URL = API_BASE_URL;
 
-console.log(MESSAGE.INFO.CHAT_JS_LOADED);
-console.log(formatMessage(MESSAGE.INFO.API_BASE_URL, {url: window.API_BASE_URL}));
-
 // 生成会话 ID
 function generateSessionId() {
     return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);

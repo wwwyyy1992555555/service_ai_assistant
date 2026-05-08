@@ -53,23 +53,6 @@ app:
   # - 文件大小限制：5MB
   # - 单次导入数量：200条
   # 如需调整，请修改 KnowledgeController.importKnowledge 方法
-  
-  # 大模型配置（可选）
-  llm:
-    # 是否启用大模型（true=启用，false=关闭）
-    enabled: false
-    # 大模型服务商（目前支持：aliyun, baidu, kimi）
-    provider: aliyun
-    # API Key（从服务商获取）
-    api-key: ${LLM_API_KEY:}
-    # API Secret（从服务商获取）
-    api-secret: ${LLM_API_SECRET:}
-    # 模型名称
-    model: qwen-turbo
-    # 超时时间（秒）
-    timeout: 30
-    # 是否使用知识库增强（true=基于知识库回答，false=自由回答）
-    knowledge-enhanced: true
 
 # 数据清理任务配置
 data:

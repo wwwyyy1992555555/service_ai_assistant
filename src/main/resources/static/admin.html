@@ -40,8 +40,13 @@
 </head>
 <body class="admin-page">
     <div id="app" class="app-container" v-cloak>
+        <!-- 侧边栏切换按钮（移动端） -->
+        <button class="sidebar-toggle" :class="{ 'expanded': !sidebarCollapsed }" @click="toggleSidebar">
+            <span>{{ sidebarCollapsed ? '☰' : '✕' }}</span>
+        </button>
+        
         <!-- 侧边栏 -->
-        <div class="sidebar">
+        <div class="sidebar" :class="{ 'collapsed': sidebarCollapsed }">
             <div class="logo">
                 <h1>🤖 AI 智库管理平台</h1>
             </div>

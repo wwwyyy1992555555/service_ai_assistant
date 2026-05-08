@@ -208,7 +208,6 @@
                         await registerForm.value.validateField('contactEmail');
         
                         sendingCode.value = true;
-                        console.log('【发送验证码】开始，邮箱:', form.contactEmail);
                         const response = await fetch('/api/tenant/register/send-verify-code', {
                             method: 'POST',
                             headers: {
@@ -219,21 +218,17 @@
                             })
                         });
         
-                        console.log('【发送验证码】响应状态:', response.status);
                         const result = await response.json();
-                        console.log('【发送验证码】响应数据:', result);
         
                         if (result.code === 200) {
                             ElementPlus.ElMessage.success('验证码已发送至您的邮箱');
                             step.value = 2; // 进入第二步
-                            console.log('【发送验证码】成功，切换到第二步');
                             startCountdown();
                         } else {
                             ElementPlus.ElMessage.error(result.message || '发送失败');
-                            console.error('【发送验证码】业务错误:', result.message);
                         }
                     } catch (error) {
-                        console.error('【发送验证码】验证失败或网络异常:', error);
+                        console.error('发送验证码失败:', error);
                         ElementPlus.ElMessage.error('请输入正确的邮箱地址');
                     } finally {
                         sendingCode.value = false;

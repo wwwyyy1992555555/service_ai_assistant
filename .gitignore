@@ -37,8 +37,7 @@ logs/
 *.log
 
 ### Configuration Files ###
-**/dev.yaml
-**/dev.yml
+**/application.yml
 **/application-dev.yml
 **/application-prod.yml
 **/application-test.yml
@@ -64,3 +63,4 @@ PROJECT_INTRODUCTION.md
 PROJECT_BRIEF.md
 .lingma/rules/AI_rules.md
 src/main/resources/static/sdk-test-law-firm.html
+image_res/

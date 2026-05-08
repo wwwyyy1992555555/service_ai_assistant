@@ -87,10 +87,6 @@ const app = createApp({
         
         // 当前登录用户的角色等级（用于控制可创建的用户等级）
         const roleLevelValue = currentUser.roleLevel !== undefined ? Number(currentUser.roleLevel) : 2;
-        console.log(formatMessage(MESSAGE.INFO.USER_LEVEL_DEBUG, {
-            level: currentUser.roleLevel,
-            numeric: roleLevelValue
-        }));
         const currentUserRoleLevel = Vue.ref(roleLevelValue);
         
         const usersList = Vue.ref([]);

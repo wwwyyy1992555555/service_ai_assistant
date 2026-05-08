@@ -22,6 +22,7 @@ body {
     flex-direction: column;
     height: 100vh;
     max-width: 80%;
+    min-width: 960px; /* 聊天窗口最小宽度 */
     margin: 0 auto;
     background: white;
     border: none;

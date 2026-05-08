@@ -59,13 +59,7 @@ const app = createApp({
         
         // 管理员权限判断：tenantId=0 (超级管理员) 或 roleLevel <= 1 (一级/超级管理员)
         const hasAdminPermission = computed(() => {
-            const result = LEVEL_CODE.isPlatformProvider(currentUser.tenantId) || LEVEL_CODE.hasAdminPermission(currentUser.roleLevel);
-            console.log(formatMessage(MESSAGE.INFO.PERMISSION_DEBUG, {
-                result: result,
-                tenantId: currentUser.tenantId,
-                roleLevel: currentUser.roleLevel
-            }));
-            return result;
+            return LEVEL_CODE.isPlatformProvider(currentUser.tenantId) || LEVEL_CODE.hasAdminPermission(currentUser.roleLevel);
         });
         
         // 是否为超级管理员（tenantId=0）
@@ -76,12 +70,11 @@ const app = createApp({
         // ==================== 状态定义 ====================
         // 运营商显示租户管理，租户用户显示数据看板
         const defaultMenu = isSuperAdmin.value ? 'tenants' : 'dashboard';
-        console.log(formatMessage(MESSAGE.INFO.MENU_DEBUG, {
-            menu: defaultMenu,
-            isAdmin: isSuperAdmin.value
-        }));
         const currentMenu = ref(defaultMenu);
         const renderKey = ref(0);
+        
+        // 侧边栏折叠状态（移动端）
+        const sidebarCollapsed = ref(false);
         
         // 统计数据
         const stats = reactive({
@@ -125,6 +118,11 @@ const app = createApp({
         
         const switchMenu = (menu) => {
             currentMenu.value = menu;
+        };
+        
+        // 侧边栏切换方法
+        const toggleSidebar = () => {
+            sidebarCollapsed.value = !sidebarCollapsed.value;
         };
         
         // ==================== 数据看板模块 ====================
@@ -226,11 +224,9 @@ const app = createApp({
                             applyThemeColor(config.themeColor);
                         }
                     }
-                    console.log(MESSAGE.INFO.USE_SEPARATE_TENANT_CONFIG);
-                }
+                    }
             } catch (error) {
-                // 静默失败
-                console.warn(MESSAGE.ERROR.LOAD_TENANT_CONFIG_FAILED, error);
+                console.warn('加载租户配置失败:', error);
             }
         };
         
@@ -566,7 +562,6 @@ const app = createApp({
             // 监听分类变更事件（从分类管理页面触发）
             window.addEventListener('storage', (event) => {
                 if (event.key === 'category_update') {
-                    console.log(MESSAGE.INFO.DETECT_CATEGORY_CHANGE);
                     loadCategories();
                 }
             });
@@ -594,8 +589,10 @@ const app = createApp({
             categoryMap,
             selectedKnowledge,
             detailDialogVisible,
+            sidebarCollapsed,
             getMenuName,
             switchMenu,
+            toggleSidebar,
             saveSettings,
             handleCommand,
             loadSystemSettings,

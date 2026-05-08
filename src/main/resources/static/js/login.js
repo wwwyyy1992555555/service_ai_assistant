@@ -3,7 +3,6 @@ const { createApp } = Vue;
 
 // 检查 Vue 是否加载成功
 if (typeof Vue === 'undefined') {
-    console.error('❌ Vue 未加载！请检查网络连接或 CDN 链接');
     document.getElementById('app').innerHTML = `
         <div style="padding: 50px; text-align: center; font-family: Arial;">
             <h2 style="color: #f56c6c;">❌ 资源加载失败</h2>
@@ -11,8 +10,6 @@ if (typeof Vue === 'undefined') {
             <button onclick="location.reload()" style="padding: 10px 30px; margin-top: 20px; cursor: pointer;">刷新页面</button>
         </div>
     `;
-} else {
-    console.log(formatMessage(MESSAGE.INFO.VUE_LOADED, {version: Vue.version}));
 }
 
 const app = createApp({
